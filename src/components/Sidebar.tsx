@@ -135,12 +135,12 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
 
   function handleNav(id: NavSection) {
     onNavigate(id);
-    onClose(); // close on mobile after nav
+    onClose();
   }
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile backdrop */}
       {open && (
         <div
           className="fixed inset-0 z-20 bg-black/60 lg:hidden"
@@ -148,20 +148,17 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar panel */}
+      {/* Sidebar */}
       <aside
         className={cn(
-          // base
-          "fixed top-0 left-0 z-30 h-full flex flex-col bg-[#141414] border-r border-[#2a2a2a]",
-          "w-[260px] px-6 py-8",
-          // mobile: slide in/out
+          "fixed top-0 left-0 z-30 h-full w-[260px] flex flex-col",
+          "bg-[#141414] border-r border-[#2a2a2a]",
           "transition-transform duration-200 ease-in-out",
           open ? "translate-x-0" : "-translate-x-full",
-          // desktop: always visible
           "lg:relative lg:translate-x-0 lg:z-auto",
         )}
       >
-        {/* ── Logo ── */}
+        {/* Logo — full width, own padding */}
         <div className="flex items-center gap-3 px-5 h-[60px] border-b border-[#2a2a2a] shrink-0">
           <div className="w-8 h-8 rounded-lg bg-[#5645d4] flex items-center justify-center shrink-0">
             <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
@@ -181,16 +178,17 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
             </svg>
           </div>
           <div>
-            <p className="text-[18px] font-semibold text-[#ebebeb] leading-none">
+            <p className="text-[15px] font-semibold text-[#ebebeb] leading-none">
               sorokit
             </p>
+            <p className="text-[11px] text-[#444] mt-0.5">Stellar Dashboard</p>
           </div>
         </div>
 
-        {/* ── Nav ── */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
-          <p className="px-3 mb-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#444]">
-            Menu
+        {/* Nav — own padding */}
+        <nav className="flex-1 overflow-y-auto py-3 px-3">
+          <p className="px-2 mb-2 mt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#3a3a3a]">
+            Navigation
           </p>
           <div className="flex flex-col gap-0.5">
             {NAV.map((item) => (
@@ -199,10 +197,10 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
                 onClick={() => handleNav(item.id)}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer",
-                  "text-[13px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#5645d4]",
+                  "text-[13px] focus-visible:outline-none",
                   active === item.id
-                    ? "bg-[#1e1e1e] text-[#ebebeb] font-medium border border-[#333]"
-                    : "text-[#666] hover:bg-[#1a1a1a] hover:text-[#bbb] border border-transparent",
+                    ? "bg-[#1e1e1e] text-[#ebebeb] font-medium border border-[#2f2f2f]"
+                    : "text-[#555] hover:bg-[#1a1a1a] hover:text-[#aaa] border border-transparent",
                 )}
               >
                 <span
@@ -215,16 +213,16 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
                 </span>
                 {item.label}
                 {active === item.id && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#5645d4]" />
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#5645d4] shrink-0" />
                 )}
               </button>
             ))}
           </div>
         </nav>
 
-        {/* ── Bottom wallet ── */}
+        {/* Bottom wallet */}
         {isConnected && (
-          <div className="px-3 pb-4 pt-3 border-t border-[#2a2a2a] shrink-0">
+          <div className="px-3 py-3 border-t border-[#2a2a2a] shrink-0">
             <AccountCardCompact />
           </div>
         )}

@@ -1,53 +1,62 @@
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap");
+
 @import "tailwindcss";
 
-/* Tell Tailwind v4 where to scan for classes */
 @source "./**/*.{ts,tsx}";
 @source "../index.html";
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/*
+  All custom base styles go inside @layer base.
+  This ensures Tailwind utility classes (px-6, bg-[#141414], etc.)
+  always win over base styles — utilities have higher layer priority.
+*/
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-html {
-  color-scheme: dark;
-  background: #0d0d0d;
-}
+  html {
+    color-scheme: dark;
+    background: #0d0d0d;
+  }
 
-body {
-  background: #0d0d0d;
-  color: #ebebeb;
-  font-family:
-    "Instrument Sans",
-    "SF Pro Display",
-    -apple-system,
-    sans-serif;
-  font-size: 13px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  body {
+    background: #0d0d0d;
+    color: #ebebeb;
+    font-family:
+      "Instrument Sans",
+      "SF Pro Display",
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-[data-address],
-[data-txhash] {
-  font-family: "SF Mono", "Fira Code", ui-monospace, monospace;
-  font-size: 11px;
-  color: #999999;
-  letter-spacing: 0.01em;
-}
+  /* Mono only for addresses and tx hashes */
+  [data-address],
+  [data-txhash] {
+    font-family: "SF Mono", "Fira Code", ui-monospace, monospace;
+    font-size: 11px;
+    color: #999;
+    letter-spacing: 0.01em;
+  }
 
-::-webkit-scrollbar {
-  width: 3px;
-  height: 3px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #3d3d3d;
-  border-radius: 2px;
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2a2a2a;
+    border-radius: 2px;
+  }
 }

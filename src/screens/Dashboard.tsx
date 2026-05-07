@@ -21,6 +21,7 @@ export function Dashboard() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0d0d0d]">
+      {/* Sidebar takes its own width on lg, hidden off-screen on mobile */}
       <Sidebar
         active={active}
         onNavigate={setActive}
@@ -28,16 +29,14 @@ export function Dashboard() {
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Main column */}
+      {/* Right column: topbar + scrollable content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar
           active={active}
           onMenuToggle={() => setSidebarOpen((o) => !o)}
         />
-
-        <main className="flex-1 overflow-y-auto bg-[#0d0d0d]">
-          {/* Centered content with max-width and generous padding */}
-          <div className="w-full max-w-[720px] mx-auto px-6 py-8 sm:px-8 sm:py-10">
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-[700px] mx-auto px-6 py-8 sm:px-10 sm:py-10">
             {SCREENS[active]}
           </div>
         </main>

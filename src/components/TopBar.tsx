@@ -22,7 +22,6 @@ export function TopBar({ active, onMenuToggle }: TopBarProps) {
 
   return (
     <div className="shrink-0">
-      {/* Error banner */}
       {error && (
         <div className="flex items-center justify-between gap-4 px-6 py-2.5 bg-[rgba(239,68,68,0.08)] border-b border-[rgba(239,68,68,0.15)]">
           <p className="text-[12px] text-[#ef4444]">{error}</p>
@@ -42,18 +41,17 @@ export function TopBar({ active, onMenuToggle }: TopBarProps) {
         </div>
       )}
 
-      {/* Main bar */}
-      <header className="flex items-center justify-between px-6 h-[60px] border-b border-[#2a2a2a] bg-[#141414]">
+      <header className="flex items-center justify-between px-6 h-[60px] border-b border-[#2a2a2a] bg-[#141414] shrink-0">
         <div className="flex items-center gap-3">
           {/* Hamburger — mobile only */}
           <button
             onClick={onMenuToggle}
-            className="lg:hidden flex flex-col gap-1 p-1.5 rounded-md hover:bg-[#1c1c1c] transition-colors"
+            className="lg:hidden flex flex-col justify-center gap-[5px] w-8 h-8 rounded-md hover:bg-[#1c1c1c] transition-colors"
             aria-label="Open menu"
           >
-            <span className="w-4 h-px bg-[#999] block" />
-            <span className="w-4 h-px bg-[#999] block" />
-            <span className="w-4 h-px bg-[#999] block" />
+            <span className="w-4 h-px bg-[#888] block mx-auto" />
+            <span className="w-4 h-px bg-[#888] block mx-auto" />
+            <span className="w-4 h-px bg-[#888] block mx-auto" />
           </button>
 
           <div>
