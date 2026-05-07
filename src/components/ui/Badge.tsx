@@ -15,23 +15,28 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variants: Record<BadgeVariant, string> = {
-  default: "bg-surface-2 text-text-2 border border-border-2",
-  success: "bg-green-dim text-green border border-green/20",
-  warning: "bg-orange-dim text-orange border border-orange/20",
-  error: "bg-red-dim text-red border border-red/20",
-  primary: "bg-primary/20 text-primary border border-primary/30",
-  teal: "bg-teal-dim text-teal border border-teal/20",
-  purple: "bg-purple-dim text-purple border border-purple/20",
+  default: "bg-[#1c1c1c] text-[#999999] border border-[#3d3d3d]",
+  success:
+    "bg-[rgba(34,197,94,0.1)] text-[#22c55e] border border-[rgba(34,197,94,0.2)]",
+  warning:
+    "bg-[rgba(249,115,22,0.1)] text-[#f97316] border border-[rgba(249,115,22,0.2)]",
+  error:
+    "bg-[rgba(239,68,68,0.1)] text-[#ef4444] border border-[rgba(239,68,68,0.2)]",
+  primary:
+    "bg-[rgba(86,69,212,0.15)] text-[#5645d4] border border-[rgba(86,69,212,0.25)]",
+  teal: "bg-[rgba(20,184,166,0.1)] text-[#14b8a6] border border-[rgba(20,184,166,0.2)]",
+  purple:
+    "bg-[rgba(168,85,247,0.1)] text-[#a855f7] border border-[rgba(168,85,247,0.2)]",
 };
 
-const dotColors: Record<BadgeVariant, string> = {
-  default: "bg-text-3",
-  success: "bg-green",
-  warning: "bg-orange",
-  error: "bg-red",
-  primary: "bg-primary",
-  teal: "bg-teal",
-  purple: "bg-purple",
+const dots: Record<BadgeVariant, string> = {
+  default: "bg-[#555555]",
+  success: "bg-[#22c55e]",
+  warning: "bg-[#f97316]",
+  error: "bg-[#ef4444]",
+  primary: "bg-[#5645d4]",
+  teal: "bg-[#14b8a6]",
+  purple: "bg-[#a855f7]",
 };
 
 export function Badge({
@@ -52,10 +57,7 @@ export function Badge({
     >
       {dot && (
         <span
-          className={cn(
-            "w-1.5 h-1.5 rounded-full shrink-0",
-            dotColors[variant],
-          )}
+          className={cn("w-1.5 h-1.5 rounded-full shrink-0", dots[variant])}
         />
       )}
       {children}

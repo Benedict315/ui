@@ -61,7 +61,7 @@ export function TransactionPanel() {
     return (
       <Card>
         <CardContent>
-          <p className="text-[11px] text-text-3 text-center py-8">
+          <p className="text-[11px] text-[#555555] text-center py-8">
             Connect your wallet to send transactions
           </p>
         </CardContent>
@@ -81,11 +81,11 @@ export function TransactionPanel() {
         {state === "success" && result ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-green-dim flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 rounded-full bg-[rgba(34,197,94,0.1)] flex items-center justify-center shrink-0">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <path
                     d="M2 6L5 9L10 3"
-                    stroke="var(--color-green)"
+                    stroke="#22c55e"
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -93,16 +93,16 @@ export function TransactionPanel() {
                 </svg>
               </div>
               <div>
-                <p className="text-[12px] font-medium text-text">
+                <p className="text-[12px] font-medium text-[#ebebeb]">
                   Transaction submitted
                 </p>
-                <p className="text-[10px] text-text-3">
+                <p className="text-[10px] text-[#555555]">
                   Ledger #{result.ledger}
                 </p>
               </div>
             </div>
-            <div className="rounded-md bg-surface-2 border border-border p-3 space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+            <div className="rounded-md bg-[#1c1c1c] border border-[#2a2a2a] p-3 space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#555555]">
                 Tx Hash
               </p>
               <span data-txhash className="break-all block">
@@ -115,11 +115,11 @@ export function TransactionPanel() {
           </div>
         ) : state === "error" ? (
           <div className="flex items-start gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-red-dim flex items-center justify-center shrink-0 mt-0.5">
+            <div className="w-7 h-7 rounded-full bg-[rgba(239,68,68,0.1)] flex items-center justify-center shrink-0 mt-0.5">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path
                   d="M6 4V6.5M6 8.5H6.01"
-                  stroke="var(--color-red)"
+                  stroke="#ef4444"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                 />
@@ -127,16 +127,16 @@ export function TransactionPanel() {
                   cx="6"
                   cy="6"
                   r="4.5"
-                  stroke="var(--color-red)"
+                  stroke="#ef4444"
                   strokeWidth="1.2"
                 />
               </svg>
             </div>
             <div>
-              <p className="text-[12px] font-medium text-text">
+              <p className="text-[12px] font-medium text-[#ebebeb]">
                 Transaction failed
               </p>
-              <p className="text-[11px] text-red mt-0.5">{error}</p>
+              <p className="text-[11px] text-[#ef4444] mt-0.5">{error}</p>
             </div>
           </div>
         ) : (

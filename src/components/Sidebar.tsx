@@ -132,11 +132,11 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
   const { isConnected } = useSorokit();
 
   return (
-    <aside className="w-52 shrink-0 h-full flex flex-col border-r border-border bg-surface">
+    <aside className="w-[220px] shrink-0 h-full flex flex-col border-r border-[#2a2a2a] bg-[#141414]">
       {/* Logo */}
-      <div className="h-12 flex items-center px-4 border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center shrink-0">
+      <div className="h-12 flex items-center px-4 border-b border-[#2a2a2a] shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-md bg-[#5645d4] flex items-center justify-center shrink-0">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path
                 d="M2 6C2 3.79 3.79 2 6 2C8.21 2 10 3.79 10 6C10 8.21 8.21 10 6 10"
@@ -153,31 +153,31 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
               <circle cx="6" cy="6" r="1" fill="white" />
             </svg>
           </div>
-          <span className="text-[12px] font-semibold text-text tracking-tight">
+          <span className="text-[13px] font-semibold text-[#ebebeb] tracking-tight">
             sorokit
           </span>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2">
+      {/* Nav items */}
+      <nav className="flex-1 overflow-y-auto py-3 px-2">
         <div className="space-y-0.5">
           {NAV.map((item) => (
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
               className={cn(
-                "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-left transition-colors cursor-pointer",
-                "text-[12px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
+                "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-left transition-colors cursor-pointer",
+                "text-[12px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#5645d4]",
                 active === item.id
-                  ? "bg-surface-2 text-text font-medium"
-                  : "text-text-3 hover:bg-surface-2 hover:text-text-2",
+                  ? "bg-[#1c1c1c] text-[#ebebeb] font-medium"
+                  : "text-[#666666] hover:bg-[#1c1c1c] hover:text-[#ebebeb]",
               )}
             >
               <span
                 className={cn(
-                  "shrink-0",
-                  active === item.id ? "text-primary" : "",
+                  "shrink-0 transition-colors",
+                  active === item.id ? "text-[#5645d4]" : "",
                 )}
               >
                 {item.icon}
@@ -188,9 +188,9 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
         </div>
       </nav>
 
-      {/* Bottom */}
+      {/* Connected wallet at bottom */}
       {isConnected && (
-        <div className="p-2 border-t border-border shrink-0">
+        <div className="p-3 border-t border-[#2a2a2a] shrink-0">
           <AccountCardCompact />
         </div>
       )}

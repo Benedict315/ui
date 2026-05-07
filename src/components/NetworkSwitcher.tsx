@@ -3,11 +3,11 @@ import { useSorokit } from "@/context/SorokitProvider";
 import { cn } from "@/lib/utils";
 import type { NetworkName } from "@/lib/client";
 
-const NETWORKS: { name: NetworkName; label: string; dot: string }[] = [
-  { name: "mainnet", label: "Mainnet", dot: "bg-green" },
-  { name: "testnet", label: "Testnet", dot: "bg-orange" },
-  { name: "futurenet", label: "Futurenet", dot: "bg-purple" },
-  { name: "localnet", label: "Localnet", dot: "bg-text-3" },
+const NETWORKS: { name: NetworkName; label: string; dotClass: string }[] = [
+  { name: "mainnet", label: "Mainnet", dotClass: "bg-[#22c55e]" },
+  { name: "testnet", label: "Testnet", dotClass: "bg-[#f97316]" },
+  { name: "futurenet", label: "Futurenet", dotClass: "bg-[#a855f7]" },
+  { name: "localnet", label: "Localnet", dotClass: "bg-[#555555]" },
 ];
 
 export function NetworkSwitcher() {
@@ -17,9 +17,12 @@ export function NetworkSwitcher() {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md bg-surface-2 border border-border hover:border-border-2 transition-colors cursor-pointer text-[11px] text-text-2 focus-visible:outline-none">
+        <button className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md bg-[#1c1c1c] border border-[#2a2a2a] hover:border-[#3d3d3d] transition-colors cursor-pointer text-[11px] text-[#999999] focus-visible:outline-none">
           <span
-            className={cn("w-1.5 h-1.5 rounded-full shrink-0", current.dot)}
+            className={cn(
+              "w-1.5 h-1.5 rounded-full shrink-0",
+              current.dotClass,
+            )}
           />
           {current.label}
           <svg
@@ -44,7 +47,7 @@ export function NetworkSwitcher() {
         <DropdownMenu.Content
           align="end"
           sideOffset={5}
-          className="z-50 min-w-[140px] rounded-lg border border-border bg-surface p-1 shadow-lg animate-in fade-in-0 zoom-in-95"
+          className="z-50 min-w-[150px] rounded-lg border border-[#2a2a2a] bg-[#141414] p-1 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
         >
           {NETWORKS.map((net) => (
             <DropdownMenu.Item
@@ -53,12 +56,15 @@ export function NetworkSwitcher() {
               className={cn(
                 "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] cursor-pointer outline-none transition-colors",
                 network?.name === net.name
-                  ? "bg-surface-2 text-text font-medium"
-                  : "text-text-2 hover:bg-surface-2 hover:text-text",
+                  ? "bg-[#1c1c1c] text-[#ebebeb] font-medium"
+                  : "text-[#999999] hover:bg-[#1c1c1c] hover:text-[#ebebeb]",
               )}
             >
               <span
-                className={cn("w-1.5 h-1.5 rounded-full shrink-0", net.dot)}
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full shrink-0",
+                  net.dotClass,
+                )}
               />
               {net.label}
               {network?.name === net.name && (

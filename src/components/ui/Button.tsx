@@ -13,11 +13,13 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-text-inv hover:bg-primary-h",
+  primary: "bg-[#5645d4] text-white hover:bg-[#4534b3]",
   secondary:
-    "bg-transparent text-text border border-border-2 hover:bg-surface-2",
-  ghost: "bg-transparent text-text-2 hover:bg-surface-2 hover:text-text",
-  destructive: "bg-red-dim text-red border border-red/20 hover:bg-red/20",
+    "bg-transparent text-[#ebebeb] border border-[#3d3d3d] hover:bg-[#1c1c1c]",
+  ghost:
+    "bg-transparent text-[#999999] hover:bg-[#1c1c1c] hover:text-[#ebebeb]",
+  destructive:
+    "bg-[rgba(239,68,68,0.1)] text-[#ef4444] border border-[rgba(239,68,68,0.2)] hover:bg-[rgba(239,68,68,0.15)]",
 };
 
 const sizes: Record<Size, string> = {
@@ -47,7 +49,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         className={cn(
           "inline-flex items-center justify-center font-medium rounded-md transition-colors cursor-pointer select-none",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#5645d4]",
           "disabled:opacity-40 disabled:cursor-not-allowed",
           variants[variant],
           sizes[size],

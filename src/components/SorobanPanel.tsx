@@ -66,7 +66,7 @@ export function SorobanPanel() {
     return (
       <Card>
         <CardContent>
-          <p className="text-[11px] text-text-3 text-center py-8">
+          <p className="text-[11px] text-[#555555] text-center py-8">
             Connect your wallet to invoke contracts
           </p>
         </CardContent>
@@ -100,7 +100,7 @@ export function SorobanPanel() {
             disabled={state === "loading"}
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-medium text-text-2">
+            <label className="text-[11px] font-medium text-[#999999]">
               Arguments (JSON array)
             </label>
             <textarea
@@ -109,23 +109,23 @@ export function SorobanPanel() {
               onChange={(e) => setArgs(e.target.value)}
               disabled={state === "loading"}
               rows={3}
-              className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-[11px] font-mono text-text placeholder:text-text-3 outline-none focus:border-border-2 focus:ring-1 focus:ring-primary/30 transition-colors resize-none disabled:opacity-40"
+              className="w-full rounded-md border border-[#2a2a2a] bg-[#1c1c1c] px-3 py-2 text-[11px] font-mono text-[#ebebeb] placeholder:text-[#555555] outline-none focus:border-[#3d3d3d] focus:ring-1 focus:ring-[rgba(86,69,212,0.3)] transition-colors resize-none disabled:opacity-40"
             />
           </div>
 
           {state === "success" && result !== null && (
-            <div className="rounded-md bg-green-dim border border-green/20 p-3 space-y-1.5">
+            <div className="rounded-md bg-[rgba(34,197,94,0.05)] border border-[rgba(34,197,94,0.15)] p-3 space-y-1.5">
               <Badge variant="success" dot>
                 Result
               </Badge>
-              <pre className="text-[10px] font-mono text-text-2 whitespace-pre-wrap break-all mt-1">
+              <pre className="text-[10px] font-mono text-[#999999] whitespace-pre-wrap break-all mt-1">
                 {JSON.stringify(result, null, 2)}
               </pre>
             </div>
           )}
           {state === "error" && error && (
-            <div className="rounded-md bg-red-dim border border-red/20 p-3">
-              <p className="text-[11px] text-red">{error}</p>
+            <div className="rounded-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)] p-3">
+              <p className="text-[11px] text-[#ef4444]">{error}</p>
             </div>
           )}
         </form>

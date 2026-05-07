@@ -19,12 +19,12 @@ export function Dashboard() {
   const [active, setActive] = useState<NavSection>("wallet");
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg">
+    <div className="flex h-screen overflow-hidden bg-[#0d0d0d]">
       <Sidebar active={active} onNavigate={setActive} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar active={active} />
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-xl mx-auto">{SCREENS[active]}</div>
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-2xl mx-auto px-6 py-6">{SCREENS[active]}</div>
         </main>
       </div>
     </div>

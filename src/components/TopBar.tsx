@@ -17,11 +17,11 @@ export function TopBar({ active }: { active: NavSection }) {
   return (
     <div className="shrink-0">
       {error && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2 bg-red-dim border-b border-red/20">
-          <p className="text-[11px] text-red">{error}</p>
+        <div className="flex items-center justify-between gap-3 px-5 py-2 bg-[rgba(239,68,68,0.1)] border-b border-[rgba(239,68,68,0.2)]">
+          <p className="text-[11px] text-[#ef4444]">{error}</p>
           <button
             onClick={clearError}
-            className="text-red opacity-60 hover:opacity-100 shrink-0"
+            className="text-[#ef4444] opacity-60 hover:opacity-100 shrink-0"
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
               <path
@@ -34,8 +34,8 @@ export function TopBar({ active }: { active: NavSection }) {
           </button>
         </div>
       )}
-      <header className="h-12 flex items-center justify-between px-4 border-b border-border bg-surface shrink-0">
-        <span className="text-[12px] font-semibold text-text">
+      <header className="h-12 flex items-center justify-between px-5 border-b border-[#2a2a2a] bg-[#141414] shrink-0">
+        <span className="text-[12px] font-semibold text-[#ebebeb]">
           {LABELS[active]}
         </span>
         <div className="flex items-center gap-2">

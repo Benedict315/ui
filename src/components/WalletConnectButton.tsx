@@ -13,9 +13,9 @@ export function WalletConnectButton({ onOpenModal }: WalletConnectButtonProps) {
     return (
       <button
         onClick={onOpenModal}
-        className="inline-flex items-center gap-2 h-7 px-3 rounded-md bg-surface-2 border border-border hover:border-border-2 transition-colors cursor-pointer"
+        className="inline-flex items-center gap-2 h-7 px-3 rounded-md bg-[#1c1c1c] border border-[#2a2a2a] hover:border-[#3d3d3d] transition-colors cursor-pointer"
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-green shrink-0" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] shrink-0" />
         <span data-address>{truncateAddress(address)}</span>
       </button>
     );

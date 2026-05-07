@@ -9,23 +9,23 @@ export function WalletScreen() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-[13px] font-semibold text-text">Wallet</h2>
-        <p className="text-[11px] text-text-3 mt-0.5">
+      <div className="mb-6">
+        <h2 className="text-[15px] font-semibold text-[#ebebeb]">Wallet</h2>
+        <p className="text-[12px] text-[#555555] mt-1">
           Manage your connected wallet
         </p>
       </div>
 
       {/* Status */}
-      <div className="rounded-lg border border-border bg-surface p-4">
+      <div className="rounded-lg border border-[#2a2a2a] bg-[#141414] p-4 mb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[rgba(86,69,212,0.15)] border border-[rgba(86,69,212,0.3)] flex items-center justify-center text-[12px] font-bold text-[#5645d4] shrink-0">
               {address ? address.slice(0, 2) : "—"}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[12px] font-medium text-text">
+                <span className="text-[12px] font-medium text-[#ebebeb]">
                   {isConnected ? "Connected" : "Disconnected"}
                 </span>
                 <Badge variant={isConnected ? "success" : "default"} dot>
@@ -47,7 +47,7 @@ export function WalletScreen() {
         </div>
 
         {network && (
-          <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-[#2a2a2a]">
             <InfoItem label="Network" value={network.name} />
             <InfoItem label="RPC" value={network.rpcUrl} mono />
           </div>
@@ -70,11 +70,11 @@ function InfoItem({
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-text-3">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-[#555555] mb-0.5">
         {label}
       </span>
       <span
-        className={`text-[11px] text-text-2 break-all ${mono ? "font-mono" : ""}`}
+        className={`text-[11px] text-[#999999] break-all ${mono ? "font-mono" : ""}`}
       >
         {value}
       </span>

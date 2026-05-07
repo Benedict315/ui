@@ -1,23 +1,3 @@
-import * as SeparatorPrimitive from "@radix-ui/react-separator";
-import { cn } from "@/lib/utils";
-
-interface SeparatorProps {
-  orientation?: "horizontal" | "vertical";
-  className?: string;
-}
-
-export function Separator({
-  orientation = "horizontal",
-  className,
-}: SeparatorProps) {
-  return (
-    <SeparatorPrimitive.Root
-      orientation={orientation}
-      className={cn(
-        "bg-[var(--color-hairline)] flex-shrink-0",
-        orientation === "horizontal" ? "h-px w-full" : "w-px h-full",
-        className,
-      )}
-    />
-  );
+export function Separator({ className }: { className?: string }) {
+  return <div className={`h-px bg-[#2a2a2a] w-full ${className ?? ""}`} />;
 }
