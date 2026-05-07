@@ -1,5 +1,7 @@
 import { useSorokit } from "@/context/SorokitProvider";
 import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { AddressDisplay } from "@/components/AddressDisplay";
 import { truncateAddress } from "@/lib/utils";
 
 export function AccountCard() {
@@ -22,20 +24,13 @@ export function AccountCard() {
       <div className="px-5 py-5">
         {isLoadingAccount ? (
           <div className="flex flex-col gap-4">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-4 rounded-lg bg-surface-2 animate-pulse"
-              />
-            ))}
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
           </div>
         ) : (
           <div className="flex flex-col gap-5">
-            <Field label="Address">
-              <span data-address className="break-all leading-relaxed">
-                {address}
-              </span>
-            </Field>
+            <AddressDisplay address={address} showFull label="Address" />
             {account && (
               <div className="grid grid-cols-2 gap-5">
                 <Field label="Sequence">
