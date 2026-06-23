@@ -15,17 +15,27 @@ type State = "idle" | "loading" | "success" | "error";
 export function TransactionPanel() {
   const { address, isConnected } = useSorokit();
   const [dest, setDest] = useState("");
+  const [destDirty, setDestDirty] = useState(false);
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<TxResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const isDestValid = /^G[A-Z2-7]{55}$/.test(dest.trim());
   const canSubmit =
-    isConnected && dest.trim() && amount.trim() && parseFloat(amount) > 0;
+    isConnected &&
+    isDestValid &&
+    amount.trim() &&
+    parseFloat(amount) > 0;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!address) {
+      setError("Wallet not connected");
+      setState("error");
+      return;
+    }
     if (!canSubmit) return;
     setState("loading");
     setError(null);
@@ -48,11 +58,16 @@ export function TransactionPanel() {
       setDest("");
       setAmount("");
       setMemo("");
+      setDestDirty(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
       setState("error");
     }
   }
+
+  const handleSendClick = () => {
+    submit({ preventDefault: () => {} } as React.FormEvent);
+  };
 
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
@@ -125,7 +140,11 @@ export function TransactionPanel() {
               label="Destination Address"
               placeholder="G..."
               value={dest}
-              onChange={(e) => setDest(e.target.value)}
+              onChange={(e) => {
+                setDest(e.target.value);
+                setDestDirty(true);
+              }}
+              error={destDirty && !isDestValid ? "Invalid Stellar address" : undefined}
               disabled={state === "loading"}
             />
             <Input
@@ -158,6 +177,7 @@ export function TransactionPanel() {
               setState("idle");
               setResult(null);
               setError(null);
+              setDestDirty(false);
             }}
           >
             New Transaction
@@ -167,7 +187,7 @@ export function TransactionPanel() {
             size="md"
             loading={state === "loading"}
             disabled={!canSubmit}
-            onClick={submit as unknown as React.MouseEventHandler}
+            onClick={handleSendClick}
           >
             {state === "loading" ? "Submitting…" : "Send Payment"}
           </Button>
