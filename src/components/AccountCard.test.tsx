@@ -13,7 +13,7 @@ describe("AccountCard", () => {
   });
 
   it("renders a skeleton during loading", () => {
-    (useSorokit as any).mockReturnValue({
+    vi.mocked(useSorokit).mockReturnValue({
       address: "GABC",
       account: null,
       isLoadingAccount: true,
@@ -28,7 +28,7 @@ describe("AccountCard", () => {
   });
 
   it("renders account fields after load", () => {
-    (useSorokit as any).mockReturnValue({
+    vi.mocked(useSorokit).mockReturnValue({
       address: "GABC",
       account: {
         sequence: "123456",
@@ -46,7 +46,7 @@ describe("AccountCard", () => {
   });
 
   it("returns null when no address is present", () => {
-    (useSorokit as any).mockReturnValue({
+    vi.mocked(useSorokit).mockReturnValue({
       address: null,
       account: null,
       isLoadingAccount: false,

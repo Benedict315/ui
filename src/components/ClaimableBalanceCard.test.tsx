@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ClaimableBalanceCard } from "./ClaimableBalanceCard";
 import { getClient } from "@/lib/client";
@@ -18,7 +18,7 @@ describe("ClaimableBalanceCard", () => {
   });
 
   it("renders an error message and re-enables button on claim failure, shows Claimed badge on success", async () => {
-    (useSorokit as any).mockReturnValue({
+    vi.mocked(useSorokit).mockReturnValue({
       address: "GABC123",
       isConnected: true,
     });
@@ -40,7 +40,7 @@ describe("ClaimableBalanceCard", () => {
       error: null,
     });
 
-    (getClient as any).mockReturnValue({
+    vi.mocked(getClient).mockReturnValue({
       account: {
         getClaimableBalances: mockGetClaimableBalances,
         claimBalance: mockClaimBalance,
