@@ -29,5 +29,8 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify Exports
+        run: npm run test:exports
+
       - name: Run tests
         run: npm test

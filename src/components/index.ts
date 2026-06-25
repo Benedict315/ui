@@ -43,3 +43,14 @@ export { ContractEventFeed } from "./ContractEventFeed";
 
 // Utilities
 export { QRCode } from "./QRCode";
+
+// Types
+export type {
+  AccountData,
+  Balance,
+  Transaction,
+  ClaimableBalance,
+  ContractEvent,
+  NetworkInfo,
+  InvokeParams,
+} from "../lib/client";

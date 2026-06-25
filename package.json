@@ -28,7 +28,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:exports": "tsc --noEmit src/verify-exports.ts"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.1.2",
