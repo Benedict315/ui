@@ -36,12 +36,13 @@ export class ErrorBoundary extends Component<Props, State> {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base px-4">
         <div className="w-full max-w-[400px] flex flex-col items-center gap-6 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)] flex items-center justify-center">
+          <div className="w-14 h-14 rounded-2xl bg-error-dim border border-error-dim-strong flex items-center justify-center">
             <HugeiconsIcon
               icon={AlertCircleIcon}
               size={24}
-              color="#ef4444"
+              color="currentColor"
               strokeWidth={1.5}
+              className="text-red"
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -53,7 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
               resetting the component.
             </p>
           </div>
-          <div className="w-full rounded-xl border border-[rgba(239,68,68,0.15)] bg-[rgba(239,68,68,0.05)] px-5 py-4 text-left">
+          <div className="w-full rounded-xl border border-error-dim bg-error-dim-subtle px-5 py-4 text-left">
             <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4 mb-2">
               Error
             </p>

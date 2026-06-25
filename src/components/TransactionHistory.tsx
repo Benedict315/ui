@@ -31,13 +31,14 @@ function TxRow({ tx }: { tx: Transaction }) {
       <div className="flex items-center gap-3 min-w-0">
         {/* Status icon */}
         <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${tx.successful ? "bg-[rgba(34,197,94,0.1)]" : "bg-[rgba(239,68,68,0.1)]"}`}
+          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${tx.successful ? "bg-success-dim" : "bg-error-dim"}`}
         >
           <HugeiconsIcon
             icon={tx.successful ? CheckmarkCircle01Icon : Cancel01Icon}
             size={14}
-            color={tx.successful ? "#22c55e" : "#ef4444"}
+            color="currentColor"
             strokeWidth={1.5}
+            className={tx.successful ? "text-green" : "text-red"}
           />
         </div>
 
@@ -55,7 +56,7 @@ function TxRow({ tx }: { tx: Transaction }) {
       </div>
 
       <div className="flex flex-col items-end gap-0.5 shrink-0">
-        <Badge variant={tx.successful ? "success" : "error"}>
+        <Badge variant={tx.successful ? "success" : "error"} live>
           {tx.successful ? "Success" : "Failed"}
         </Badge>
         <span className="text-[10px] text-ink-3">

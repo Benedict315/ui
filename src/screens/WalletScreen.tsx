@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSorokit } from "@/context/useSorokit";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -10,6 +10,35 @@ import { AddressDisplay } from "@/components/AddressDisplay";
 
 export function WalletScreen() {
   const { address, isConnected, disconnectWallet, network } = useSorokit();
+  const [isConfirming, setIsConfirming] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  const handleDisconnect = () => {
+    if (isConfirming) {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setIsConfirming(false);
+      disconnectWallet();
+    } else {
+      setIsConfirming(true);
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = window.setTimeout(() => {
+        setIsConfirming(false);
+      }, 3000);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex flex-col gap-6">
@@ -35,8 +64,12 @@ export function WalletScreen() {
             </div>
           </div>
           {isConnected && (
-            <Button variant="secondary" size="sm" onClick={disconnectWallet}>
-              Disconnect
+            <Button
+              variant={isConfirming ? "destructive" : "secondary"}
+              size="sm"
+              onClick={handleDisconnect}
+            >
+              {isConfirming ? "Disconnect?" : "Disconnect"}
             </Button>
           )}
         </div>
@@ -112,7 +145,7 @@ function InfoCell({
             className={cn(
               "shrink-0 p-1 rounded-md transition-all",
               copied
-                ? "text-green bg-[rgba(34,197,94,0.1)]"
+                ? "text-green bg-success-dim"
                 : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
             )}
             title={copied ? "Copied!" : "Copy value"}

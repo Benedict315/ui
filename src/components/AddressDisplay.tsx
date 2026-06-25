@@ -59,7 +59,7 @@ export function AddressDisplay({
           className={cn(
             "shrink-0 p-1 rounded-md transition-all",
             copied
-              ? "text-green bg-[rgba(34,197,94,0.1)]"
+              ? "text-green bg-success-dim"
               : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
           )}
           title={copied ? "Copied!" : "Copy address"}

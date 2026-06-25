@@ -45,7 +45,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             "text-[13px] text-ink placeholder:text-ink-4",
             "outline-none transition-colors",
             error
-              ? "border-[rgba(239,68,68,0.5)] focus:border-red focus:ring-1 focus:ring-[rgba(239,68,68,0.2)]"
+              ? "border-error-dim-input focus:border-red focus:ring-1 ring-error-dim"
               : "border-line focus:border-line-2 focus:ring-1 focus:ring-brand-dim",
             "disabled:opacity-40 disabled:cursor-not-allowed",
             className,

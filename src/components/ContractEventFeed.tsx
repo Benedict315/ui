@@ -136,7 +136,8 @@ export function ContractEventFeed({
           {pollInterval > 0 && (
             <button
               onClick={() => setLive((l) => !l)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${live ? "bg-[rgba(34,197,94,0.1)] text-green border-[rgba(34,197,94,0.2)]" : "bg-surface-2 text-ink-3 border-line-2"}`}
+              aria-pressed={live}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${live ? "bg-success-dim text-green border-success-dim-strong" : "bg-surface-2 text-ink-3 border-line-2"}`}
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full ${live ? "bg-green animate-pulse" : "bg-ink-3"}`}
@@ -176,7 +177,7 @@ export function ContractEventFeed({
           No events found
         </p>
       ) : (
-        <div>
+        <div aria-live="polite">
           {events.map((e) => (
             <EventRow key={e.id} event={e} />
           ))}

@@ -3,15 +3,10 @@ import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import { useSorokit } from "@/context/useSorokit";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Menu01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { SCREEN_LABELS } from "@/lib/nav-labels";
 import type { NavSection } from "@/components/Sidebar";
 
-const LABELS: Record<NavSection, { title: string; sub: string }> = {
-  wallet: { title: "Wallet", sub: "Manage your connected wallet" },
-  account: { title: "Account", sub: "Balances and account details" },
-  transactions: { title: "Transactions", sub: "Send payments on Stellar" },
-  soroban: { title: "Soroban", sub: "Invoke smart contracts" },
-  network: { title: "Network", sub: "Switch between networks" },
-};
+const LABELS = SCREEN_LABELS;
 
 export function TopBar({
   active,
@@ -26,7 +21,7 @@ export function TopBar({
   return (
     <div className="shrink-0">
       {error && (
-        <div className="flex items-center justify-between gap-4 px-6 py-2.5 bg-[rgba(239,68,68,0.08)] border-b border-[rgba(239,68,68,0.15)]">
+        <div className="flex items-center justify-between gap-4 px-6 py-2.5 bg-error-dim-muted border-b border-error-dim">
           <p className="text-[12px] text-red">{error}</p>
           <button
             onClick={clearError}

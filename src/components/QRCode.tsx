@@ -1,11 +1,23 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
+function readCssColor(variable: string, fallback: string): string {
+  if (typeof document === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(variable)
+    .trim();
+  return value || fallback;
+}
+
 interface QRCodeProps {
   value: string;
   size?: number;
   className?: string;
   label?: string;
+  /** Canvas background colour. Defaults to `--color-qr-canvas-bg`. */
+  canvasBackground?: string;
+  /** Canvas foreground (cell) colour. Defaults to `--color-qr-canvas-fg`. */
+  canvasForeground?: string;
 }
 
 /**
@@ -13,7 +25,14 @@ interface QRCodeProps {
  * Uses the QR SVG path algorithm (no external library needed).
  * For production, swap the inner canvas with a proper QR library like `qrcode`.
  */
-export function QRCode({ value, size = 160, className, label }: QRCodeProps) {
+export function QRCode({
+  value,
+  size = 160,
+  className,
+  label,
+  canvasBackground,
+  canvasForeground,
+}: QRCodeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -21,6 +40,13 @@ export function QRCode({ value, size = 160, className, label }: QRCodeProps) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    const bg =
+      canvasBackground ??
+      readCssColor("--color-qr-canvas-bg", "#ffffff");
+    const fg =
+      canvasForeground ??
+      readCssColor("--color-qr-canvas-fg", "#0d0d0d");
 
     // Simple visual placeholder — replace with real QR generation
     // e.g. import QRCode from 'qrcode'; QRCode.toCanvas(canvas, value)
@@ -32,12 +58,12 @@ export function QRCode({ value, size = 160, className, label }: QRCodeProps) {
     ctx.scale(dpr, dpr);
 
     // Background
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, size, size);
 
     // Draw a placeholder grid pattern
     const cellSize = size / 25;
-    ctx.fillStyle = "#0d0d0d";
+    ctx.fillStyle = fg;
 
     // Deterministic pattern from value string
     for (let row = 0; row < 25; row++) {
@@ -65,11 +91,11 @@ export function QRCode({ value, size = 160, className, label }: QRCodeProps) {
         }
       }
     }
-  }, [value, size]);
+  }, [value, size, canvasBackground, canvasForeground]);
 
   return (
     <div className={cn("flex flex-col items-center gap-3", className)}>
-      <div className="rounded-xl border border-line p-3 bg-white shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
+      <div className="rounded-xl border border-line p-3 bg-[var(--color-qr-canvas-bg)] shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
         <canvas
           ref={canvasRef}
           style={{ display: "block", borderRadius: "4px" }}

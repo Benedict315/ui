@@ -14,12 +14,17 @@ import type {
 } from "./client";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const randHex = (len: number) =>
-  Array.from({ length: len }, () =>
-    Math.floor(Math.random() * 16).toString(16),
-  ).join("");
+let seedState = 123456789;
+const randHex = (len: number) => {
+  let result = "";
+  for (let i = 0; i < len; i++) {
+    seedState = (seedState * 1664525 + 1013904223) % 4294967296;
+    result += (seedState % 16).toString(16);
+  }
+  return result;
+};
 
-const MOCK_ADDRESS = "GBAMQXTQ7IQKPZXJKZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQ";
+const MOCK_ADDRESS = "GBAMQXTQ7IQKPZXJKZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQQQQ";
 
 const MOCK_BALANCES: Balance[] = [
   { asset: "XLM", balance: "1042.5000000", assetType: "native" },
@@ -48,10 +53,10 @@ const MOCK_ACCOUNT: AccountData = {
 const MOCK_HISTORY: Transaction[] = Array.from({ length: 20 }, (_, i) => ({
   hash: randHex(64),
   ledger: 48291034 - i * 12,
-  createdAt: new Date(Date.now() - i * 3600000).toISOString(),
+  createdAt: new Date(1782248400000 - i * 3600000).toISOString(),
   successful: i !== 3 && i !== 11,
-  operationCount: Math.floor(Math.random() * 3) + 1,
-  feePaid: (100 + Math.floor(Math.random() * 400)).toString(),
+  operationCount: (i % 3) + 1,
+  feePaid: (100 + (i % 4) * 100).toString(),
   memo: i % 4 === 0 ? `memo-${i}` : undefined,
 }));
 
@@ -77,9 +82,9 @@ const MOCK_EVENTS: ContractEvent[] = Array.from({ length: 8 }, (_, i) => ({
   contractId: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
   type: ["transfer", "mint", "burn", "approve"][i % 4],
   ledger: 48291035 - i * 5,
-  createdAt: new Date(Date.now() - i * 600000).toISOString(),
+  createdAt: new Date(1782248400000 - i * 600000).toISOString(),
   topics: [`topic_${i}_a`, `topic_${i}_b`],
-  value: { amount: (Math.random() * 1000).toFixed(7), from: MOCK_ADDRESS },
+  value: { amount: ((i + 1) * 12.3456789).toFixed(7), from: MOCK_ADDRESS },
 }));
 
 const NETWORKS: Record<string, NetworkInfo> = {
@@ -207,7 +212,10 @@ export function createMockClient(): SorokitClient {
       },
       switchNetwork: async (name) => {
         await delay(600);
-        currentNetwork = NETWORKS[name] ?? NETWORKS.testnet;
+        if (!NETWORKS[name]) {
+          return { data: null, error: `Invalid network: ${name}` };
+        }
+        currentNetwork = NETWORKS[name];
         return { data: currentNetwork, error: null };
       },
     },

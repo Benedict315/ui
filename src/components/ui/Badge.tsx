@@ -12,16 +12,17 @@ type BadgeVariant =
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
   dot?: boolean;
+  live?: boolean;
 }
 
 const variants: Record<BadgeVariant, string> = {
   default: "bg-surface-2 text-ink-2 border border-line-2",
   success:
-    "bg-[rgba(34,197,94,0.1)]  text-green  border border-[rgba(34,197,94,0.2)]",
+    "bg-success-dim text-green border border-success-dim-strong",
   warning:
     "bg-[rgba(249,115,22,0.1)] text-orange border border-[rgba(249,115,22,0.2)]",
   error:
-    "bg-[rgba(239,68,68,0.1)]  text-red    border border-[rgba(239,68,68,0.2)]",
+    "bg-error-dim text-red border border-error-dim-strong",
   primary: "bg-brand-dim text-brand border border-[rgba(86,69,212,0.25)]",
   teal: "bg-[rgba(20,184,166,0.1)] text-teal   border border-[rgba(20,184,166,0.2)]",
   purple:
@@ -41,6 +42,7 @@ const dots: Record<BadgeVariant, string> = {
 export function Badge({
   variant = "default",
   dot,
+  live,
   className,
   children,
   ...props
@@ -48,14 +50,18 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-semibold tracking-wide",
+        "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold tracking-wide",
         variants[variant],
         className,
       )}
+      {...(live ? { role: "status", "aria-live": "polite" } : {})}
       {...props}
     >
       {dot && (
-        <span className={cn("w-1 h-1 rounded-full shrink-0", dots[variant])} />
+        <span
+          aria-hidden="true"
+          className={cn("w-1 h-1 rounded-full shrink-0", dots[variant])}
+        />
       )}
       {children}
     </span>

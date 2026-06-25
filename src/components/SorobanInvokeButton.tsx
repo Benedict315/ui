@@ -111,7 +111,7 @@ export function SorobanInvokeButton({
       </div>
 
       {showResult && state === "success" && result !== null && (
-        <div className="rounded-lg bg-[rgba(34,197,94,0.05)] border border-[rgba(34,197,94,0.15)] px-4 py-3">
+        <div className="rounded-lg bg-success-dim-subtle border border-success-dim px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4 mb-1.5">
             Result
           </p>
@@ -122,7 +122,7 @@ export function SorobanInvokeButton({
       )}
 
       {showResult && state === "error" && error && (
-        <div className="rounded-lg bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.15)] px-4 py-3">
+        <div className="rounded-lg bg-error-dim-muted border border-error-dim px-4 py-3">
           <p className="text-[11px] text-red">{error}</p>
         </div>
       )}

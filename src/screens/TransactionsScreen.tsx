@@ -1,8 +1,19 @@
+import { FeeEstimator } from "@/components/FeeEstimator";
 import { TransactionPanel } from "@/components/TransactionPanel";
+import { SCREEN_LABELS } from "@/lib/nav-labels";
 
 export function TransactionsScreen() {
+  const { title, sub } = SCREEN_LABELS.transactions;
+
   return (
     <div className="flex flex-col gap-5">
+      <div>
+        <h2 className="text-[15px] font-semibold text-ink leading-none">
+          {title}
+        </h2>
+        <p className="text-[11px] text-ink-3 mt-0.5">{sub}</p>
+      </div>
+      <FeeEstimator />
       <TransactionPanel />
     </div>
   );

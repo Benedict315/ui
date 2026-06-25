@@ -42,6 +42,7 @@ All components are unstyled by default and accept a `className` prop, making the
 - [Components](#components)
 - [Hooks](#hooks)
 - [Styling](#styling)
+- [Theming](#theming)
 - [Networks](#networks)
 - [Design Principles](#design-principles)
 - [License](#license)
@@ -210,6 +211,61 @@ To apply a consistent base style across all components, pass a `classNames` map 
   {children}
 </SorokitProvider>
 ```
+
+---
+
+## Theming
+
+`sorokit-ui` ships with a dark-first design token system defined in `src/index.css`. All components reference semantic CSS custom properties rather than hardcoded colours, so consumer apps can adapt the library to light mode or a custom brand palette by overriding tokens on `:root`.
+
+### Token categories
+
+| Category | Examples | Utility classes |
+|----------|----------|-----------------|
+| Surfaces | `--color-base`, `--color-surface`, `--color-surface-2` | `bg-base`, `bg-surface`, `bg-surface-2` |
+| Text | `--color-ink`, `--color-ink-2`, `--color-ink-3` | `text-ink`, `text-ink-2`, `text-ink-3` |
+| Borders | `--color-line`, `--color-line-2` | `border-line`, `border-line-2` |
+| Brand | `--color-brand`, `--color-brand-hover` | `bg-brand`, `text-brand` |
+| State | `--color-success-bg`, `--color-error-bg` | `bg-success-dim`, `bg-error-dim` |
+| QR canvas | `--color-qr-canvas-bg`, `--color-qr-canvas-fg` | — |
+
+### Light mode adaptation
+
+Override tokens in your app's global stylesheet. The library uses `color-scheme: dark` by default; switch to light by overriding surface and ink tokens and setting `color-scheme: light`:
+
+```css
+:root {
+  color-scheme: light;
+
+  --color-base: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-surface-2: #ebebeb;
+  --color-ink: #1a1a1a;
+  --color-ink-2: #666666;
+  --color-ink-3: #999999;
+  --color-line: #e0e0e0;
+
+  /* QR codes: white background works in light mode by default */
+  --color-qr-canvas-bg: #ffffff;
+  --color-qr-canvas-fg: #0d0d0d;
+}
+```
+
+You can also respect the OS preference with `prefers-color-scheme`:
+
+```css
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --color-base: #ffffff;
+    /* …other light tokens */
+  }
+}
+```
+
+### Component-level overrides
+
+`QRCode` accepts `canvasBackground` and `canvasForeground` props for per-instance control. All other components accept `className` for local overrides.
 
 ---
 

@@ -5,7 +5,7 @@ import type { Balance } from "@/lib/client";
 const ASSET_COLORS: Record<string, { bg: string; text: string }> = {
   XLM: { bg: "bg-[rgba(20,184,166,0.12)]", text: "text-teal" },
   USDC: { bg: "bg-[rgba(86,69,212,0.12)]", text: "text-brand" },
-  USDT: { bg: "bg-[rgba(34,197,94,0.12)]", text: "text-green" },
+  USDT: { bg: "bg-success-dim-strong", text: "text-green" },
   BTC: { bg: "bg-[rgba(249,115,22,0.12)]", text: "text-orange" },
   ETH: { bg: "bg-[rgba(168,85,247,0.12)]", text: "text-purple" },
 };

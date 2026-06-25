@@ -2,6 +2,7 @@ import { useSorokit } from "@/context/useSorokit";
 import { Button } from "@/components/ui/Button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import heroImg from "@/assets/hero.png";
 
 export function ConnectScreen() {
   const { connectWallet, isConnecting, error, clearError } = useSorokit();
@@ -38,6 +39,13 @@ export function ConnectScreen() {
           </div>
         </div>
 
+        {/* Hero image */}
+        <img
+          src={heroImg}
+          alt="sorokit wallet dashboard preview"
+          className="w-full rounded-xl object-cover"
+        />
+
         {/* Card */}
         <div className="w-full rounded-2xl border border-line bg-surface overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.2)]">
           <div className="px-8 pt-8 pb-6 border-b border-line">
@@ -51,7 +59,7 @@ export function ConnectScreen() {
           </div>
           <div className="px-5 py-5 flex flex-col gap-4">
             {error && (
-              <div className="flex items-start justify-between gap-3 rounded-lg bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.15)] px-4 py-3">
+              <div className="flex items-start justify-between gap-3 rounded-lg bg-error-dim-muted border border-error-dim px-4 py-3">
                 <p className="text-[13px] text-red">{error}</p>
                 <button
                   onClick={clearError}
@@ -74,6 +82,11 @@ export function ConnectScreen() {
             >
               {isConnecting ? "Connecting…" : "Connect Wallet"}
             </Button>
+            {isConnecting && (
+              <p className="text-[12px] text-ink-3 text-center">
+                Connecting to your wallet…
+              </p>
+            )}
             <p className="text-[11px] text-ink-4 text-center">
               Powered by sorokit-core · Stellar network
             </p>

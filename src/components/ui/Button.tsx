@@ -17,7 +17,7 @@ const variants: Record<Variant, string> = {
   secondary: "bg-transparent text-ink border border-line-2 hover:bg-surface-2",
   ghost: "bg-transparent text-ink-2 hover:bg-surface-2 hover:text-ink",
   destructive:
-    "bg-[rgba(239,68,68,0.1)] text-red border border-[rgba(239,68,68,0.2)] hover:bg-[rgba(239,68,68,0.15)]",
+    "bg-error-dim text-red border border-error-dim-strong hover:bg-error-dim-hover",
 };
 
 const sizes: Record<Size, string> = {
