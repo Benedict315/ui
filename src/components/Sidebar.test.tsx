@@ -95,4 +95,58 @@ describe("Sidebar", () => {
     );
     expect(screen.queryByTestId("account-card-compact")).not.toBeInTheDocument();
   });
+
+  it("renders nav element with correct aria-label", () => {
+    render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+    );
+    const navElement = screen.getByRole("navigation");
+    expect(navElement).toHaveAttribute("aria-label", "Main navigation");
+  });
+
+  it("traps focus and handles escape/restoration on mobile", () => {
+    vi.stubGlobal("innerWidth", 375);
+
+    // Create a dummy trigger element and focus it
+    const trigger = document.createElement("button");
+    trigger.setAttribute("id", "trigger-btn");
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    // Render Sidebar with open={true}
+    const { rerender } = render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={true} onClose={onClose} />
+    );
+
+    // Verify first nav button is focused
+    const sidebarContainer = document.querySelector("aside")!;
+    const sidebarButtons = sidebarContainer.querySelectorAll("button");
+    const walletButton = sidebarButtons[0];
+    const lastButton = sidebarButtons[sidebarButtons.length - 1];
+    expect(document.activeElement).toBe(walletButton);
+
+    // Test Escape key closes the sidebar
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalled();
+
+    // Test Tab trap: Shift+Tab on first element wraps to last element
+    fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(lastButton);
+
+    // Test Tab trap: Tab on last element wraps to first element
+    lastButton.focus();
+    fireEvent.keyDown(window, { key: "Tab" });
+    expect(document.activeElement).toBe(walletButton);
+
+    // Test returning focus when closing
+    rerender(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />
+    );
+    expect(document.activeElement).toBe(trigger);
+
+    // Clean up
+    document.body.removeChild(trigger);
+    vi.unstubAllGlobals();
+  });
 });

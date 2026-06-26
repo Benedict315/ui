@@ -42,16 +42,16 @@ export function QRCode({
 }: QRCodeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [renderError, setRenderError] = useState(false);
-  const lastPropsRef = useRef({ value, size, canvasBackground, canvasForeground });
+  const [prevProps, setPrevProps] = useState({ value, size, canvasBackground, canvasForeground });
 
   /* eslint-disable react-hooks/refs */
   if (
-    lastPropsRef.current.value !== value ||
-    lastPropsRef.current.size !== size ||
-    lastPropsRef.current.canvasBackground !== canvasBackground ||
-    lastPropsRef.current.canvasForeground !== canvasForeground
+    prevProps.value !== value ||
+    prevProps.size !== size ||
+    prevProps.canvasBackground !== canvasBackground ||
+    prevProps.canvasForeground !== canvasForeground
   ) {
-    lastPropsRef.current = { value, size, canvasBackground, canvasForeground };
+    setPrevProps({ value, size, canvasBackground, canvasForeground });
     setRenderError(false);
   }
   /* eslint-enable react-hooks/refs */
@@ -88,7 +88,7 @@ export function QRCode({
           light: bg,
         },
       },
-      (error) => {
+      (error: Error | null | undefined) => {
         if (error && active) {
           console.error("Failed to render QR Code:", error);
           setRenderError(true);

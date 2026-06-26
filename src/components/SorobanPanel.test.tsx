@@ -3,9 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SorobanPanel } from "./SorobanPanel";
 import { useSorokit } from "@/context/useSorokit";
 
+const mockInvokeContract = vi.fn();
+
 // Mock the useSorokit context
 vi.mock("@/context/useSorokit", () => ({
-  useSorokit: vi.fn(),
+  useSorokit: vi.fn(() => ({
+    isConnected: true,
+    address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
+  })),
 }));
 
 const mockInvokeContract = vi.fn();
@@ -19,19 +24,12 @@ vi.mock("../lib/client", () => ({
   }),
 }));
 
-vi.mock("@/context/useSorokit", () => ({
-  useSorokit: () => ({
-    isConnected: true,
-    address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
-  }),
-}));
-
 describe("SorobanPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useSorokit).mockReturnValue({
       isConnected: true,
-      address: "GABC",
+      address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
     } as any);
   });
 
