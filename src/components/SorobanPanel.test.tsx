@@ -1,11 +1,18 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SorobanPanel } from "./SorobanPanel";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import { SorobanPanel } from "./SorobanPanel";
+
+const mockInvokeContract = vi.fn();
 
 // Mock the useSorokit context
 vi.mock("@/context/useSorokit", () => ({
-  useSorokit: vi.fn(),
+  useSorokit: vi.fn(() => ({
+    isConnected: true,
+    address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
+  })),
 }));
 
 // Mock the getClient from lib/client
@@ -17,19 +24,12 @@ vi.mock("../lib/client", () => ({
   }),
 }));
 
-vi.mock("@/context/useSorokit", () => ({
-  useSorokit: () => ({
-    isConnected: true,
-    address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
-  }),
-}));
-
 describe("SorobanPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useSorokit).mockReturnValue({
       isConnected: true,
-      address: "GABC",
+      address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
     } as any);
   });
 
@@ -50,7 +50,6 @@ describe("SorobanPanel", () => {
     );
     
     // Fill out contract ID and method to enable the button
-    const contractInput = screen.getByPlaceholderText(/c\.\.\./i);
     const methodInput = screen.getByPlaceholderText(/transfer/i);
     const argsInput = screen.getByPlaceholderText(/\[.*\]/i);
     const invokeBtn = screen.getByRole("button", { name: /invoke/i });

@@ -117,10 +117,12 @@ src/
 
 3. **Make your changes.** Keep commits focused — one logical change per commit.
 
-4. **Lint and build** before pushing:
+4. **Lint, typecheck, check size, and build** before pushing:
 
    ```bash
    npm run lint
+   npx tsc --noEmit -p tsconfig.app.json
+   npm run size
    npm run build
    ```
 

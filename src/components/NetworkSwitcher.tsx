@@ -1,10 +1,11 @@
+import { ArrowDown01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useState } from "react";
+
 import { useSorokit } from "@/context/useSorokit";
-import { cn } from "@/lib/utils";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDown01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import type { NetworkName } from "@/lib/client";
+import { cn } from "@/lib/utils";
 
 const NETWORKS: { name: NetworkName; label: string; dot: string }[] = [
   { name: "mainnet", label: "Mainnet", dot: "bg-green" },
@@ -33,12 +34,12 @@ export function NetworkSwitcher() {
       <DropdownMenu.Trigger asChild>
         <button
           disabled={isSwitching}
-          className="inline-flex items-center gap-2 h-8 px-3.5 rounded-lg bg-surface-2 border border-line hover:border-line-2 transition-colors cursor-pointer text-[12px] text-ink-2 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 sm:gap-2 h-8 px-2 sm:px-3.5 rounded-lg bg-surface-2 border border-line hover:border-line-2 transition-colors cursor-pointer text-[12px] text-ink-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span
             className={cn("w-1.5 h-1.5 rounded-full shrink-0", current.dot)}
           />
-          {current.label}
+          <span className="hidden sm:inline">{current.label}</span>
           {isSwitching ? (
             <span className="ml-0.5 h-3 w-3 animate-spin rounded-full border-2 border-ink-2 border-t-transparent" />
           ) : (
@@ -66,9 +67,10 @@ export function NetworkSwitcher() {
               onSelect={() => handleSelect(net.name)}
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] cursor-pointer outline-none transition-colors",
+                "focus:bg-surface-2 focus-visible:ring-2 focus-visible:ring-brand",
                 network?.name === net.name
                   ? "bg-surface-2 text-ink font-medium"
-                  : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+                  : "text-ink-2 hover:bg-surface-2 hover:text-ink focus:text-ink",
               )}
             >
               <span

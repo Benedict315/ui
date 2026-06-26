@@ -1,12 +1,16 @@
-import { screen, act, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useSorokit } from "./useSorokit";
-import { getClient } from "@/lib/client";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useRef,useState } from "react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { renderWithProvider } from "@/__tests__/utils";
+import { getClient } from "@/lib/client";
+
+import { SorokitProvider } from "./SorokitProvider";
+import { useSorokit } from "./useSorokit";
 
 const TestComponent = () => {
   const { address, account, balances, connectWallet, disconnectWallet, switchNetwork } = useSorokit();
-  
+
   return (
     <div>
       <div data-testid="address">{address || "none"}</div>
@@ -15,6 +19,27 @@ const TestComponent = () => {
       <button onClick={() => connectWallet()}>Connect</button>
       <button onClick={() => disconnectWallet()}>Disconnect</button>
       <button onClick={() => switchNetwork("testnet")}>Switch</button>
+    </div>
+  );
+};
+
+const MemoTestComponent = () => {
+  const value = useSorokit();
+  const prevValueRef = useRef<ReturnType<typeof useSorokit> | null>(null);
+  const renderCountRef = useRef(0);
+
+  // eslint-disable-next-line react-hooks/refs
+  renderCountRef.current += 1;
+  // eslint-disable-next-line react-hooks/refs
+  const isRefEqual = prevValueRef.current === value;
+  // eslint-disable-next-line react-hooks/refs
+  prevValueRef.current = value;
+
+  return (
+    <div>
+      {/* eslint-disable-next-line react-hooks/refs */}
+      <div data-testid="render-count">{renderCountRef.current}</div>
+      <div data-testid="ref-equal">{isRefEqual ? "true" : "false"}</div>
     </div>
   );
 };
@@ -42,7 +67,6 @@ describe("SorokitProvider", () => {
   it("disconnectWallet clears address, account, and balances", async () => {
     renderWithProvider(<TestComponent />, { client: mockClient });
 
-    // Initial load will hit getNetwork
     const connectBtn = screen.getByText("Connect");
     const disconnectBtn = screen.getByText("Disconnect");
 
@@ -51,7 +75,7 @@ describe("SorokitProvider", () => {
     });
 
     expect(screen.getByTestId("address")).toHaveTextContent("GABC");
-    
+
     await waitFor(() => {
       expect(screen.getByTestId("account")).toHaveTextContent("100");
       expect(screen.getByTestId("balances")).toHaveTextContent("1");
@@ -68,7 +92,7 @@ describe("SorokitProvider", () => {
 
   it("connectWallet populates address on success", async () => {
     renderWithProvider(<TestComponent />, { client: mockClient });
-    
+
     expect(screen.getByTestId("address")).toHaveTextContent("none");
 
     await act(async () => {
@@ -86,5 +110,31 @@ describe("SorokitProvider", () => {
     });
 
     expect(mockClient.network.switchNetwork).toHaveBeenCalledWith("testnet");
+  });
+
+  it("memoizes the context value across parent re-renders", async () => {
+    const Wrapper = ({ client }: { client: ReturnType<typeof getClient> }) => {
+      const [, setTick] = useState(0);
+      return (
+        <div>
+          <button onClick={() => setTick((c) => c + 1)}>Trigger Parent Render</button>
+          <SorokitProvider client={client}>
+            <MemoTestComponent />
+          </SorokitProvider>
+        </div>
+      );
+    };
+
+    render(<Wrapper client={mockClient} />);
+
+    expect(screen.getByTestId("render-count")).toHaveTextContent("1");
+    expect(screen.getByTestId("ref-equal")).toHaveTextContent("false");
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Trigger Parent Render"));
+    });
+
+    expect(screen.getByTestId("render-count")).toHaveTextContent("2");
+    expect(screen.getByTestId("ref-equal")).toHaveTextContent("true");
   });
 });

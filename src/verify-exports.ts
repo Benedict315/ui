@@ -2,21 +2,21 @@
 // If any of these are removed from the public API, the build will fail.
 
 import {
-  FeeEstimator,
+  // Types
+  type AccountData,
   AddressDisplay,
   AssetPill,
+  type Balance,
+  type ClaimableBalance,
+  type ContractEvent,
   ContractEventFeed,
+  FeeEstimator,
+  type InvokeParams,
+  type NetworkInfo,
+  type Transaction,
 } from "./components/index";
 
-import type {
-  AccountData,
-  Balance,
-  Transaction,
-  ClaimableBalance,
-  ContractEvent,
-  NetworkInfo,
-  InvokeParams,
-} from "./components/index";
+
 
 // Dummy usage to prevent unused warnings if strictly checked
 console.log({

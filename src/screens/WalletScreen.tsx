@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { useSorokit } from "@/context/useSorokit";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { cn, truncateAddress } from "@/lib/utils";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
-import { QRCode } from "@/components/QRCode";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useRef,useState } from "react";
+
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { QRCode } from "@/components/QRCode";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { useSorokit } from "@/context/useSorokit";
+import { cn, truncateAddress } from "@/lib/utils";
 
 export function WalletScreen() {
   const { address, isConnected, disconnectWallet, network } = useSorokit();
@@ -92,7 +93,12 @@ export function WalletScreen() {
             </p>
           </div>
           <div className="px-6 py-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            <QRCode value={address} size={140} className="shrink-0" />
+            <QRCode
+              value={address}
+              size={140}
+              className="shrink-0"
+              ariaLabel={`QR code to receive funds at address ${address}`}
+            />
             <div className="flex-1 min-w-0 w-full flex flex-col justify-center gap-1 sm:h-[164px]">
               <AddressDisplay address={address} showFull label="Address" />
             </div>

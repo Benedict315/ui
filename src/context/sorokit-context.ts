@@ -17,6 +17,7 @@ export interface SorokitState {
   account: AccountData | null;
   balances: Balance[];
   isLoadingAccount: boolean;
+  refreshAccount: () => void;
   network: NetworkInfo | null;
   switchNetwork: (name: NetworkName) => Promise<void>;
   error: string | null;

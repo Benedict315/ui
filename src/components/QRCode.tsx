@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
 import QRCodeLib from "qrcode";
+import { useEffect, useRef, useState } from "react";
+
 import { cn } from "@/lib/utils";
 
 function readCssColor(variable: string, fallback: string): string {
@@ -15,6 +16,12 @@ interface QRCodeProps {
   size?: number;
   className?: string;
   label?: string;
+  /**
+   * Accessible name for the QR code, announced by screen readers. A `<canvas>`
+   * is opaque to assistive tech, so without this the code is invisible to AT.
+   * Defaults to the `label` if provided, otherwise a generic description.
+   */
+  ariaLabel?: string;
   /** Canvas background colour. Defaults to `--color-qr-canvas-bg`. */
   canvasBackground?: string;
   /** Canvas foreground (cell) colour. Defaults to `--color-qr-canvas-fg`. */
@@ -30,23 +37,23 @@ export function QRCode({
   size = 160,
   className,
   label,
+  ariaLabel,
   canvasBackground,
   canvasForeground,
 }: QRCodeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [renderError, setRenderError] = useState(false);
-  const lastPropsRef = useRef({ value, size, canvasBackground, canvasForeground });
+  const [prevProps, setPrevProps] = useState({ value, size, canvasBackground, canvasForeground });
 
   if (
-    lastPropsRef.current.value !== value ||
-    lastPropsRef.current.size !== size ||
-    lastPropsRef.current.canvasBackground !== canvasBackground ||
-    lastPropsRef.current.canvasForeground !== canvasForeground
+    prevProps.value !== value ||
+    prevProps.size !== size ||
+    prevProps.canvasBackground !== canvasBackground ||
+    prevProps.canvasForeground !== canvasForeground
   ) {
-    lastPropsRef.current = { value, size, canvasBackground, canvasForeground };
+    setPrevProps({ value, size, canvasBackground, canvasForeground });
     setRenderError(false);
   }
-
   useEffect(() => {
     if (renderError || !value) return;
 
@@ -79,7 +86,7 @@ export function QRCode({
           light: bg,
         },
       },
-      (error) => {
+      (error: Error | null | undefined) => {
         if (error && active) {
           console.error("Failed to render QR Code:", error);
           setRenderError(true);
@@ -114,7 +121,7 @@ export function QRCode({
           <canvas
             ref={canvasRef}
             role="img"
-            aria-label={`QR code for address ${value}`}
+            aria-label={ariaLabel ?? label ?? `QR code for address ${value}`}
             style={{ display: "block", borderRadius: "4px" }}
           />
         )}

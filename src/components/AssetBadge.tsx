@@ -76,22 +76,6 @@ export function AssetBadge({
   );
 }
 
-/** Skeleton placeholder matching AssetBadge + amount (card row layout) */
-export function AssetRowSkeleton() {
-  return (
-    <div className="flex items-center justify-between px-5 py-4 border-b border-line last:border-0">
-      <div className="flex items-center gap-2.5">
-        <Skeleton circle className="w-8 h-8" />
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-3.5 w-14" />
-          <Skeleton className="h-3 w-24" />
-        </div>
-      </div>
-      <Skeleton className="h-4 w-16" />
-    </div>
-  );
-}
-
 /** Inline pill version — just the code with colored dot */
 export function AssetPill({
   assetCode,

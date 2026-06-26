@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
-import { QRCode } from "./QRCode";
 import QRCodeLib from "qrcode";
+import { describe, expect, it, vi } from "vitest";
+
+import { QRCode } from "./QRCode";
 
 vi.mock("qrcode", () => {
   return {
@@ -80,5 +81,28 @@ describe("QRCode", () => {
     const { container } = render(<QRCode value={value} className="my-qr" />);
     const wrapper = container.firstElementChild;
     expect(wrapper?.classList.contains("my-qr")).toBe(true);
+  });
+
+  it("exposes the canvas to assistive tech as an image", () => {
+    render(<QRCode value={value} />);
+    const img = screen.getByRole("img");
+    expect(img.tagName).toBe("CANVAS");
+  });
+
+  it("uses ariaLabel as the accessible name when provided", () => {
+    render(<QRCode value={value} ariaLabel="QR code to receive funds" />);
+    expect(
+      screen.getByRole("img", { name: "QR code to receive funds" }),
+    ).toBeInTheDocument();
+  });
+
+  it("falls back to the label for the accessible name", () => {
+    render(<QRCode value={value} label={value} />);
+    expect(screen.getByRole("img", { name: value })).toBeInTheDocument();
+  });
+
+  it("defaults the accessible name to include the address", () => {
+    render(<QRCode value={value} />);
+    expect(screen.getByRole("img", { name: `QR code for address ${value}` })).toBeInTheDocument();
   });
 });
