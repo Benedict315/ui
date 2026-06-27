@@ -11,6 +11,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
   const [account, setAccount] = useState<AccountData | null>(null);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
   const [network, setNetwork] = useState<NetworkInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +33,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
     };
   }, [client]);
 
-  // Load account when address changes
+  // Load account when address changes or refresh is triggered
   useEffect(() => {
     if (!address) return;
 
@@ -59,7 +60,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       active = false;
       window.clearTimeout(timerId);
     };
-  }, [address, client]);
+  }, [address, client, refreshTick]);
 
   const connectWallet = useCallback(async () => {
     setIsConnecting(true);
@@ -102,6 +103,10 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const refreshAccount = useCallback(() => {
+    setRefreshTick((t) => t + 1);
+  }, []);
+
   const value = useMemo(
     () => ({
       address,
@@ -112,6 +117,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       account,
       balances,
       isLoadingAccount,
+      refreshAccount,
       network,
       switchNetwork,
       error,
@@ -125,6 +131,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       account,
       balances,
       isLoadingAccount,
+      refreshAccount,
       network,
       switchNetwork,
       error,

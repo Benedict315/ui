@@ -26,8 +26,17 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+      - name: Typecheck
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Check bundle size
+        run: npm run size
+
       - name: Build
         run: npm run build
+
+      - name: Verify Exports
+        run: npm run test:exports
 
       - name: Run tests
         run: npm test
