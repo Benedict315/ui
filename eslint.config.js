@@ -26,8 +26,16 @@ export default tseslint.config(
       'react-refresh': reactRefresh,
     },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       ...reactHooks.configs.recommended.rules,
     },
-  }
+  },
+  // Relax no-explicit-any in test files where `as any` is idiomatic for mocking.
+  {
+    files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
 )
