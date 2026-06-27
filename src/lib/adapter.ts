@@ -1,7 +1,7 @@
 import { SorobanClient } from '@stellar/js-sdk';
 
 export interface ClientAdapterConfig {
-  walletAdapter?: any; // Freighter, xBull, Albedo
+  walletAdapter?: unknown; // Freighter, xBull, Albedo
   network?: 'testnet' | 'public';
 }
 
@@ -17,7 +17,7 @@ export interface AdapterResponse<T> {
  */
 export class ClientAdapter {
   private soroban: SorobanClient | null = null;
-  private walletAdapter: any = null;
+  private walletAdapter: unknown = null;
   private userAddress: string | null = null;
 
   constructor(config: ClientAdapterConfig = {}) {
@@ -90,10 +90,10 @@ export class ClientAdapter {
         error: null,
         status: 'success',
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         data: null,
-        error: err.message || 'Connection failed',
+        error: (err instanceof Error) ? err.message : 'Connection failed',
         status: 'error',
       };
     }
@@ -108,8 +108,8 @@ export class ClientAdapter {
   async invokeContract(
     contractId: string,
     method: string,
-    params: any[] = []
-  ): Promise<AdapterResponse<any>> {
+    params: unknown[] = []
+  ): Promise<AdapterResponse<unknown>> {
     try {
       if (!this.userAddress) {
         return {
@@ -140,10 +140,10 @@ export class ClientAdapter {
         error: null,
         status: 'success',
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         data: null,
-        error: `Contract invocation failed: ${err.message}`,
+        error: `Contract invocation failed: ${(err instanceof Error) ? err.message : 'Unknown error'}`,
         status: 'error',
       };
     }
@@ -157,7 +157,7 @@ export class ClientAdapter {
   async getEvents(
     contractId: string,
     limit: number = 100
-  ): Promise<AdapterResponse<any[]>> {
+  ): Promise<AdapterResponse<unknown[]>> {
     try {
       if (!this.userAddress) {
         return {
@@ -185,10 +185,10 @@ export class ClientAdapter {
         error: null,
         status: 'success',
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         data: null,
-        error: `Failed to fetch events: ${err.message}`,
+        error: `Failed to fetch events: ${(err instanceof Error) ? err.message : 'Unknown error'}`,
         status: 'error',
       };
     }

@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { MOCK_ADDRESS, NETWORKS, createMockClient } from '../mock-client';
-import { DeterministicMockData, deterministicMock } from '../deterministic-mock';
+import { describe, expect,it } from 'vitest';
+
+import { deterministicMock,DeterministicMockData } from '../deterministic-mock';
+import { createMockClient,MOCK_ADDRESS, NETWORKS } from '../mock-client';
 
 describe('Mock Client - Issue #30 Fixes', () => {
   describe('Fix 1: Valid MOCK_ADDRESS', () => {

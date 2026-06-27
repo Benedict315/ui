@@ -1,15 +1,5 @@
 import { deterministicMock } from './deterministic-mock';
 
-import type {
-  AccountData,
-  Balance,
-  ClaimableBalance,
-  ContractEvent,
-  NetworkInfo,
-  SorokitClient,
-  Transaction,
-} from "./client";
-
 // Valid Stellar testnet address
 export const MOCK_ADDRESS = 'GBRPYHIL2CI3WHGSUJGY6O7SROQOMJG7QBCACN4QPKUOQNXJDGONXHP';
 
