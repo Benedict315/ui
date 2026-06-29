@@ -113,6 +113,8 @@ describe("SorokitProvider", () => {
   });
 
   it("memoizes the context value across parent re-renders", async () => {
+    vi.useFakeTimers();
+
     const Wrapper = ({ client }: { client: ReturnType<typeof getClient> }) => {
       const [, setTick] = useState(0);
       return (
@@ -136,6 +138,8 @@ describe("SorokitProvider", () => {
 
     expect(screen.getByTestId("render-count")).toHaveTextContent("2");
     expect(screen.getByTestId("ref-equal")).toHaveTextContent("true");
+
+    vi.useRealTimers();
   });
 
   it("re-populates address after disconnect then reconnect", async () => {
