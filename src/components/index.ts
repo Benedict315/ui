@@ -12,7 +12,7 @@ export {
   CardTitle,
 } from "./ui/Card";
 export { Input } from "./ui/Input";
-export { AssetRowSkeleton,Skeleton, SkeletonCard, SkeletonRow } from "./ui/Skeleton";
+export { AssetRowSkeleton, Skeleton, SkeletonCard, SkeletonRow } from "./ui/Skeleton";
 
 // Error handling
 export { ErrorBoundary } from "./ErrorBoundary";

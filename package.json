@@ -1,51 +1,35 @@
 {
   "name": "sorokit-ui",
-  "private": false,
-  "version": "0.1.0",
-  "description": "React component library for Stellar — drop-in UI primitives for wallet connection, transaction flows, account display, and Soroban contract interaction.",
-  "author": "sorokit contributors",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Just-Bamford/sorokit-ui"
-  },
-  "bugs": {
-    "url": "https://github.com/Just-Bamford/sorokit-ui/issues"
-  },
-  "homepage": "https://github.com/Just-Bamford/sorokit-ui#readme",
-  "keywords": [
-    "stellar",
-    "soroban",
-    "wallet",
-    "react",
-    "components",
-    "ui",
-    "typescript"
-  ],
+  "version": "1.0.0",
   "type": "module",
-  "main": "./dist/sorokit-ui.cjs.js",
-  "module": "./dist/sorokit-ui.es.js",
-  "types": "./dist/components/index.d.ts",
+  "description": "React components for Stellar/Soroban development",
+  "main": "dist/sorokit-ui.cjs.js",
+  "module": "dist/sorokit-ui.es.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     ".": {
       "import": "./dist/sorokit-ui.es.js",
       "require": "./dist/sorokit-ui.cjs.js",
-      "types": "./dist/components/index.d.ts"
+      "types": "./dist/index.d.ts"
     },
-    "./style.css": "./dist/sorokit-ui.css"
+    "./styles": "./dist/style.css"
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:lib",
-    "build:lib": "vite build --config vite.lib.config.ts",
-    "build:app": "tsc -b && vite build",
-    "lint": "eslint .",
+    "build": "vite build --config vite.lib.config.ts && tsc --emitDeclarationOnly",
+    "build:app": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --coverage",
     "test:exports": "tsc -p tsconfig.test-exports.json",
+    "lint": "eslint . --ext .ts,.tsx",
+    "type-check": "tsc --noEmit",
     "size": "npm run build:lib && size-limit"
   },
   "dependencies": {
@@ -95,8 +79,16 @@
   },
   "size-limit": [
     {
+      "name": "ES module (gzip)",
       "path": "dist/sorokit-ui.es.js",
-      "limit": "60 KB"
+      "limit": "60 KB",
+      "gzip": true
+    },
+    {
+      "name": "CommonJS (gzip)",
+      "path": "dist/sorokit-ui.cjs.js",
+      "limit": "60 KB",
+      "gzip": true
     }
   ]
 }

@@ -1,6 +1,5 @@
 // No import needed for SorobanClient as we'll use any for the property
 
-
 export interface ClientAdapterConfig {
   network?: 'testnet' | 'public';
 }

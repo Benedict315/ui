@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Bundle size tracking with `size-limit` and a 50 KB gzipped budget for the
+  published ES and CommonJS bundles (`npm run size`).
+- `npm run test:exports` script to type-check the public API surface in CI.
+
+### Changed
+
+- CI (`test.yml`) now runs the bundle-size check after the build and wires up
+  the `size` and `test:exports` scripts it previously referenced.
+
 ## [1.0.0] - 2026-06-27
 
 ### Added
