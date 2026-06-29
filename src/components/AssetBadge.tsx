@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { truncateAddress } from "@/lib/utils";
 import type { Balance } from "@/lib/client";
 
+// Hoisted outside module so objects are created once, never on render
 const ASSET_COLORS: Record<string, { bg: string; text: string }> = {
   XLM: { bg: "bg-[rgba(20,184,166,0.12)]", text: "text-teal" },
   USDC: { bg: "bg-[rgba(86,69,212,0.12)]", text: "text-brand" },
@@ -10,8 +11,11 @@ const ASSET_COLORS: Record<string, { bg: string; text: string }> = {
   ETH: { bg: "bg-[rgba(168,85,247,0.12)]", text: "text-purple" },
 };
 
+// Stable fallback reference — no new object created on every cache miss
+const ASSET_COLOR_FALLBACK = { bg: "bg-surface-2", text: "text-ink-2" };
+
 function getAssetColor(code: string) {
-  return ASSET_COLORS[code] ?? { bg: "bg-surface-2", text: "text-ink-2" };
+  return ASSET_COLORS[code] ?? ASSET_COLOR_FALLBACK;
 }
 
 interface AssetBadgeProps {
