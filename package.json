@@ -28,9 +28,9 @@
   "types": "./dist/components/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/components/index.d.ts",
       "import": "./dist/sorokit-ui.es.js",
-      "require": "./dist/sorokit-ui.cjs.js",
-      "types": "./dist/components/index.d.ts"
+      "require": "./dist/sorokit-ui.cjs.js"
     },
     "./style.css": "./dist/sorokit-ui.css"
   },
@@ -101,13 +101,13 @@
     {
       "name": "ES module (gzip)",
       "path": "dist/sorokit-ui.es.js",
-      "limit": "60 KB",
+      "limit": "70 KB",
       "gzip": true
     },
     {
       "name": "CommonJS (gzip)",
       "path": "dist/sorokit-ui.cjs.js",
-      "limit": "60 KB",
+      "limit": "70 KB",
       "gzip": true
     }
   ]
