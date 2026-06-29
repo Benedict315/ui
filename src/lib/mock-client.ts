@@ -52,6 +52,8 @@ const MOCK_BALANCES: Balance[] = [
 export function createMockClient(): SorokitClient;
 export function createMockClient(networkName: string): SorokitClient | { data: null; error: string };
 export function createMockClient(networkName?: string): SorokitClient | { data: null; error: string } {
+  const activeNetwork = networkName && networkName in NETWORKS ? networkName : 'testnet';
+
   if (networkName && !(networkName in NETWORKS)) {
     const validNetworks = Object.keys(NETWORKS).join(', ');
     return {
@@ -109,7 +111,7 @@ export function createMockClient(networkName?: string): SorokitClient | { data: 
     },
     network: {
       getNetwork: async () => ({
-        data: MOCK_NETWORK_INFO.testnet,
+        data: MOCK_NETWORK_INFO[activeNetwork],
         error: null,
       }),
       switchNetwork: async (name: NetworkName) => {

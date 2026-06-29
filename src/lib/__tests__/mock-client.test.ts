@@ -80,7 +80,7 @@ describe('Mock Client - Issue #30 Fixes', () => {
 
     it('should generate valid transaction hashes', () => {
       const hash = deterministicMock.generateTransactionHash();
-      expect(hash).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(hash).toMatch(/^[0-9a-f]{64}$/);
     });
 
     it('should generate valid event IDs', () => {

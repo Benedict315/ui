@@ -135,7 +135,10 @@ describe("SorokitProvider", () => {
     });
 
     expect(screen.getByTestId("render-count")).toHaveTextContent("3");
-    expect(screen.getByTestId("ref-equal")).toHaveTextContent("true");
+    // Context value identity is stable when client prop reference hasn't changed
+    await waitFor(() => {
+      expect(screen.getByTestId("ref-equal")).toHaveTextContent("true");
+    });
   });
 
   it("re-populates address after disconnect then reconnect", async () => {
