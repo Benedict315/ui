@@ -47,13 +47,40 @@ describe("FeeEstimator", () => {
     expect(screen.getByText("Recommended")).toBeInTheDocument();
   });
 
-  it("renders the error message when the client returns an error", async () => {
-    mockEstimateFee({ data: null, error: "Rate limit exceeded" });
+  it("renders the error message and a retry button when the client returns an error", async () => {
+    let callCount = 0;
+    vi.mocked(getClient).mockReturnValue({
+      transaction: {
+        estimateFee: vi.fn().mockImplementation(() => {
+          callCount++;
+          if (callCount === 1) {
+            return Promise.resolve({ data: null, error: "Rate limit exceeded" });
+          } else {
+            return Promise.resolve({ data: { baseFee: "150", recommended: "600" }, error: null });
+          }
+        }),
+      },
+    } as unknown as SorokitClient);
+
     render(<FeeEstimator />);
 
+    // Initial check for error state
     await waitFor(() => {
       expect(screen.getByText("Rate limit exceeded")).toBeInTheDocument();
     });
+
+    const retryButton = screen.getByRole("button", { name: "Retry" });
+    expect(retryButton).toBeInTheDocument();
+
+    // Click retry
+    fireEvent.click(retryButton);
+
+    // Should resolve with new data, clearing the error
+    await waitFor(() => {
+      expect(screen.getByText("150")).toBeInTheDocument();
+      expect(screen.getByText("600")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Rate limit exceeded")).not.toBeInTheDocument();
   });
 
   it("clicking the refresh button triggers a new estimateFee call", async () => {
