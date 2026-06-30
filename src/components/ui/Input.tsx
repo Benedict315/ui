@@ -1,4 +1,5 @@
-import { forwardRef, useId, useState, useEffect } from "react";
+import { forwardRef, useEffect,useId, useState } from "react";
+
 import { cn } from "@/lib/utils";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -10,7 +11,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, hint, className, id, ...props }, ref) => {
     const generatedId = useId();
-    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-") ?? generatedId;
+    const inputId = id ?? `${generatedId}-${label?.toLowerCase().replace(/\s+/g, "-")}`;
 
     const [lastError, setLastError] = useState<string | undefined>(error);
     const [lastHint, setLastHint] = useState<string | undefined>(hint);
