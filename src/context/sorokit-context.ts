@@ -1,10 +1,11 @@
 import { createContext } from "react";
+
 import type {
-  SorokitClient,
-  NetworkInfo,
-  Balance,
   AccountData,
+  Balance,
+  NetworkInfo,
   NetworkName,
+  SorokitClient,
 } from "@/lib/client";
 
 export interface SorokitState {
@@ -16,7 +17,7 @@ export interface SorokitState {
   account: AccountData | null;
   balances: Balance[];
   isLoadingAccount: boolean;
-  refreshAccount: () => void;
+  refreshAccount: () => Promise<void>;
   network: NetworkInfo | null;
   switchNetwork: (name: NetworkName) => Promise<void>;
   error: string | null;

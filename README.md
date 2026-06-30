@@ -13,6 +13,9 @@
   <a href="https://github.com/Just-Bamford/sorokit-ui/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" />
   </a>
+  <a href="https://github.com/Just-Bamford/sorokit-ui/blob/main/CHANGELOG.md">
+    <img src="https://img.shields.io/badge/changelog-1.0.0-9c27b0.svg" alt="Changelog" />
+  </a>
   <img src="https://img.shields.io/badge/react-%5E18.0-61dafb" alt="React 18" />
   <img src="https://img.shields.io/badge/typescript-%5E5.0-3178c6" alt="TypeScript" />
   <img src="https://img.shields.io/badge/stellar-mainnet%20%7C%20testnet%20%7C%20futurenet-6f42c1" alt="Stellar Networks" />
@@ -102,63 +105,36 @@ import { SorokitProvider } from "sorokit-ui";
 
 ## Components
 
-### Wallet
+The package ships a broad set of reusable UI building blocks for wallets, accounts, transactions, Soroban flows, and shared layout primitives.
 
-```tsx
-// Connect / disconnect button with wallet picker
-<ConnectWalletButton />
+| Category | Component | Purpose |
+| --- | --- | --- |
+| Wallet | WalletConnectButton | Connect or disconnect a Stellar wallet with a ready-to-use button. |
+| Wallet | AddressDisplay | Render and format a wallet or account address. |
+| Account | AccountCard | Display account summary information in a compact card. |
+| Account | BalanceList | Present the connected account's balances in a list. |
+| Account | AssetBadge | Show an asset code and related badge styling. |
+| Account | ClaimableBalanceCard | Display claimable balance details in a card. |
+| Transactions | TransactionHistory | Show recent account transactions. |
+| Transactions | TransactionPanel | Manage transaction submission and status details. |
+| Transactions | FeeEstimator | Estimate fees for a proposed transaction. |
+| Transactions | QRCode | Render a QR code for addresses or payment requests. |
+| Transactions | ErrorBoundary | Catch rendering errors and show a fallback state. |
+| Network | NetworkBanner | Display the active network context. |
+| Network | NetworkSwitcher | Let users switch between Stellar networks. |
+| Soroban | SorobanPanel | Provide a full Soroban contract interaction experience. |
+| Soroban | SorobanInvokeButton | Trigger a contract invocation from a button. |
+| Soroban | ContractEventFeed | Stream and display contract events. |
+| Layout | Sidebar | Render app navigation in a sidebar shell. |
+| Layout | TopBar | Render a top navigation bar. |
+| UI Primitives | Badge | Small status or label badge primitive. |
+| UI Primitives | Button | Flexible button primitive. |
+| UI Primitives | Card | Surface container primitive. |
+| UI Primitives | Input | Text input primitive. |
+| UI Primitives | Separator | Horizontal divider primitive. |
+| UI Primitives | Skeleton | Loading placeholder primitive. |
 
-// Display the connected wallet's public key (truncated)
-<WalletAddress />
-
-// Show connection status
-<WalletStatus />
-```
-
-### Account
-
-```tsx
-// Display all balances for the connected account
-<AccountBalance />
-
-// Filter by asset
-<AccountBalance assetCode="USDC" excludeZero />
-
-// Display a single asset balance inline
-<AssetBalance assetCode="XLM" />
-```
-
-### Transactions
-
-```tsx
-// Pre-wired payment form: amount + destination + submit
-<PaymentForm
-  onSuccess={(result) => console.log(result)}
-  onError={(err) => console.error(err)}
-/>
-
-// Display a single transaction's status by hash
-<TransactionStatus hash="abc123..." />
-```
-
-### Soroban
-
-```tsx
-// Read a contract value and display it
-<ContractRead
-  contractId="C..."
-  method="get_balance"
-  args={[scAddress]}
-/>
-
-// Invoke a contract method with a connected wallet
-<ContractInvoke
-  contractId="C..."
-  method="transfer"
-  args={[scAddress, scAmount]}
-  onSuccess={(hash) => console.log(hash)}
-/>
-```
+For upgrade notes and release history, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -182,7 +158,20 @@ const { balances, loading, error } = useAccount();
 const { buildPayment, submit, status } = useTransaction();
 ```
 
-All hooks must be used inside a `SorokitProvider`.
+### `refreshAccount`
+
+Re-fetches the connected account data and balances. Useful when the user expects their balance to have changed (e.g. after receiving a payment) without disconnecting and reconnecting.
+
+```tsx
+const { refreshAccount, isLoadingAccount } = useSorokit();
+
+// Await the refresh to know when it has completed
+await refreshAccount();
+```
+
+`refreshAccount` returns a `Promise<void>` that resolves once both `getAccount` and `getBalances` have settled. `isLoadingAccount` is `true` while the request is in flight.
+
+All hooks must be used inside a `SorokitProvider`. When used outside one, `useSorokit` returns safe no-op defaults rather than throwing, so components render in a neutral disconnected state.
 
 ---
 

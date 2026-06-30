@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useSorokit } from "@/context/useSorokit";
-import { getClient, hasClient } from "@/lib/client";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { truncateAddress } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+import { useSorokit } from "@/context/useSorokit";
 import type { ClaimableBalance } from "@/lib/client";
+import { getClient, hasClient } from "@/lib/client";
+import { truncateAddress } from "@/lib/utils";
 
 function BalanceRow({ cb }: { cb: ClaimableBalance }) {
   const [claiming, setClaiming] = useState(false);
@@ -18,7 +18,7 @@ function BalanceRow({ cb }: { cb: ClaimableBalance }) {
     setClaiming(true);
     setClaimError(null);
     try {
-      if (!hasClient()) { setError("[sorokit-ui] Client not initialized."); return; }
+      if (!hasClient()) { setClaimError("[sorokit-ui] Client not initialized."); return; }
       const { error } = await getClient().account.claimBalance(cb.id);
       if (!error) {
         setClaimed(true);
@@ -87,7 +87,7 @@ export function ClaimableBalanceCard() {
     let active = true;
     const timerId = window.setTimeout(() => {
       setLoading(true);
-      if (!hasClient()) { setClaimError("[sorokit-ui] Client not initialized."); return; }
+      if (!hasClient()) { setError("[sorokit-ui] Client not initialized."); return; }
       getClient()
         .account.getClaimableBalances(address)
         .then(({ data, error: err }) => {
@@ -109,6 +109,8 @@ export function ClaimableBalanceCard() {
     };
   }, [address]);
 
+  if (!isConnected) return null;
+
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-line">
@@ -125,11 +127,7 @@ export function ClaimableBalanceCard() {
         )}
       </div>
 
-      {!isConnected ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          Connect your wallet to view claimable balances
-        </p>
-      ) : loading ? (
+      {loading ? (
         <div className="px-5 py-5 flex flex-col gap-4">
           {[1, 2].map((i) => (
             <div key={i} className="flex items-center justify-between gap-4">

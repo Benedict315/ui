@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
-import { useSorokit } from "@/context/useSorokit";
-import { getClient, hasClient } from "@/lib/client";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { truncateAddress } from "@/lib/utils";
-import type { Transaction } from "@/lib/client";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  CheckmarkCircle01Icon,
-  Cancel01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  Cancel01Icon,
+  CheckmarkCircle01Icon,
 } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useState } from "react";
+
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { useSorokit } from "@/context/useSorokit";
+import type { Transaction } from "@/lib/client";
+import { getClient, hasClient } from "@/lib/client";
+import { truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 
@@ -26,8 +27,15 @@ function TxRow({ tx }: { tx: Transaction }) {
     day: "numeric",
   });
 
+  const memoTruncated =
+    tx.memo && tx.memo.length > 20 ? `${tx.memo.slice(0, 20)}…` : tx.memo;
+
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-line last:border-0 gap-4">
+    <article
+      role="listitem"
+      aria-label={`Transaction ${truncateAddress(tx.hash, 10, 6)}, ${tx.successful ? "successful" : "failed"}, ledger ${tx.ledger}, fee ${tx.feePaid} stroops`}
+      className="flex items-center justify-between px-5 py-3.5 border-b border-line last:border-0 gap-4"
+    >
       <div className="flex items-center gap-3 min-w-0">
         {/* Status icon */}
         <div
@@ -48,8 +56,13 @@ function TxRow({ tx }: { tx: Transaction }) {
           </span>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-ink-3">Ledger {tx.ledger}</span>
+            <span className="text-[10px] text-ink-3">
+              · Fee: {tx.feePaid} stroops
+            </span>
             {tx.memo && (
-              <span className="text-[10px] text-ink-3">· {tx.memo}</span>
+              <span className="text-[10px] text-ink-3" title={tx.memo}>
+                · {memoTruncated}
+              </span>
             )}
           </div>
         </div>
@@ -63,7 +76,7 @@ function TxRow({ tx }: { tx: Transaction }) {
           {dateStr} {timeStr}
         </span>
       </div>
-    </div>
+    </article>
   );
 }
 

@@ -1,9 +1,11 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { SorobanScreen } from "./SorobanScreen";
+import { act,fireEvent, render, screen } from "@testing-library/react";
+import { afterEach,beforeEach, describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
 import type { SorokitClient } from "@/lib/client";
+import { getClient } from "@/lib/client";
+
+import { SorobanScreen } from "./SorobanScreen";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -39,7 +41,7 @@ describe("SorobanScreen", () => {
 
   it("renders the screen heading", () => {
     render(<SorobanScreen />);
-    expect(screen.getByText("Soroban")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Soroban/i })).toBeInTheDocument();
   });
 
   it("does not render ContractEventFeed when contractId is empty", () => {

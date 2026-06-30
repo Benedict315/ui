@@ -1,7 +1,7 @@
-import { useSorokit } from "@/context/useSorokit";
+import { AddressDisplay } from "@/components/AddressDisplay";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { AddressDisplay } from "@/components/AddressDisplay";
+import { useSorokit } from "@/context/useSorokit";
 import { truncateAddress } from "@/lib/utils";
 
 export function AccountCard() {
@@ -12,7 +12,7 @@ export function AccountCard() {
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-line">
         <div>
-          <h3 className="text-[14px] font-semibold text-ink">Account</h3>
+          <h3 id="account-card-heading" className="text-[14px] font-semibold text-ink">Account</h3>
           <p className="text-[12px] text-ink-3 mt-0.5">
             Stellar account details
           </p>
@@ -27,7 +27,7 @@ export function AccountCard() {
           )
         )}
       </div>
-      <div className="px-5 py-5">
+      <div className="px-5 py-5" aria-labelledby="account-card-heading">
         {isLoadingAccount ? (
           <div className="flex flex-col gap-4">
             <Skeleton className="h-4 w-full" />
@@ -43,10 +43,20 @@ export function AccountCard() {
                   <span className="font-mono text-[12px] text-ink-2">
                     {account.sequence}
                   </span>
+                  <span
+                    className="text-[10px] text-ink-4 cursor-help"
+                    title="Used to prevent duplicate transactions"
+                  >
+                    Sequence Number
+                  </span>
                 </Field>
                 <Field label="Subentries">
                   <span className="text-[13px] text-ink">
                     {account.subentryCount}
+                  </span>
+                  <span className="text-[10px] text-ink-4">
+                    Subentries: {account.subentryCount} (+
+                    {Number(account.subentryCount) * 0.5} XLM reserved)
                   </span>
                 </Field>
               </div>

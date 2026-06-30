@@ -1,7 +1,17 @@
-import { SorobanClient } from '@stellar/js-sdk';
+interface FreighterWallet {
+  requestAccess: () => Promise<{ error?: string }>;
+  getPublicKey: () => Promise<string>;
+}
+
+interface XBullWallet {
+  requestPublicKey: () => Promise<string>;
+}
+
+interface AlbedoWallet {
+  publicKey: () => Promise<{ publicKey: string }>;
+}
 
 export interface ClientAdapterConfig {
-  walletAdapter?: any; // Freighter, xBull, Albedo
   network?: 'testnet' | 'public';
 }
 
@@ -16,12 +26,11 @@ export interface AdapterResponse<T> {
  * Supports Freighter, xBull, Albedo, and testnet mocking
  */
 export class ClientAdapter {
-  private soroban: SorobanClient | null = null;
-  private walletAdapter: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private soroban: any = null;
   private userAddress: string | null = null;
 
-  constructor(config: ClientAdapterConfig = {}) {
-    this.walletAdapter = config.walletAdapter;
+  constructor() {
   }
 
   /**
@@ -41,15 +50,17 @@ export class ClientAdapter {
 
       // Try to connect to installed wallet
       let connectedAddress: string | null = null;
+      const win = window as unknown as Record<string, unknown>;
 
       // Check Freighter
-      if (window.freighter) {
+      const freighter = win.freighter as FreighterWallet | undefined;
+      if (freighter) {
         try {
-          const result = await window.freighter.requestAccess();
+          const result = await freighter.requestAccess();
           if (result.error) {
             throw new Error(result.error);
           }
-          const pk = await window.freighter.getPublicKey();
+          const pk = await freighter.getPublicKey();
           connectedAddress = pk;
         } catch (e) {
           console.debug('Freighter not available:', e);
@@ -57,9 +68,10 @@ export class ClientAdapter {
       }
 
       // Check xBull
-      if (!connectedAddress && window.xBull) {
+      const xBull = win.xBull as XBullWallet | undefined;
+      if (!connectedAddress && xBull) {
         try {
-          const pk = await window.xBull.requestPublicKey();
+          const pk = await xBull.requestPublicKey();
           connectedAddress = pk;
         } catch (e) {
           console.debug('xBull not available:', e);
@@ -67,9 +79,10 @@ export class ClientAdapter {
       }
 
       // Check Albedo
-      if (!connectedAddress && window.albedo) {
+      const albedo = win.albedo as AlbedoWallet | undefined;
+      if (!connectedAddress && albedo) {
         try {
-          const result = await window.albedo.publicKey();
+          const result = await albedo.publicKey();
           connectedAddress = result.publicKey;
         } catch (e) {
           console.debug('Albedo not available:', e);
@@ -90,10 +103,10 @@ export class ClientAdapter {
         error: null,
         status: 'success',
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         data: null,
-        error: err.message || 'Connection failed',
+        error: (err instanceof Error) ? err.message : 'Connection failed',
         status: 'error',
       };
     }
@@ -108,8 +121,8 @@ export class ClientAdapter {
   async invokeContract(
     contractId: string,
     method: string,
-    params: any[] = []
-  ): Promise<AdapterResponse<any>> {
+    params: unknown[] = []
+  ): Promise<AdapterResponse<unknown>> {
     try {
       if (!this.userAddress) {
         return {
@@ -140,10 +153,10 @@ export class ClientAdapter {
         error: null,
         status: 'success',
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         data: null,
-        error: `Contract invocation failed: ${err.message}`,
+        error: `Contract invocation failed: ${(err instanceof Error) ? err.message : 'Unknown error'}`,
         status: 'error',
       };
     }
@@ -157,7 +170,7 @@ export class ClientAdapter {
   async getEvents(
     contractId: string,
     limit: number = 100
-  ): Promise<AdapterResponse<any[]>> {
+  ): Promise<AdapterResponse<unknown[]>> {
     try {
       if (!this.userAddress) {
         return {
@@ -185,10 +198,10 @@ export class ClientAdapter {
         error: null,
         status: 'success',
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         data: null,
-        error: `Failed to fetch events: ${err.message}`,
+        error: `Failed to fetch events: ${(err instanceof Error) ? err.message : 'Unknown error'}`,
         status: 'error',
       };
     }
@@ -211,6 +224,6 @@ export class ClientAdapter {
 }
 
 // Factory for creating adapters
-export function createClientAdapter(config?: ClientAdapterConfig): ClientAdapter {
-  return new ClientAdapter(config);
+export function createClientAdapter(): ClientAdapter {
+  return new ClientAdapter();
 }
