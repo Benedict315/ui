@@ -47,7 +47,7 @@ export function ContractEventFeed({
   autoRefresh = 5000,
   onEventClick
 }: ContractEventFeedProps) {
-  // Component implementation
+  return <h3>Contract Events</h3>;
 }
 
 export interface ContractEventFeedProps {

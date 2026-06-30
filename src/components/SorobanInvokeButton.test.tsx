@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SorobanInvokeButton } from "./SorobanInvokeButton";
 import { getClient } from "@/lib/client";
 import { useSorokit } from "@/context/useSorokit";
@@ -125,5 +125,41 @@ describe("SorobanInvokeButton", () => {
     render(<SorobanInvokeButton params={PARAMS} />);
     expect(screen.getByRole("button", { name: "transfer()" })).toBeDisabled();
     expect(screen.getByText("Connect wallet to invoke")).toBeInTheDocument();
+  });
+
+  describe("autoResetAfter", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("resets to idle after the specified delay on success", async () => {
+      mockInvokeContract({
+        data: { txHash: "abc" },
+        error: null,
+        status: "success",
+      });
+
+      render(
+        <SorobanInvokeButton params={PARAMS} autoResetAfter={1000} />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
+
+      await waitFor(() =>
+        expect(screen.getByText("Done")).toBeInTheDocument(),
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(screen.queryByText("Done")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "transfer()" }),
+      ).toBeInTheDocument();
+    });
   });
 });

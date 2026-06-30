@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +19,8 @@ interface SorobanInvokeButtonProps {
   onSuccess?: (data: unknown) => void;
   /** Called on error */
   onError?: (error: string) => void;
+  /** Auto-reset to idle after N ms on success/error */
+  autoResetAfter?: number;
   variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -30,6 +32,7 @@ export function SorobanInvokeButton({
   showResult = true,
   onSuccess,
   onError,
+  autoResetAfter,
   variant = "primary",
   size = "md",
   className,
@@ -39,6 +42,17 @@ export function SorobanInvokeButton({
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const isInvokingRef = useRef(false);
+
+  useEffect(() => {
+    if (autoResetAfter === undefined) return;
+    if (state !== "success" && state !== "error") return;
+    const timer = window.setTimeout(() => {
+      setState("idle");
+      setResult(null);
+      setError(null);
+    }, autoResetAfter);
+    return () => clearTimeout(timer);
+  }, [state, autoResetAfter]);
 
   async function invoke() {
     if (!isConnected || isInvokingRef.current) return;
