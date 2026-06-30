@@ -39,7 +39,9 @@ describe("SorobanScreen", () => {
 
   it("renders the screen heading", () => {
     render(<SorobanScreen />);
-    expect(screen.getByText("Soroban")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Soroban" }),
+    ).toBeInTheDocument();
   });
 
   it("does not render ContractEventFeed when contractId is empty", () => {

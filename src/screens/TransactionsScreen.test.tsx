@@ -34,7 +34,9 @@ describe("TransactionsScreen", () => {
 
   it("renders the screen heading", () => {
     render(<TransactionsScreen />);
-    expect(screen.getByText("Transactions")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Transactions" }),
+    ).toBeInTheDocument();
   });
 
   it("renders FeeEstimator with its section title", () => {
