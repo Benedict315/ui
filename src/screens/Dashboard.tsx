@@ -1,12 +1,13 @@
-import { useState, type ComponentType } from "react";
-import { Sidebar, type NavSection } from "@/components/Sidebar";
-import { TopBar } from "@/components/TopBar";
+import { type ComponentType,useState } from "react";
+
 import { NetworkBanner } from "@/components/NetworkBanner";
-import { WalletScreen } from "@/screens/WalletScreen";
+import { type NavSection,Sidebar } from "@/components/Sidebar";
+import { TopBar } from "@/components/TopBar";
 import { AccountScreen } from "@/screens/AccountScreen";
-import { TransactionsScreen } from "@/screens/TransactionsScreen";
-import { SorobanScreen } from "@/screens/SorobanScreen";
 import { NetworkScreen } from "@/screens/NetworkScreen";
+import { SorobanScreen } from "@/screens/SorobanScreen";
+import { TransactionsScreen } from "@/screens/TransactionsScreen";
+import { WalletScreen } from "@/screens/WalletScreen";
 
 const SCREENS: Record<NavSection, ComponentType> = {
   wallet: WalletScreen,
@@ -35,7 +36,7 @@ export function Dashboard() {
           active={active}
           onMenuToggle={() => setSidebarOpen((o) => !o)}
         />
-        <NetworkBanner />
+        <NetworkBanner active={active} />
         <main className="flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-[700px] mx-auto px-6 py-8 sm:px-10 sm:py-10 min-h-[300px]">
             <ActiveScreen />

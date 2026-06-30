@@ -1,167 +1,172 @@
-/**
- * FeeEstimator Component
- * 
- * Calculates and displays estimated transaction fees based on network conditions,
- * operation complexity, and current Stellar network state.
- * 
- * @component
- * @example
- * ```tsx
- * import { FeeEstimator } from 'sorokit-ui';
- * 
- * export function TransactionForm() {
- *   return (
- *     <div>
- *       <FeeEstimator 
- *         operations={5}
- *         network="testnet"
- *       />
- *     </div>
- *   );
- * }
- * ```
- * 
- * @param props - Component props
- * @param props.operations - Number of operations in transaction (default: 1)
- * @param props.network - Network to estimate fees for ('testnet' | 'public')
- * @param props.onEstimate - Callback when fee is calculated
- * 
- * @returns The rendered FeeEstimator component
- * 
- * @remarks
- * - Updates every 10 seconds with latest network fees
- * - Shows breakdown of base fee + operations fee
- * - Includes estimated stroops
- * - Requires SorokitProvider context
- * 
- * @see {@link SorokitProvider} for setup
- */
-export function FeeEstimator({ 
-  operations = 1, 
-  network, 
-  onEstimate 
-}: FeeEstimatorProps) {
-import { useEffect, useRef, useState } from "react";
-import { getClient, hasClient } from "@/lib/client";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { getClient } from "@/lib/client";
+import { cn } from "@/lib/utils";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Refresh01Icon } from "@hugeicons/core-free-icons";
 
-/**
- * Internal type for fee data returned by the Soroban client.
- */
-interface FeeData {
-  baseFee: string;
-  recommended: string;
+export interface FeeEstimatorProps {
+  operations?: number;
+  network?: "testnet" | "public";
+  onEstimate?: (fee: string) => void;
+  className?: string;
+  refreshInterval?: number;
 }
 
 export function FeeEstimator({
   operations = 1,
-  network,
+  network: _network = "testnet",
   onEstimate,
+  className,
+  refreshInterval = 10000,
 }: FeeEstimatorProps) {
-  const [fee, setFee] = useState<FeeData | null>(null);
+  const [fee, setFee] = useState<{ baseFee: string; recommended: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inFlightRef = useRef(false);
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
-  // Load fee estimate from client
-  const load = async () => {
-    if (inFlightRef.current) return; // guard against concurrent calls
-    if (!hasClient()) {
-      setError("[sorokit-ui] Client not initialized.");
-      return;
-    }
+  const loadingRef = useRef(false);
+  const onEstimateRef = useRef(onEstimate);
+
+  // Update onEstimate ref without causing re‑render
+  useEffect(() => {
+    onEstimateRef.current = onEstimate;
+  }, [onEstimate]);
+
+  const load = useCallback(async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
-    inFlightRef.current = true;
     try {
-      const result = await getClient().transaction.estimateFee({ network, operations });
-      if (result.error) {
-        setError(result.error);
-      } else if (result.data) {
-        setFee(result.data);
-        if (onEstimate) onEstimate(result.data.recommended);
+      const { data, error: err } = await getClient().transaction.estimateFee();
+      if (err) {
+        setError(err);
+        return;
+      }
+      setFee(data);
+      if (data?.recommended) {
+        const displayRecommended = (parseInt(data.recommended) * operations).toString();
+        onEstimateRef.current?.(displayRecommended);
       }
     } catch (e) {
-      setError((e as Error).message ?? "Unexpected error");
+      setError(e instanceof Error ? e.message : "Failed to load fee estimate");
     } finally {
       setLoading(false);
-      inFlightRef.current = false;
+      loadingRef.current = false;
     }
-  };
+  }, [operations, _network]);
 
-  // Initial load and polling every 10 seconds
+  // Initial load and retry trigger
   useEffect(() => {
-    load(); // initial load
-    const interval = setInterval(load, 10_000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [network, operations]); // re‑load when props change
+    let cancelled = false;
+    const doLoad = async () => {
+      if (!cancelled) await load();
+    };
+    void doLoad();
+    return () => {
+      cancelled = true;
+    };
+  }, [load, retryTrigger]);
+
+  // Polling interval
+  useEffect(() => {
+    if (refreshInterval <= 0 || error) return;
+    const intervalId = setInterval(() => {
+      void load();
+    }, refreshInterval);
+    return () => clearInterval(intervalId);
+  }, [load, refreshInterval, error]);
+
+  const handleRetry = useCallback(() => {
+    setRetryTrigger((prev) => prev + 1);
+  }, []);
+
+  const displayBaseFee = fee ? (parseInt(fee.baseFee) * operations).toString() : "";
+  const displayRecommended = fee ? (parseInt(fee.recommended) * operations).toString() : "";
 
   return (
-    <div className="rounded-xl border border-line bg-surface p-4">
-      {/* Section title */}
-      <h3 className="text-lg font-medium text-ink mb-2">Network Fee</h3>
-
-      {/* Live region for screen readers */}
-      <div aria-live="polite" aria-atomic="true" className="sr-only">
-        {fee ? `${fee.baseFee} base, ${fee.recommended} recommended` : ""}
+    <div className={cn(
+      "rounded-xl border border-line bg-surface overflow-hidden relative",
+      className,
+    )}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+        <div>
+          <h3 className="text-[13px] font-semibold text-ink">Network Fee</h3>
+          <p className="text-[11px] text-ink-3 mt-0.5">Current Stellar base fee estimate</p>
+        </div>
+        <button
+          onClick={handleRetry}
+          disabled={loading}
+          aria-label="Refresh fee estimate"
+          className="p-1.5 rounded-lg hover:bg-surface-2 text-ink-3 hover:text-ink-2 transition-colors disabled:opacity-40"
+          title="Refresh"
+        >
+          <HugeiconsIcon
+            icon={Refresh01Icon}
+            size={14}
+            color="currentColor"
+            strokeWidth={1.5}
+            className={loading ? "animate-spin" : ""}
+          />
+        </button>
       </div>
 
-      {/* Fee display */}
-      <div className="flex items-center gap-2">
-        {/* Show last known fee or placeholder */}
-        {fee ? (
-          <div className="flex flex-col">
-            <span className="text-sm text-ink-2">Base Fee</span>
-            <span className="text-xl font-mono text-ink">{fee.baseFee}</span>
-            <span className="text-sm text-ink-2">Recommended</span>
-            <span className="text-xl font-mono text-ink">{fee.recommended}</span>
+      <div className="px-5 py-4 min-h-[64px] flex items-center">
+        {/* Live region for assistive tech */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {fee ? `Base Fee: ${displayBaseFee} stroops, Recommended: ${displayRecommended} stroops` : ""}
+        </div>
+
+        {loading && !fee && !error ? (
+          <div className="flex gap-4 animate-pulse w-full">
+            <div className="h-8 w-24 rounded-lg bg-surface-2" />
+            <div className="h-8 w-24 rounded-lg bg-surface-2" />
           </div>
-        ) : (
-          <div className="text-sm text-ink-3">—</div>
-        )}
-
-        {/* Loading indicator – does not hide fee */}
-        {loading && (
-          <div className="w-5 h-5 border-2 border-ink-3 border-t-transparent rounded-full animate-spin" />
-        )}
-
-        {/* Error message */}
-        {error && <p className="text-sm text-red-600">{error}</p>}
-
-        {/* Retry button – visible on error or when not loading */}
-        <button
-          type="button"
-          title="Refresh fee estimate"
-          aria-label="Refresh fee estimate"
-          onClick={load}
-          disabled={loading}
-          className="ml-auto flex items-center gap-1 rounded px-2 py-1 text-sm text-ink-2 bg-surface-2 hover:bg-surface-3 disabled:opacity-50"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.01M20 20v-5h-.01M4 20l5-5M20 4l-5 5" />
-          </svg>
-          Refresh
-        </button>
+        ) : error ? (
+          <div className="flex flex-col gap-2 items-start w-full">
+            <p className="text-[12px] text-red">{error}</p>
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="px-3 py-1.5 text-[11px] font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : fee ? (
+          <div className="flex items-center gap-4 relative w-full">
+            {loading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-surface/50 backdrop-blur-[0.5px]">
+                <span className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin text-brand" />
+              </div>
+            )}
+            <FeeCell label="Base Fee" value={displayBaseFee} unit="stroops" />
+            <div className="w-px h-8 bg-line" />
+            <FeeCell label="Recommended" value={displayRecommended} unit="stroops" highlight />
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
-interface FeeEstimatorProps {
-  operations?: number;
-  network: "testnet" | "public";
-  onEstimate?: (fee: string) => void;
-}
+interface FeeCellProps {
+  label: string;
+  value: string;
+  unit: string;
+  highlight?: boolean;
 }
 
-interface FeeEstimatorProps {
-  operations?: number;
-  network: 'testnet' | 'public';
-  onEstimate?: (fee: string) => void;
+function FeeCell({ label, value, unit, highlight }: FeeCellProps) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">{label}</span>
+      <div className="flex items-baseline gap-1.5">
+        <span className={cn("text-[18px] font-semibold leading-none", highlight ? "text-brand" : "text-ink")}>
+          {value}
+        </span>
+        <span className="text-[10px] text-ink-3">{unit}</span>
+      </div>
+    </div>
+  );
 }

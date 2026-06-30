@@ -1,8 +1,10 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ClaimableBalanceCard } from "./ClaimableBalanceCard";
-import { getClient } from "@/lib/client";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+import { getClient } from "@/lib/client";
+
+import { ClaimableBalanceCard } from "./ClaimableBalanceCard";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -17,15 +19,14 @@ describe("ClaimableBalanceCard", () => {
     vi.clearAllMocks();
   });
 
-  it("shows prompt to connect wallet when not connected", () => {
+  it("renders nothing when not connected", () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: null,
       isConnected: false,
     } as unknown as ReturnType<typeof useSorokit>);
 
-    render(<ClaimableBalanceCard />);
-    expect(screen.getByText(/connect your wallet/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
+    const { container } = render(<ClaimableBalanceCard />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("shows fetch error when getClaimableBalances returns an error", async () => {

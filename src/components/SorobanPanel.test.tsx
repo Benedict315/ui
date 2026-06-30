@@ -1,7 +1,9 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SorobanPanel } from "./SorobanPanel";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import { SorobanPanel } from "./SorobanPanel";
 
 const mockInvokeContract = vi.fn();
 
@@ -28,7 +30,7 @@ describe("SorobanPanel", () => {
     vi.mocked(useSorokit).mockReturnValue({
       isConnected: true,
       address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
-    } as any);
+    } as unknown as ReturnType<typeof useSorokit>);
   });
 
   it("should have invoke button disabled when method is empty", () => {
@@ -46,7 +48,7 @@ describe("SorobanPanel", () => {
     const { rerender } = render(
       <SorobanPanel contractId={currentContractId} onContractIdChange={setContractId} />
     );
-    
+
     // Fill out contract ID and method to enable the button
     const methodInput = screen.getByPlaceholderText(/transfer/i);
     const argsInput = screen.getByPlaceholderText(/\[.*\]/i);
@@ -59,19 +61,66 @@ describe("SorobanPanel", () => {
     rerender(<SorobanPanel contractId="C123" onContractIdChange={setContractId} />);
 
     expect(invokeBtn).not.toBeDisabled();
-    
+
     fireEvent.click(invokeBtn);
 
     const errorText = await screen.findByText(/Invalid JSON in arguments/i);
     expect(errorText).toBeInTheDocument();
   });
 
+  // ── Non-array JSON args (#118) ────────────────────────────────────────────
+  // Valid JSON that is not an array (e.g. `{}` or `42`) must be rejected before
+  // it is forwarded to invokeContract, which expects an argument array.
+  async function invokeWithArgs(argsValue: string) {
+    const { rerender } = render(
+      <SorobanPanel contractId="" onContractIdChange={() => {}} />,
+    );
+    fireEvent.change(screen.getByPlaceholderText(/c\.\.\./i), {
+      target: { value: "C123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/transfer/i), {
+      target: { value: "mint" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/\[.*\]/i), {
+      target: { value: argsValue },
+    });
+    rerender(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /invoke/i }));
+  }
+
+  it("rejects a JSON object (non-array) with a 'must be a JSON array' error", async () => {
+    await invokeWithArgs("{}");
+    expect(
+      await screen.findByText(/Arguments must be a JSON array/i),
+    ).toBeInTheDocument();
+  });
+
+  it("rejects a JSON number (non-array) with a 'must be a JSON array' error", async () => {
+    await invokeWithArgs("42");
+    expect(
+      await screen.findByText(/Arguments must be a JSON array/i),
+    ).toBeInTheDocument();
+  });
+
+  it("accepts a valid JSON array and reaches the success state", async () => {
+    mockInvokeContract.mockResolvedValueOnce({
+      data: { success: true },
+      error: null,
+    });
+    await invokeWithArgs('["arg1", 42]');
+    // No validation error; the mocked invokeContract resolves successfully.
+    expect(
+      screen.queryByText(/Arguments must be a JSON array/i),
+    ).not.toBeInTheDocument();
+    expect(await screen.findByText(/Result/i)).toBeInTheDocument();
+  });
+
   it("should show error when invokeContract fails", async () => {
     mockInvokeContract.mockResolvedValueOnce({ data: null, error: "Contract execution failed" });
-    
+
     const onContractIdChange = vi.fn();
     render(<SorobanPanel contractId="C123" onContractIdChange={onContractIdChange} />);
-    
+
     const methodInput = screen.getByLabelText("Method");
     const invokeBtn = screen.getByRole("button", { name: /invoke/i });
 
@@ -84,10 +133,10 @@ describe("SorobanPanel", () => {
 
   it("should invoke contract successfully, show result, and reset state on Clear", async () => {
     mockInvokeContract.mockResolvedValueOnce({ data: { success: true, balance: 1000 }, error: null });
-    
+
     const onContractIdChange = vi.fn();
     render(<SorobanPanel contractId="C123" onContractIdChange={onContractIdChange} />);
-    
+
     const methodInput = screen.getByLabelText("Method");
     const argsInput = screen.getByLabelText("Arguments (JSON array)");
     const invokeBtn = screen.getByRole("button", { name: /invoke/i });

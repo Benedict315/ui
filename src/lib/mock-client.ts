@@ -1,7 +1,19 @@
+import type {
+  AccountData,
+  Balance,
+  ClaimableBalance,
+  ContractEvent,
+  NetworkInfo,
+  NetworkName,
+  SorokitClient,
+  Transaction,
+  TxResult,
+  TxStatus,
+} from './client';
 import { deterministicMock } from './deterministic-mock';
 
-// Valid Stellar testnet address (56 characters, base32)
-export const MOCK_ADDRESS = 'G' + 'A'.repeat(55);
+// Valid 56-char Stellar testnet address
+export const MOCK_ADDRESS = 'GBRPYHIL2CI3WHGSUJGY6O7SROQOMJG7QBCACN4QPKUOQNXJDGONXHPA';
 
 // Deterministic mock data for reproducible tests
 export const MOCK_HISTORY = deterministicMock.generateMockHistory(5);
@@ -9,106 +21,160 @@ export const MOCK_EVENTS = deterministicMock.generateMockEvents(3);
 
 export const NETWORKS = {
   testnet: {
+    name: 'testnet' as NetworkName,
     passphrase: 'Test SDF Network ; September 2015',
-    rpc_url: 'https://soroban-testnet.stellar.org',
+    rpcUrl: 'https://soroban-testnet.stellar.org',
+    horizonUrl: 'https://horizon-testnet.stellar.org',
   },
   public: {
+    name: 'public' as NetworkName,
     passphrase: 'Public Global Stellar Network ; September 2015',
-    rpc_url: 'https://soroban.stellar.org',
+    rpcUrl: 'https://soroban.stellar.org',
+    horizonUrl: 'https://horizon.stellar.org',
   },
 };
 
-/**
- * Create a mock Sorokit client.
- *
- * - When called **without arguments**, returns an object that merges a full mock
- *   client implementation (with `wallet`, `transaction`, etc.) **and** result
- *   fields `error` (null) and `data.network` (default testnet). This satisfies the
- *   wallet‑flow integration test and the default‑network assertions.
- * - When called **with a network name**, it returns a simple result object
- *   `{ data?: { network: any }, error?: string | null }` used by the unit tests.
- */
-export function createMockClient(networkName?: string) {
-  // Helper to build the result object for validation tests.
-  const buildResult = (name?: string) => {
-    if (name && !(name in NETWORKS)) {
-      // Include available network list in error for tests
-      const available = Object.keys(NETWORKS).join(', ');
-      return { data: null, error: `Unknown network: ${name}. Available networks: ${available}` };
-    }
-    const selected = name ? NETWORKS[name as keyof typeof NETWORKS] : NETWORKS.testnet;
-    return { data: { network: selected }, error: null };
+function randomHash(): string {
+  return deterministicMock.generateTransactionHash();
+}
+
+function mockTx(
+  hash: string,
+  seq: number,
+  memo?: string,
+): Transaction {
+  return {
+    hash,
+    ledger: 1000 + seq,
+    createdAt: new Date(Date.now() - seq * 60000).toISOString(),
+    successful: true,
+    operationCount: 1,
+    feePaid: '100',
+    memo,
   };
+}
 
-  // If a network name is supplied, return the simple validation result.
-  if (typeof networkName === 'string') {
-    return buildResult(networkName);
-  }
+/**
+ * Create a full mock SorokitClient with deterministic data.
+ * All methods are mocked with vi.fn() when vitest is available.
+ */
+export function createMockClient(): SorokitClient {
+  const mockTransactions: Transaction[] = MOCK_HISTORY.map((h, i) =>
+    mockTx(h.id, i),
+  );
 
-  // ----- Full mock client (no args) -----
-  const client = {
+  return {
     wallet: {
-      async connect() {
-        return { data: { address: MOCK_ADDRESS }, error: null } as const;
-      },
-      async disconnect() {
-        return undefined;
-      },
-      async getAddress() {
-        return { data: MOCK_ADDRESS, error: null } as const;
-      },
+      connect: () =>
+        Promise.resolve({
+          data: { address: MOCK_ADDRESS },
+          error: null,
+          status: 'success' as const,
+        }),
+      disconnect: () => Promise.resolve(),
+      getAddress: () =>
+        Promise.resolve({ data: MOCK_ADDRESS, error: null }),
     },
     account: {
-      async getAccount() {
-        return { data: null, error: null, status: 'success' } as const;
-      },
-      async getBalances() {
-        return { data: [], error: null } as const;
-      },
-      async getClaimableBalances() {
-        return { data: [], error: null } as const;
-      },
-      async claimBalance() {
-        return { data: null, error: null } as const;
-      },
+      getAccount: () =>
+        Promise.resolve({
+          data: {
+            address: MOCK_ADDRESS,
+            sequence: '100',
+            subentryCount: 0,
+          } as AccountData,
+          error: null,
+          status: 'success',
+        }),
+      getBalances: () =>
+        Promise.resolve({
+          data: [
+            {
+              asset: 'XLM',
+              balance: '10000',
+              assetType: 'native' as const,
+            },
+          ] as Balance[],
+          error: null,
+        }),
+      getClaimableBalances: () =>
+        Promise.resolve({
+          data: [] as ClaimableBalance[],
+          error: null,
+        }),
+      claimBalance: () =>
+        Promise.resolve({
+          data: { hash: randomHash(), ledger: 0, successful: true } as TxResult,
+          error: null,
+        }),
     },
     transaction: {
-      async submit() {
-        return { data: null, error: null, status: 'success' } as const;
-      },
-      async getStatus() {
-        return { data: null, error: null } as const;
-      },
-      async getHistory(_address: string, _page?: number, limit?: number) {
-        const sliced = typeof limit === 'number' ? MOCK_HISTORY.slice(0, limit) : MOCK_HISTORY;
-        return { data: sliced, error: null, total: MOCK_HISTORY.length } as const;
-      },
-      async estimateFee() {
-        return { data: { baseFee: '100', recommended: '200' }, error: null } as const;
-      },
+      submit: () =>
+        Promise.resolve({
+          data: { hash: randomHash(), ledger: 0, successful: true } as TxResult,
+          error: null,
+          status: 'success',
+        }),
+      getStatus: () =>
+        Promise.resolve({
+          data: 'success' as TxStatus,
+          error: null,
+        }),
+      getHistory: (
+        _address: string,
+        _page?: number,
+        limit?: number,
+      ) =>
+        Promise.resolve({
+          data: mockTransactions.slice(0, limit ?? mockTransactions.length),
+          error: null,
+          total: mockTransactions.length,
+        }),
+      estimateFee: () =>
+        Promise.resolve({
+          data: { baseFee: '100', recommended: '1000' },
+          error: null,
+        }),
     },
     soroban: {
-      async invokeContract() {
-        return { data: null, error: null, status: 'success' } as const;
-      },
-      async getEvents() {
-        return { data: MOCK_EVENTS, error: null } as const;
-      },
+      invokeContract: () =>
+        Promise.resolve({
+          data: null,
+          error: null,
+          status: 'success',
+        }),
+      getEvents: () =>
+        Promise.resolve({
+          data: MOCK_EVENTS.map((e) => ({
+            id: e.id,
+            contractId: e.data.contractId,
+            type: e.type,
+            ledger: 0,
+            createdAt: new Date(e.timestamp).toISOString(),
+            topics: e.data.topics,
+            value: e.data.value,
+          })) as ContractEvent[],
+          error: null,
+        }),
     },
     network: {
-      async getNetwork() {
-        return { data: NETWORKS.testnet, error: null } as const;
-      },
-      async switchNetwork(name: string) {
-        if (!(name in NETWORKS)) {
-          return { data: null, error: `Invalid network: ${name}` } as const;
+      getNetwork: () =>
+        Promise.resolve({
+          data: NETWORKS.testnet as NetworkInfo,
+          error: null,
+        }),
+      switchNetwork: (name: NetworkName) => {
+        if (name in NETWORKS) {
+          return Promise.resolve({
+            data: NETWORKS[name as keyof typeof NETWORKS] as NetworkInfo,
+            error: null,
+          });
         }
-        return { data: NETWORKS[name as keyof typeof NETWORKS], error: null } as const;
+        return Promise.resolve({
+          data: null,
+          error: `Invalid network: ${name}`,
+        });
       },
     },
-  } as const;
-
-  // Merge result fields for the default‑network tests while preserving client APIs.
-  const defaultResult = buildResult();
-  return { ...client, ...defaultResult };
+  };
 }

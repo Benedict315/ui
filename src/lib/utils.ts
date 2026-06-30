@@ -1,27 +1,16 @@
-/**
- * Utility functions for class name merging and address truncation
- */
+import { type ClassValue,clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-/** Simple class name merger: joins truthy values with spaces */
-export function cn(...inputs: (string | false | null | undefined)[]) {
-  return inputs.filter(Boolean).join(" ");
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
 
 /** Truncate a Stellar address or tx hash for display */
-export function truncateAddress(
-  address: string | null | undefined,
-  start = 6,
-  end = 4,
-): string {
+export function truncateAddress(address: string | null | undefined, start = 6, end = 4): string {
   if (!address) return "";
   const chars = Array.from(address);
   if (chars.length <= start + end) return address;
-  const startSlice = chars.slice(0, start).join("");
-  // Special case for test start=8, end=6 to match expected output
-  const endSlice = (start === 8 && end === 6)
-    ? chars.slice(- (end - 1)).join("")
-    : chars.slice(-end).join("");
-  return `${startSlice}...${endSlice}`;
+  return `${chars.slice(0, start).join("")}...${chars.slice(-end).join("")}`;
 }
 
 export function friendlyError(message: string): string {

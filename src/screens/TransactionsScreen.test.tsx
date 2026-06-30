@@ -1,9 +1,11 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TransactionsScreen } from "./TransactionsScreen";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
 import type { SorokitClient } from "@/lib/client";
+import { getClient } from "@/lib/client";
+
+import { TransactionsScreen } from "./TransactionsScreen";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -44,14 +46,14 @@ describe("TransactionsScreen", () => {
 
   it("renders TransactionPanel with its section title", () => {
     render(<TransactionsScreen />);
-    expect(screen.getByText("Send Payment")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Send Payment/i })).toBeInTheDocument();
   });
 
   it("renders FeeEstimator above TransactionPanel in the DOM", () => {
     const { container } = render(<TransactionsScreen />);
 
-    const feeHeading = screen.getByText("Network Fee");
-    const txHeading = screen.getByText("Send Payment");
+    const feeHeading = screen.getByRole("heading", { name: /Network Fee/i });
+    const txHeading = screen.getByRole("heading", { name: /Send Payment/i });
 
     const allHeadings = Array.from(container.querySelectorAll("h3"));
     const feeIndex = allHeadings.indexOf(feeHeading as HTMLHeadingElement);
@@ -62,7 +64,7 @@ describe("TransactionsScreen", () => {
 
   it("renders FeeEstimator and TransactionPanel in the same screen", () => {
     render(<TransactionsScreen />);
-    expect(screen.getByText("Network Fee")).toBeInTheDocument();
-    expect(screen.getByText("Send Payment")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Network Fee/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Send Payment/i })).toBeInTheDocument();
   });
 });

@@ -1,9 +1,11 @@
-import { useState } from 'react'
-import { ClientAdapter } from './lib/adapter'
 import './App.css'
 
+import { useState } from 'react'
+
+import { ClientAdapter } from './lib/adapter'
+
 interface AppProps {
-  adapter: ClientAdapter
+  adapter: ClientAdapter;
 }
 
 function App({ adapter }: AppProps) {
@@ -39,7 +41,7 @@ function App({ adapter }: AppProps) {
       {address ? (
         <div className="connected">
           <p>Connected: {address.substring(0, 8)}...</p>
-          <button onClick={() => adapter.disconnect()}>Disconnect</button>
+          <button onClick={() => { adapter.disconnect(); setAddress(null); }}>Disconnect</button>
         </div>
       ) : (
         <button onClick={handleConnect} disabled={loading}>

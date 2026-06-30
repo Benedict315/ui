@@ -117,10 +117,40 @@ describe('MyComponent', () => {
 });
 ```
 
+## Continuous Integration
+
+Every push and pull request runs `.github/workflows/test.yml`, which enforces
+the following checks (all must pass before a PR can be merged):
+
+| Step           | Command                                  | Purpose                                                              |
+| -------------- | ---------------------------------------- | ------------------------------------------------------------------- |
+| Lint           | `npm run lint`                           | ESLint over `.ts`/`.tsx` sources.                                    |
+| Typecheck      | `npx tsc --noEmit -p tsconfig.app.json`  | Catches type errors across the **full** source tree, not just the build entrypoint. |
+| Build          | `npm run build`                          | Produces the library bundle in `dist/`.                             |
+| Bundle size    | `npm run size`                           | Fails if the published bundle exceeds the **50 KB gzipped** budget. |
+| Verify exports | `npm run test:exports`                   | Type-checks `src/verify-exports.ts` so the public API can't silently break. |
+| Tests          | `npm test`                               | Runs the Vitest suite.                                              |
+
+### Bundle size budget
+
+Bundle size is tracked with [`size-limit`](https://github.com/ai/size-limit).
+The budget is configured in the `size-limit` field of `package.json` and is
+currently **50 KB gzipped** for each of the ES and CommonJS bundles. Run it
+locally after a build:
+
+```bash
+npm run build
+npm run size
+```
+
+If a change pushes the bundle over budget, the check fails with a clear message
+showing the current size versus the limit. Avoid this by keeping runtime
+dependencies in `devDependencies` where possible and lazy-loading heavy assets.
+
 ## Code Review
 
 - All PRs must have at least one approval
-- CI checks must pass (tests, lint, build)
+- CI checks must pass (lint, typecheck, build, bundle size, exports, tests)
 - New components must include JSDoc comments
 - Breaking changes need documentation updates
 

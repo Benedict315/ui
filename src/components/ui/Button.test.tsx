@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, expect,it } from "vitest";
+
 import { Button } from "./Button";
 
 describe("Button", () => {
@@ -10,7 +11,7 @@ describe("Button", () => {
 
   it("renders a loading spinner when loading is true", () => {
     const { container } = render(<Button loading>Submit</Button>);
-    expect(screen.getByRole("button", { name: "Submit" })).toBeInTheDocument();
+expect(screen.getByRole("button", { name: /Submit/i })).toBeInTheDocument();
     // The spinner is a span with animate-spin class
     const spinner = container.querySelector(".animate-spin");
     expect(spinner).toBeInTheDocument();
@@ -25,7 +26,7 @@ describe("Button", () => {
 
   it("is disabled when loading is true", () => {
     render(<Button loading>Submit</Button>);
-    const button = screen.getByRole("button", { name: "Submit" });
+const button = screen.getByRole("button", { name: /Submit/i });
     expect(button).toBeDisabled();
   });
 
@@ -84,5 +85,29 @@ describe("Button", () => {
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/test");
     expect(link?.className).toContain("bg-brand"); // variant styles are transferred
+  });
+
+  it("asChild buttons with disabled do not fire onClick on the child", () => {
+    const childClick = vi.fn();
+    render(
+      <Button asChild disabled>
+        <button onClick={childClick}>Click me</button>
+      </Button>
+    );
+    const button = screen.getByRole("button", { name: "Click me" });
+    button.click();
+    expect(childClick).not.toHaveBeenCalled();
+  });
+
+  it("asChild buttons with disabled do not fire onClick on a non-button child", () => {
+    const childClick = vi.fn();
+    const { container } = render(
+      <Button asChild disabled>
+        <div onClick={childClick}>Click me</div>
+      </Button>
+    );
+    const child = container.querySelector("div");
+    child?.click();
+    expect(childClick).not.toHaveBeenCalled();
   });
 });
