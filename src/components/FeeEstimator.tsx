@@ -1,46 +1,3 @@
-/**
- * FeeEstimator Component
- * 
- * Calculates and displays estimated transaction fees based on network conditions,
- * operation complexity, and current Stellar network state.
- * 
- * @component
- * @example
- * ```tsx
- * import { FeeEstimator } from 'sorokit-ui';
- * 
- * export function TransactionForm() {
- *   return (
- *     <div>
- *       <FeeEstimator 
- *         operations={5}
- *         network="testnet"
- *       />
- *     </div>
- *   );
- * }
- * ```
- * 
- * @param props - Component props
- * @param props.operations - Number of operations in transaction (default: 1)
- * @param props.network - Network to estimate fees for ('testnet' | 'public')
- * @param props.onEstimate - Callback when fee is calculated
- * 
- * @returns The rendered FeeEstimator component
- * 
- * @remarks
- * - Updates every 10 seconds with latest network fees
- * - Shows breakdown of base fee + operations fee
- * - Includes estimated stroops
- * - Requires SorokitProvider context
- * 
- * @see {@link SorokitProvider} for setup
- */
-export function FeeEstimator({ 
-  operations = 1, 
-  network, 
-  onEstimate 
-}: FeeEstimatorProps) {
 import { useEffect, useRef, useState } from "react";
 import { getClient, hasClient } from "@/lib/client";
 
@@ -52,6 +9,39 @@ interface FeeData {
   recommended: string;
 }
 
+interface FeeEstimatorProps {
+  operations?: number;
+  network: "testnet" | "public";
+  onEstimate?: (fee: string) => void;
+}
+
+/**
+ * FeeEstimator Component
+ *
+ * Calculates and displays estimated transaction fees based on network conditions,
+ * operation complexity, and current Stellar network state.
+ *
+ * @component
+ * @example
+ * ```tsx
+ * import { FeeEstimator } from "sorokit-ui";
+ *
+ * export function TransactionForm() {
+ *   return (
+ *     <div>
+ *       <FeeEstimator operations={5} network="testnet" />
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @param props - Component props
+ * @param props.operations - Number of operations in transaction (default: 1)
+ * @param props.network - Network to estimate fees for ('testnet' | 'public')
+ * @param props.onEstimate - Callback when fee is calculated
+ *
+ * @returns The rendered FeeEstimator component
+ */
 export function FeeEstimator({
   operations = 1,
   network,
@@ -144,20 +134,18 @@ export function FeeEstimator({
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.01M20 20v-5h-.01M4 20l5-5M20 4l-5 5" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.01M20 20v-5h-.01M4 20l5-5M20 4l-5 5"
+            />
           </svg>
           Refresh
         </button>
       </div>
     </div>
   );
-}
-
-interface FeeEstimatorProps {
-  operations?: number;
-  network: "testnet" | "public";
-  onEstimate?: (fee: string) => void;
-}
 }
 
 interface FeeEstimatorProps {

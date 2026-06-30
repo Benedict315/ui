@@ -35,6 +35,12 @@
  */
 import React from "react";
 
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+  onError?: (error: Error) => void;
+}
+
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
@@ -46,7 +52,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
@@ -57,31 +63,18 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   render() {
     if (this.state.hasError) {
-+      const isDev = import.meta.env?.DEV ?? false;
-+      const message = isDev && this.state.error
-+        ? this.state.error.message
-+        : "See the browser console for details.";
-+      const content = this.props.fallback ?? (
-+        <div className="p-4 bg-red-100 text-red-800 rounded">
-+          <p className="text-sm font-medium">An unexpected error occurred.</p>
-+          <p className="text-xs font-mono break-all mt-2" aria-live="polite">{message}</p>
-+        </div>
-+      );
-+      return content;
-+    }
-+    return this.props.children;
-+  }
-}
-
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-  onError?: (error: Error) => void;
-}
-
-
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-  onError?: (error: Error) => void;
+      const isDev = import.meta.env?.DEV ?? false;
+      const message = isDev && this.state.error
+        ? this.state.error.message
+        : "See the browser console for details.";
+      const content = this.props.fallback ?? (
+        <div className="p-4 bg-red-100 text-red-800 rounded">
+          <p className="text-sm font-medium">An unexpected error occurred.</p>
+          <p className="text-xs font-mono break-all mt-2" aria-live="polite">{message}</p>
+        </div>
+      );
+      return content;
+    }
+    return this.props.children;
+  }
 }

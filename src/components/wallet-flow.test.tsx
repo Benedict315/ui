@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WalletConnectButton } from '../WalletConnectButton';
-import { AccountCard } from '../AccountCard';
+import { WalletConnectButton } from './WalletConnectButton';
+import { AccountCard } from './AccountCard';
 import { useSorokit } from '@/context/useSorokit';
 
 vi.mock('@/context/useSorokit', () => ({
