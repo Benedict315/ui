@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AccountCard } from "./AccountCard";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import { AccountCard } from "./AccountCard";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -43,6 +45,51 @@ describe("AccountCard", () => {
     expect(screen.getByText("123456")).toBeInTheDocument();
     expect(screen.getByText("Subentries")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  it("shows a Sequence Number label with an explanatory tooltip", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      address: "GABC",
+      account: { sequence: "123456", subentryCount: 2 },
+      isLoadingAccount: false,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<AccountCard />);
+    const label = screen.getByText("Sequence Number");
+    expect(label).toBeInTheDocument();
+    expect(label).toHaveAttribute(
+      "title",
+      "Used to prevent duplicate transactions"
+    );
+  });
+
+  it("shows the XLM reserve impact for subentries", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      address: "GABC",
+      account: { sequence: "123456", subentryCount: 2 },
+      isLoadingAccount: false,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<AccountCard />);
+    expect(
+      screen.getByText("Subentries: 2 (+1 XLM reserved)")
+    ).toBeInTheDocument();
+  });
+
+  it("associates the content region with the card heading via aria-labelledby", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      address: "GABC",
+      account: { sequence: "123456", subentryCount: 2 },
+      isLoadingAccount: false,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    const { container } = render(<AccountCard />);
+    const heading = container.querySelector("#account-card-heading");
+    const region = container.querySelector(
+      '[aria-labelledby="account-card-heading"]'
+    );
+    expect(heading).toBeInTheDocument();
+    expect(region).toBeInTheDocument();
   });
 
   it("returns null when no address is present", () => {

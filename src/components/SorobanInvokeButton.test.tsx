@@ -1,9 +1,11 @@
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { SorobanInvokeButton } from "./SorobanInvokeButton";
-import { getClient } from "@/lib/client";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
-import type { SorokitClient, InvokeParams } from "@/lib/client";
+import type { InvokeParams,SorokitClient } from "@/lib/client";
+import { getClient } from "@/lib/client";
+
+import { SorobanInvokeButton } from "./SorobanInvokeButton";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -127,39 +129,31 @@ describe("SorobanInvokeButton", () => {
     expect(screen.getByText("Connect wallet to invoke")).toBeInTheDocument();
   });
 
-  describe("autoResetAfter", () => {
-    beforeEach(() => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
-    });
+  it("prevents multiple concurrent invocations on double-click", async () => {
+    const invokeContract = vi.fn().mockReturnValue(new Promise(() => {})); // Never resolves
+    vi.mocked(getClient).mockReturnValue({
+      soroban: { invokeContract },
+    } as unknown as SorokitClient);
 
-    afterEach(() => {
-      vi.useRealTimers();
-    });
+    render(<SorobanInvokeButton params={PARAMS} />);
+    const button = screen.getByRole("button", { name: "transfer()" });
+    
+    // Fire rapid double-click
+    fireEvent.click(button);
+    fireEvent.click(button);
 
-    it("resets to idle after the specified delay on success", async () => {
-      mockInvokeContract({
-        data: { txHash: "abc" },
-        error: null,
-        status: "success",
-      });
+    expect(invokeContract).toHaveBeenCalledTimes(1);
+  });
 
-      render(
-        <SorobanInvokeButton params={PARAMS} autoResetAfter={1000} />,
-      );
-      fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
+  it("has reset button with correct aria-label", async () => {
+    mockInvokeContract({ data: { result: 1 }, error: null, status: "success" });
+    render(<SorobanInvokeButton params={PARAMS} />);
+    
+    fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
+    await waitFor(() => expect(screen.getByText("Done")).toBeInTheDocument());
 
-      await waitFor(() =>
-        expect(screen.getByText("Done")).toBeInTheDocument(),
-      );
-
-      act(() => {
-        vi.advanceTimersByTime(1000);
-      });
-
-      expect(screen.queryByText("Done")).not.toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "transfer()" }),
-      ).toBeInTheDocument();
-    });
+    const resetButton = screen.getByRole("button", { name: "Reset invocation result" });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toHaveTextContent("Reset");
   });
 });

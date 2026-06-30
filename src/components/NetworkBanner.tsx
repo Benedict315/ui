@@ -1,6 +1,6 @@
+import type { NavSection } from "@/components/Sidebar";
 import { useSorokit } from "@/context/useSorokit";
 import { cn } from "@/lib/utils";
-import type { NavSection } from "@/components/Sidebar";
 
 const CONFIG = {
   mainnet: {

@@ -1,7 +1,9 @@
 import { renderHook, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
-import { useSorokit } from "./useSorokit";
+import { describe, expect,it } from "vitest";
+
 import { renderWithProvider } from "@/__tests__/utils";
+
+import { useSorokit } from "./useSorokit";
 
 describe("useSorokit", () => {
   it("returns safe defaults when used outside of SorokitProvider", () => {
