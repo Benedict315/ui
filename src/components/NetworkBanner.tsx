@@ -1,5 +1,6 @@
 import { useSorokit } from "@/context/useSorokit";
 import { cn } from "@/lib/utils";
+import type { NavSection } from "@/components/Sidebar";
 
 const CONFIG = {
   mainnet: {
@@ -40,17 +41,20 @@ const CONFIG = {
 };
 
 interface NetworkBannerProps {
+  active?: NavSection;
   /** Always show even on mainnet */
   alwaysShow?: boolean;
   className?: string;
 }
 
 export function NetworkBanner({
+  active,
   alwaysShow = false,
   className,
 }: NetworkBannerProps) {
   const { network } = useSorokit();
   if (!network) return null;
+  if (active === "network") return null;
 
   const cfg = CONFIG[network.name] ?? CONFIG.custom;
   if (!alwaysShow && !cfg.show) return null;
@@ -60,7 +64,7 @@ export function NetworkBanner({
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-2 px-4 py-2 text-[11px] font-medium",
+        "flex items-center justify-center gap-2 px-4 py-2 text-[11px] font-medium transition-all duration-300",
         cfg.bar,
         className,
       )}

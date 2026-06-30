@@ -108,6 +108,8 @@ export function ClaimableBalanceCard() {
     };
   }, [address]);
 
+  if (!isConnected) return null;
+
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-line">
@@ -124,11 +126,7 @@ export function ClaimableBalanceCard() {
         )}
       </div>
 
-      {!isConnected ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          Connect your wallet to view claimable balances
-        </p>
-      ) : loading ? (
+      {loading ? (
         <div className="px-5 py-5 flex flex-col gap-4">
           {[1, 2].map((i) => (
             <div key={i} className="flex items-center justify-between gap-4">

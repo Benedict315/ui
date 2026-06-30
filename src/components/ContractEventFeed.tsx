@@ -62,7 +62,7 @@ function EventRow({ event }: { event: ContractEvent }) {
   );
 }
 
-interface ContractEventFeedProps {
+export interface ContractEventFeedProps {
   contractId: string;
   /** Auto-poll interval in ms. 0 = manual only. */
   pollInterval?: number;

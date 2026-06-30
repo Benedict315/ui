@@ -2,7 +2,7 @@
  * sorokit-core client singleton
  *
  * All UI components must use this module to access blockchain functionality.
- * No direct blockchain logic lives in the UI — everything goes through sorokit-core.
+ * No direct blockchain logic lives in the UI -- everything goes through sorokit-core.
  */
 
 export type SorokitClient = {
@@ -152,6 +152,10 @@ let _client: SorokitClient | null = null;
 
 export function initClient(client: SorokitClient): void {
   _client = client;
+}
+
+export function hasClient(): boolean {
+  return _client !== null;
 }
 
 export function getClient(): SorokitClient {

@@ -182,7 +182,20 @@ const { balances, loading, error } = useAccount();
 const { buildPayment, submit, status } = useTransaction();
 ```
 
-All hooks must be used inside a `SorokitProvider`.
+### `refreshAccount`
+
+Re-fetches the connected account data and balances. Useful when the user expects their balance to have changed (e.g. after receiving a payment) without disconnecting and reconnecting.
+
+```tsx
+const { refreshAccount, isLoadingAccount } = useSorokit();
+
+// Await the refresh to know when it has completed
+await refreshAccount();
+```
+
+`refreshAccount` returns a `Promise<void>` that resolves once both `getAccount` and `getBalances` have settled. `isLoadingAccount` is `true` while the request is in flight.
+
+All hooks must be used inside a `SorokitProvider`. When used outside one, `useSorokit` returns safe no-op defaults rather than throwing, so components render in a neutral disconnected state.
 
 ---
 

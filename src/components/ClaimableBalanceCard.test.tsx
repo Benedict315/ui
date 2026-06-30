@@ -19,15 +19,14 @@ describe("ClaimableBalanceCard", () => {
     vi.clearAllMocks();
   });
 
-  it("shows prompt to connect wallet when not connected", () => {
+  it("renders nothing when not connected", () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: null,
       isConnected: false,
     } as unknown as ReturnType<typeof useSorokit>);
 
-    render(<ClaimableBalanceCard />);
-    expect(screen.getByText(/connect your wallet/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
+    const { container } = render(<ClaimableBalanceCard />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("shows fetch error when getClaimableBalances returns an error", async () => {

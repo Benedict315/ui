@@ -13,7 +13,6 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
   const [account, setAccount] = useState<AccountData | null>(null);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
-  const [refreshTick, setRefreshTick] = useState(0);
   const [network, setNetwork] = useState<NetworkInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +34,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
     };
   }, [client]);
 
-  // Load account when address changes or refresh is triggered
+  // Load account when address changes
   useEffect(() => {
     if (!address) return;
 
@@ -62,7 +61,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       active = false;
       window.clearTimeout(timerId);
     };
-  }, [address, client, refreshTick]);
+  }, [address, client]);
 
   const connectWallet = useCallback(async () => {
     setIsConnecting(true);
@@ -94,6 +93,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
         return;
       }
       if (data) {
+        setError(null);
         setNetwork(data);
         setAddress(null);
         setAccount(null);
@@ -105,9 +105,22 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  const refreshAccount = useCallback(() => {
-    setRefreshTick((t) => t + 1);
-  }, []);
+  const refreshAccount = useCallback(async () => {
+    if (!address) return;
+    setIsLoadingAccount(true);
+    try {
+      const [accountRes, balancesRes] = await Promise.all([
+        client.account.getAccount(address),
+        client.account.getBalances(address),
+      ]);
+      if (accountRes.data) setAccount(accountRes.data);
+      if (accountRes.error) setError(accountRes.error);
+      if (balancesRes.data) setBalances(balancesRes.data);
+      if (balancesRes.error) setError(balancesRes.error);
+    } finally {
+      setIsLoadingAccount(false);
+    }
+  }, [address, client]);
 
   const value = useMemo(
     () => ({
