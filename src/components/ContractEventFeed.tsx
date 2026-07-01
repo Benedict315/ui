@@ -8,17 +8,17 @@
  * @example
  * ```tsx
  * import { ContractEventFeed } from 'sorokit-ui';
- * 
+ *
  * export function Dashboard() {
  *   return (
- *     <ContractEventFeed 
+ *     <ContractEventFeed
  *       contractId="CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4"
  *       limit={50}
  *     />
  *   );
  * }
  * ```
- * 
+ *
  * @param props - Component props
  * @param props.contractId - Smart contract ID to monitor
  * @param props.limit - Maximum number of events to display (default: 100)
@@ -39,20 +39,314 @@
  * @see {@link SorokitProvider} for setup
  * @see GitHub issue #8 for QR code scanner limitation
  */
-import type { ContractEvent } from '@/lib/client';
-
-export function ContractEventFeed({
-  contractId,
-  limit = 100,
-  autoRefresh = 5000,
-  onEventClick
-}: ContractEventFeedProps) {
-  // Component implementation
-}
+import { useEffect, useState } from "react";
+ *
+ * @returns The rendered ContractEventFeed component
+ *
+ * @remarks
+ * - Auto-refreshes every 5 seconds by default
+ * - Shows timestamp, topics, and event data
+ * - Requires SorokitProvider context
+ *
+ * @see {@link SorokitProvider} for setup
+ */
+import { useEffect, useState } from "react";
+import { getClient } from "@/lib/client";
+import type { ContractEvent } from "@/lib/client";
 
 export interface ContractEventFeedProps {
   contractId: string;
   limit?: number;
   autoRefresh?: number;
   onEventClick?: (event: ContractEvent) => void;
+}
+
+export function ContractEventFeed({
+  contractId,
+  limit = 100,
+  autoRefresh = 5000,
+  onEventClick,
+}: ContractEventFeedProps) {
+  const [events, setEvents] = useState<ContractEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchEvents() {
+      setLoading(true);
+      try {
+        const { data, error: err } = await getClient().soroban.getEvents(
+          contractId,
+          limit,
+        );
+        if (!cancelled) {
+          if (err) {
+            setError(err);
+          } else {
+            setEvents(data ?? []);
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Unknown error");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchEvents();
+
+    if (autoRefresh > 0) {
+      const interval = setInterval(fetchEvents, autoRefresh);
+      return () => {
+        cancelled = true;
+        clearInterval(interval);
+      };
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [contractId, limit, autoRefresh]);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-[12px] font-semibold text-ink-2">Contract Events</p>
+
+      {loading && events.length === 0 && (
+        <p className="text-[11px] text-ink-3">Loading events…</p>
+      )}
+
+      {error && (
+        <p className="text-[11px] text-red">{error}</p>
+      )}
+
+      {!loading && !error && events.length === 0 && (
+        <p className="text-[11px] text-ink-3">No events found.</p>
+      )}
+
+      {events.map((event) => (
+        <button
+          key={event.id}
+          type="button"
+          onClick={() => onEventClick?.(event)}
+          className="text-left rounded-lg border border-line bg-surface px-3 py-2 text-[11px] font-mono text-ink-2 hover:bg-surface-2 transition-colors"
+        >
+          <span className="text-ink-4 mr-2">{event.type}</span>
+          {event.contractId}
+        </button>
+      ))}
+import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { Badge } from "@/components/ui/Badge";
+import type { ContractEvent } from "@/lib/client";
+import { getClient } from "@/lib/client";
+import type { ContractEvent } from "@/lib/client";
+
+export function ContractEventFeed({
+  contractId,
+  limit = 100,
+  autoRefresh = 5000,
+  onEventClick,
+}: ContractEventFeedProps) {
+  const [events, setEvents] = useState<ContractEvent[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
+
+  const fetchEvents = async () => {
+    setLoading(true);
+    try {
+      const { data, error: err } = await getClient().soroban.getEvents(contractId, limit);
+      if (err) {
+        setError(err);
+        setEvents(null);
+      } else {
+        setEvents(data);
+        setError(null);
+        setLastUpdated(Date.now());
+      }
+    } catch (e) {
+      setError((e as Error).message);
+      setEvents(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+    if (autoRefresh > 0) {
+      const interval = setInterval(fetchEvents, autoRefresh);
+      return () => clearInterval(interval);
+    }
+  }, [contractId, limit, autoRefresh]);
+
+  const relativeTime = () => {
+    const diffM = Math.floor((Date.now() - lastUpdated) / 60000);
+    return diffM === 0 ? "just now" : `${diffM}m ago`;
+  };
+
+  if (loading && !events) {
+    return <div className="animate-pulse">Loading...</div>;
+  }
+  if (error) {
+    return <div className="text-red">{error}</div>;
+  }
+  if (!events || events.length === 0) {
+    return <p className="text-ink-3">No events found</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="text-xs text-ink-4">
+        Last updated: <span data-testid="last-updated">{relativeTime()}</span>
+      </div>
+      <ul className="list-none p-0 m-0 space-y-2">
+        {events.map((ev) => (
+          <li
+            key={ev.id}
+            className="cursor-pointer hover:bg-surface-2 p-2 rounded"
+            onClick={() => onEventClick?.(ev)}
+          >
+            <div className="text-sm font-medium">{ev.type}</div>
+            <div className="text-xs text-ink-3">
+              {new Date(ev.createdAt).toLocaleString()}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export interface ContractEventFeedProps {
+  contractId: string;
+  /** Auto-poll interval in ms. 0 = manual only. */
+  pollInterval?: number;
+  limit?: number;
+}
+
+export function ContractEventFeed({
+  contractId,
+  pollInterval = 0,
+  limit = 10,
+}: ContractEventFeedProps) {
+  const [events, setEvents] = useState<ContractEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [live, setLive] = useState(pollInterval > 0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const load = useCallback(async () => {
+    if (!contractId.trim()) return;
+    setLoading(true);
+    try {
+      const { data, error: err } = await getClient().soroban.getEvents(
+        contractId,
+        limit,
+      );
+      if (err) {
+        setError(err);
+        return;
+      }
+      setEvents(data ?? []);
+      setError(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [contractId, limit]);
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void load();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [load]);
+
+  useEffect(() => {
+    if (live && pollInterval > 0) {
+      intervalRef.current = setInterval(() => {
+        void load();
+      }, pollInterval);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [live, pollInterval, load]);
+
+  return (
+    <div className="rounded-xl border border-line bg-surface overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+        <div>
+          <h3 className="text-[14px] font-semibold text-ink">
+            Contract Events
+          </h3>
+          <p className="text-[12px] text-ink-3 mt-0.5 font-mono">
+            {truncateAddress(contractId, 10, 6)}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {pollInterval > 0 && (
+            <button
+              onClick={() => setLive((l) => !l)}
+              aria-pressed={live}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${live ? "bg-success-dim text-green border-success-dim-strong" : "bg-surface-2 text-ink-3 border-line-2"}`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${live ? "bg-green animate-pulse" : "bg-ink-3"}`}
+              />
+              {live ? "Live" : "Paused"}
+            </button>
+          )}
+          <button
+            onClick={() => void load()}
+            disabled={loading}
+            className="p-1.5 rounded-lg hover:bg-surface-2 text-ink-3 hover:text-ink-2 transition-colors disabled:opacity-40"
+          >
+            <HugeiconsIcon
+              icon={Refresh01Icon}
+              size={14}
+              color="currentColor"
+              strokeWidth={1.5}
+              className={loading ? "animate-spin" : ""}
+            />
+          </button>
+        </div>
+      </div>
+
+      {error ? (
+        <p className="text-[13px] text-red text-center py-10">{error}</p>
+      ) : loading && events.length === 0 ? (
+        <div className="px-5 py-4 flex flex-col gap-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-12 rounded-lg bg-surface-2 animate-pulse"
+            />
+          ))}
+        </div>
+      ) : events.length === 0 ? (
+        <p className="text-[13px] text-ink-3 text-center py-10">
+          No events found
+        </p>
+      ) : (
+        <div aria-live="polite">
+          {events.map((e) => (
+            <EventRow key={e.id} event={e} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

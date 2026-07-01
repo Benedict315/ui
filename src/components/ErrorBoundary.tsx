@@ -33,13 +33,96 @@
  * 
  * @see https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary
  */
-export function ErrorBoundary({ 
-  children, 
-  fallback, 
-  onError 
-}: ErrorBoundaryProps) {
-  // Component implementation
+import React from "react";
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: React.ErrorInfo | null;
+  resetKey: number;
 }
+
+export function ErrorBoundary({
+  children,
+  fallback,
+  onError,
+  isolate,
+}: ErrorBoundaryProps) {
+  const [state, setState] = React.useState<ErrorBoundaryState>({
+    hasError: false,
+    error: null,
+    errorInfo: null,
+    resetKey: 0,
+  });
+
+  const reset = React.useCallback(() => {
+    setState((prev) => ({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      resetKey: prev.resetKey + 1,
+    }));
+  }, []);
+
+  const componentDidCatch = (error: Error, errorInfo: React.ErrorInfo) => {
+    // Log in development, otherwise delegate to onError if provided
+    if (process.env.NODE_ENV === "development") {
+      console.error("[sorokit-ui] Uncaught error:", error, errorInfo.componentStack);
+    } else if (onError) {
+      onError(error, errorInfo);
+    }
+    setState({ hasError: true, error, errorInfo, resetKey: state.resetKey });
+  };
+
+  // Use a class-less pattern: we need lifecycle hook, so use useEffect with error boundary via React error handling is not possible.
+  // Instead, create an inner class component to leverage componentDidCatch.
+  class Boundary extends React.Component<{ children: React.ReactNode }> {
+    componentDidCatch(error: Error, info: React.ErrorInfo) {
+      componentDidCatch(error, info);
+    }
+    render() {
+      return this.props.children;
+    }
+  }
+
+  if (state.hasError) {
+    if (fallback) {
+      if (typeof fallback === "function") {
+        return (fallback as any)(state.error, reset);
+      }
+      return <>{fallback}</>;
+    }
+    return (
+      <div className="p-4 bg-red-50 text-red-800 rounded">
+        <h2>Something went wrong</h2>
+        <pre>{state.error?.message}</pre>
+        <button onClick={reset} className="mt-2 btn-primary">
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  const content = (
+    <Boundary key={state.resetKey}>
+      {children}
+    </Boundary>
+  );
+
+  return isolate ? (
+    <div className="overflow-hidden rounded-xl">{content}</div>
+  ) : (
+    content
+  );
+}
+
+export interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode | ((error: Error, reset: () => void) => React.ReactNode);
+  onError?: (error: Error, info: React.ErrorInfo) => void;
+  isolate?: boolean;
+}
+
 
 export interface ErrorBoundaryProps {
   children: React.ReactNode;

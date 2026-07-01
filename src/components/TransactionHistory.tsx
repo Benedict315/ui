@@ -1,21 +1,22 @@
-import { useEffect, useState } from "react";
-import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { truncateAddress } from "@/lib/utils";
-import type { Transaction } from "@/lib/client";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  CheckmarkCircle01Icon,
-  Cancel01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  Cancel01Icon,
+  CheckmarkCircle01Icon,
 } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useState } from "react";
+
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { useSorokit } from "@/context/useSorokit";
+import type { Transaction } from "@/lib/client";
+import { getClient, hasClient } from "@/lib/client";
+import { truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 
-function TxRow({ tx }: { tx: Transaction }) {
+export function TxRow({ tx }: { tx: Transaction }) {
   const date = new Date(tx.createdAt);
   const timeStr = date.toLocaleTimeString([], {
     hour: "2-digit",
@@ -26,8 +27,15 @@ function TxRow({ tx }: { tx: Transaction }) {
     day: "numeric",
   });
 
+  const memoTruncated =
+    tx.memo && tx.memo.length > 20 ? `${tx.memo.slice(0, 20)}…` : tx.memo;
+
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-line last:border-0 gap-4">
+    <article
+      role="listitem"
+      aria-label={`Transaction ${truncateAddress(tx.hash, 10, 6)}, ${tx.successful ? "successful" : "failed"}, ledger ${tx.ledger}, fee ${tx.feePaid} stroops`}
+      className="flex items-center justify-between px-5 py-3.5 border-b border-line last:border-0 gap-4"
+    >
       <div className="flex items-center gap-3 min-w-0">
         {/* Status icon */}
         <div
@@ -48,10 +56,19 @@ function TxRow({ tx }: { tx: Transaction }) {
           </span>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-ink-3">Ledger {tx.ledger}</span>
+            <span className="text-[10px] text-ink-3">
+              · Fee: {tx.feePaid} stroops
+            </span>
             {tx.memo && (
-              <span className="text-[10px] text-ink-3">· {tx.memo}</span>
+              <span className="text-[10px] text-ink-3" title={tx.memo}>
+                · {memoTruncated}
+              </span>
             )}
           </div>
+          {/* New feePaid display */}
+          {tx.feePaid && (
+            <span className="text-[10px] text-ink-4">Fee paid: {tx.feePaid}</span>
+          )}
         </div>
       </div>
 
@@ -59,11 +76,17 @@ function TxRow({ tx }: { tx: Transaction }) {
         <Badge variant={tx.successful ? "success" : "error"} live>
           {tx.successful ? "Success" : "Failed"}
         </Badge>
+        {/* New operationCount badge */}
+        {tx.operationCount > 1 && (
+          <Badge variant="primary" className="mt-1">
+            {tx.operationCount} ops
+          </Badge>
+        )}
         <span className="text-[10px] text-ink-3">
           {dateStr} {timeStr}
         </span>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -81,6 +104,7 @@ export function TransactionHistory() {
     let active = true;
     const timerId = window.setTimeout(() => {
       setLoading(true);
+      if (!hasClient()) { setError("[sorokit-ui] Client not initialized."); return; }
       getClient()
         .transaction.getHistory(address, page, PAGE_SIZE)
         .then(({ data, error: err, total: t }) => {

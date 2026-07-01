@@ -1,10 +1,11 @@
+import { ArrowDown01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useState } from "react";
+
 import { useSorokit } from "@/context/useSorokit";
-import { cn } from "@/lib/utils";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDown01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import type { NetworkName } from "@/lib/client";
+import { cn } from "@/lib/utils";
 
 const NETWORKS: { name: NetworkName; label: string; dot: string }[] = [
   { name: "mainnet", label: "Mainnet", dot: "bg-green" },
@@ -19,7 +20,7 @@ export function NetworkSwitcher() {
   const current = NETWORKS.find((n) => n.name === network?.name) ?? NETWORKS[1];
 
   const handleSelect = async (name: NetworkName) => {
-    if (isSwitching) return;
+    if (isSwitching || name === network?.name) return;
     setIsSwitching(true);
     try {
       await switchNetwork(name);

@@ -1,17 +1,49 @@
+import type { Balance } from "@/lib/client";
 import { cn } from "@/lib/utils";
 import { truncateAddress } from "@/lib/utils";
-import type { Balance } from "@/lib/client";
 
-const ASSET_COLORS: Record<string, { bg: string; text: string }> = {
-  XLM: { bg: "bg-[rgba(20,184,166,0.12)]", text: "text-teal" },
-  USDC: { bg: "bg-[rgba(86,69,212,0.12)]", text: "text-brand" },
-  USDT: { bg: "bg-success-dim-strong", text: "text-green" },
-  BTC: { bg: "bg-[rgba(249,115,22,0.12)]", text: "text-orange" },
-  ETH: { bg: "bg-[rgba(168,85,247,0.12)]", text: "text-purple" },
-};
+const ASSET_COLOR_PALETTE: Array<{ bg: string; text: string }> = [
+  { bg: "bg-[rgba(20,184,166,0.12)]", text: "text-teal" },
+  { bg: "bg-[rgba(86,69,212,0.12)]", text: "text-brand" },
+  { bg: "bg-success-dim-strong", text: "text-green" },
+  { bg: "bg-[rgba(249,115,22,0.12)]", text: "text-orange" },
+  { bg: "bg-[rgba(168,85,247,0.12)]", text: "text-purple" },
+  { bg: "bg-[rgba(14,165,233,0.12)]", text: "text-sky-600" },
+  { bg: "bg-[rgba(236,72,153,0.12)]", text: "text-pink-600" },
+  { bg: "bg-[rgba(234,179,8,0.16)]", text: "text-yellow-700" },
+  { bg: "bg-[rgba(99,102,241,0.12)]", text: "text-indigo-600" },
+  { bg: "bg-[rgba(16,185,129,0.12)]", text: "text-emerald-600" },
+];
+
+function hashAssetCode(code: string) {
+  return Array.from(code.toUpperCase()).reduce(
+    (hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0,
+    0,
+  );
+}
 
 function getAssetColor(code: string) {
-  return ASSET_COLORS[code] ?? { bg: "bg-surface-2", text: "text-ink-2" };
+  return ASSET_COLOR_PALETTE[hashAssetCode(code) % ASSET_COLOR_PALETTE.length];
+const PALETTE = [
+  { bg: "bg-success-dim-strong", text: "text-green" },                      // 0: USDT (hash % 10 = 0)
+  { bg: "bg-[rgba(20,184,166,0.12)]", text: "text-teal" },                  // 1: XLM (hash % 10 = 1)
+  { bg: "bg-error-dim", text: "text-red" },                                  // 2: Red
+  { bg: "bg-[rgba(86,69,212,0.12)]", text: "text-brand" },                  // 3: USDC (hash % 10 = 3)
+  { bg: "bg-[rgba(236,72,153,0.12)]", text: "text-[rgb(236,72,153)]" },      // 4: Pink
+  { bg: "bg-[rgba(168,85,247,0.12)]", text: "text-purple" },                 // 5: ETH / WAVEX (hash % 10 = 5)
+  { bg: "bg-[rgba(6,182,212,0.12)]", text: "text-[rgb(6,182,212)]" },        // 6: Cyan
+  { bg: "bg-[rgba(249,115,22,0.12)]", text: "text-orange" },                 // 7: BTC (hash % 10 = 7)
+  { bg: "bg-[rgba(234,179,8,0.12)]", text: "text-[rgb(234,179,8)]" },        // 8: Yellow
+  { bg: "bg-[rgba(99,102,241,0.12)]", text: "text-[rgb(99,102,241)]" },      // 9: Indigo
+];
+
+function getAssetColor(code: string) {
+  let hash = 0;
+  for (let i = 0; i < code.length; i++) {
+    hash = code.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % 10;
+  return PALETTE[index];
 }
 
 interface AssetBadgeProps {
@@ -32,6 +64,7 @@ export function AssetBadge({
       ? "XLM"
       : (balance.assetCode ?? balance.asset);
   const { bg, text } = getAssetColor(code);
+  const iconLabel = code.slice(0, 2).toUpperCase();
 
   const iconSize =
     size === "sm"
@@ -53,11 +86,14 @@ export function AssetBadge({
         className={cn(
           "rounded-full flex items-center justify-center font-bold shrink-0",
           iconSize,
+          "text-center leading-none",
           bg,
           text,
         )}
       >
-        {code.slice(0, 2)}
+        <span className="block min-w-[1.25em] text-center leading-none">
+          {iconLabel}
+        </span>
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
         <span className={cn("font-medium text-ink leading-none", labelSize)}>

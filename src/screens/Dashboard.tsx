@@ -1,26 +1,25 @@
-import { useState, type ComponentType } from "react";
-import { Sidebar, type NavSection } from "@/components/Sidebar";
-import { TopBar } from "@/components/TopBar";
-import { NetworkBanner } from "@/components/NetworkBanner";
-import { WalletScreen } from "@/screens/WalletScreen";
-import { AccountScreen } from "@/screens/AccountScreen";
-import { TransactionsScreen } from "@/screens/TransactionsScreen";
-import { SorobanScreen } from "@/screens/SorobanScreen";
-import { NetworkScreen } from "@/screens/NetworkScreen";
+import { type ComponentType,useState } from "react";
 
-const SCREENS: Record<NavSection, ComponentType> = {
-  wallet: WalletScreen,
-  account: AccountScreen,
-  transactions: TransactionsScreen,
-  soroban: SorobanScreen,
-  network: NetworkScreen,
-};
+import { NetworkBanner } from "@/components/NetworkBanner";
+import { type NavSection,Sidebar } from "@/components/Sidebar";
+import { TopBar } from "@/components/TopBar";
+import { AccountScreen } from "@/screens/AccountScreen";
+import { NetworkScreen } from "@/screens/NetworkScreen";
+import { SorobanScreen } from "@/screens/SorobanScreen";
+import { TransactionsScreen } from "@/screens/TransactionsScreen";
+import { WalletScreen } from "@/screens/WalletScreen";
 
 export function Dashboard() {
   const [active, setActive] = useState<NavSection>("wallet");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const ActiveScreen = SCREENS[active];
+  const SCREENS: Record<NavSection, React.ReactElement> = {
+    wallet: <WalletScreen />,
+    account: <AccountScreen />,
+    transactions: <TransactionsScreen />,
+    soroban: <SorobanScreen />,
+    network: <NetworkScreen />,
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-base">
@@ -30,15 +29,16 @@ export function Dashboard() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         <TopBar
           active={active}
+          sidebarOpen={sidebarOpen}
           onMenuToggle={() => setSidebarOpen((o) => !o)}
         />
         <NetworkBanner active={active} />
         <main className="flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-[700px] mx-auto px-6 py-8 sm:px-10 sm:py-10 min-h-[300px]">
-            <ActiveScreen />
+            {SCREENS[active]}
           </div>
         </main>
       </div>

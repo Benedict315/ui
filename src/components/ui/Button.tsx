@@ -1,5 +1,7 @@
 import { forwardRef, useState, useEffect, useRef } from "react";
+import { forwardRef, cloneElement, isValidElement } from "react";
 import { Slot } from "@radix-ui/react-slot";
+
 import { cn } from "@/lib/utils";
 
 type Variant = "primary" | "secondary" | "ghost" | "destructive";
@@ -90,6 +92,40 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const displayLabel =
       requireConfirm && isConfirming && confirmLabel ? confirmLabel : children;
+    if (asChild && isValidElement(children)) {
+      const child = children as React.ReactElement;
+      const childOnClick = child.props.onClick;
+      const wrappedChildren = cloneElement(child, {
+        onClick: (e: React.MouseEvent) => {
+          if (disabled || loading) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          childOnClick?.(e);
+        },
+      });
+
+      return (
+        <Comp
+          ref={ref}
+          disabled={disabled || loading}
+          aria-busy={loading || undefined}
+          className={cn(
+            "inline-flex items-center justify-center font-medium rounded-lg transition-colors cursor-pointer select-none",
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand",
+            "disabled:opacity-40 disabled:cursor-not-allowed",
+            variants[variant],
+            sizes[size],
+            className,
+          )}
+          onClick={handleClick}
+          {...props}
+        >
+          {wrappedChildren}
+        </Comp>
+      );
+    }
 
     return (
       <Comp
@@ -122,7 +158,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             )}
             {displayLabel}
           </>
+        {loading && (
+          <span
+            className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin shrink-0"
+          >
+            <span className="sr-only">Loading</span>
+          </span>
         )}
+        {children}
       </Comp>
     );
   },
