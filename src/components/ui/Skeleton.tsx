@@ -2,17 +2,21 @@ import React from "react";
 
 import { cn } from "@/lib/utils";
 
-interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Render as a circle (for avatars/icons) */
   circle?: boolean;
+  /** Animation variant: "pulse" (default) or "shimmer" */
+  variant?: "pulse" | "shimmer";
 }
 
-export function Skeleton({ circle, className, ...props }: SkeletonProps) {
+export function Skeleton({ circle, variant = "pulse", className, ...props }: SkeletonProps) {
   return (
     <div
       role="presentation"
       className={cn(
-        "bg-surface-2 animate-pulse shrink-0",
+        "bg-surface-2 shrink-0",
+        variant === "pulse" && "animate-pulse",
+        variant === "shimmer" && "animate-shimmer",
         circle ? "rounded-full" : "rounded-lg",
         className,
       )}
@@ -95,7 +99,7 @@ export function SkeletonCard({
           </div>
           <div className="px-5 py-5 flex flex-col gap-4">
             {Array.from({ length: rows }).map((_, i) => (
-              <Skeleton key={i} className="h-4 w-full" />
+              <Skeleton key={`skeleton-row-${rows}-${i}`} className="h-4 w-full" />
             ))}
           </div>
         </>
