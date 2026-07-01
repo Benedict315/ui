@@ -2,21 +2,17 @@ import React from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
+interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Render as a circle (for avatars/icons) */
   circle?: boolean;
-  /** Animation variant: "pulse" (default) or "shimmer" */
-  variant?: "pulse" | "shimmer";
 }
 
-export function Skeleton({ circle, variant = "pulse", className, ...props }: SkeletonProps) {
+export function Skeleton({ circle, className, ...props }: SkeletonProps) {
   return (
     <div
       role="presentation"
       className={cn(
-        "bg-surface-2 shrink-0",
-        variant === "pulse" && "animate-pulse",
-        variant === "shimmer" && "animate-shimmer",
+        "bg-surface-2 animate-pulse shrink-0",
         circle ? "rounded-full" : "rounded-lg",
         className,
       )}
@@ -43,6 +39,7 @@ export function SkeletonRow({ className, ...props }: React.HTMLAttributes<HTMLDi
 }
 
 interface SkeletonCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Number of skeleton rows in the body (ignored if children/structure are provided) */
   rows?: number;
   structure?: React.ReactNode;
   children?: React.ReactNode;
@@ -99,7 +96,7 @@ export function SkeletonCard({
           </div>
           <div className="px-5 py-5 flex flex-col gap-4">
             {Array.from({ length: rows }).map((_, i) => (
-              <Skeleton key={`skeleton-row-${rows}-${i}`} className="h-4 w-full" />
+              <Skeleton key={i} className="h-4 w-full" />
             ))}
           </div>
         </>

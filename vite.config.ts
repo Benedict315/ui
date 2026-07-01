@@ -5,9 +5,32 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    lib: {
+      entry: path.resolve(__dirname, 'src/components/index.ts'),
+      name: 'SorokitUI',
+      fileName: (format) => `sorokit-ui.${format}.js`,
+      formats: ['es', 'cjs'],
+    },
+    rollupOptions: {
+      // Externalize dependencies that should not be bundled
+      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      output: {
+        // Provide global variables for UMD/IIFE builds
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+        },
+        // Output ESM and CJS in separate directories
+        dir: 'dist',
+      },
+    },
+    minify: 'esbuild',
+    sourcemap: true,
+  },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   test: {

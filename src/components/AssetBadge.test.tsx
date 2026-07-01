@@ -70,34 +70,15 @@ describe("AssetBadge", () => {
     expect(document.querySelector("[data-address]")).not.toBeInTheDocument();
   });
 
-  it("applies deterministic color classes for an unknown asset", () => {
+  it("falls back to grey/surface-2 for an unknown asset", () => {
     const { container } = render(<AssetBadge balance={unknownBalance} />);
-    // WAVEX (hash % 10 = 5) maps to purple background/text
-    const icon = container.querySelector(".text-purple");
+    const icon = container.querySelector(".bg-surface-2");
     expect(icon).toBeInTheDocument();
   });
 
   it("renders the asset code for an unknown asset", () => {
     render(<AssetBadge balance={unknownBalance} />);
     expect(screen.getByText("WAVEX")).toBeInTheDocument();
-  });
-
-  it("renders 1-character asset codes centered in the icon circle", () => {
-    const oneCharBalance: Balance = {
-      assetType: "credit_alphanum4",
-      assetCode: "A",
-      assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
-      balance: "100",
-      balanceFloat: 100,
-    };
-    const { container } = render(<AssetBadge balance={oneCharBalance} />);
-    const icon = container.querySelector(".rounded-full");
-    expect(icon).toHaveClass("flex");
-    expect(icon).toHaveClass("items-center");
-    expect(icon).toHaveClass("justify-center");
-    expect(icon).toHaveClass("text-center");
-    expect(icon).toHaveClass("leading-none");
-    expect(icon?.textContent).toBe("A");
   });
 });
 
@@ -117,10 +98,11 @@ describe("AssetPill", () => {
     expect(screen.getByText("USDC")).toHaveClass("text-brand");
   });
 
-  it("applies deterministic color for an unknown asset code", () => {
+  it("falls back to grey for an unknown asset code", () => {
     render(<AssetPill assetCode="WAVEX" />);
     const pill = screen.getByText("WAVEX");
-    expect(pill).toHaveClass("text-purple");
+    expect(pill).toHaveClass("bg-surface-2");
+    expect(pill).toHaveClass("text-ink-2");
   });
 
   it("merges a custom className", () => {

@@ -1,8 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WalletConnectButton } from '../WalletConnectButton';
-import { AccountCard } from '../AccountCard';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
 import { useSorokit } from '@/context/useSorokit';
+
+import { AccountCard } from './AccountCard';
+import { WalletConnectButton } from './WalletConnectButton';
 
 vi.mock('@/context/useSorokit', () => ({
   useSorokit: vi.fn(),
@@ -10,67 +12,57 @@ vi.mock('@/context/useSorokit', () => ({
 
 describe('Wallet flow integration', () => {
   const mockConnect = vi.fn();
-  const mockDisconnect = vi.fn();
   const mockClearError = vi.fn();
+  const mockOnOpenModal = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('connects, shows account, then disconnects', async () => {
-    // Initial state: not connected
+  it('connects, shows account, then opens modal on wallet click', async () => {
     (useSorokit as any).mockReturnValue({
       isConnected: false,
       isConnecting: false,
       address: null,
       connectWallet: mockConnect,
-      disconnectWallet: mockDisconnect,
+      disconnectWallet: vi.fn(),
       error: null,
       clearError: mockClearError,
     });
 
     render(
       <>
-        <WalletConnectButton />
+        <WalletConnectButton onOpenModal={mockOnOpenModal} />
         <AccountCard />
       </>
     );
 
-    // Click connect
+    expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('button', { name: 'Connect Wallet' }));
     expect(mockConnect).toHaveBeenCalledTimes(1);
 
-    // Simulate successful connection by updating mock return
     (useSorokit as any).mockReturnValue({
       isConnected: true,
       isConnecting: false,
       address: 'GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ',
       connectWallet: mockConnect,
-      disconnectWallet: mockDisconnect,
+      disconnectWallet: vi.fn(),
       error: null,
       clearError: mockClearError,
     });
 
-    // Re-render to reflect state change
     render(
       <>
-        <WalletConnectButton />
+        <WalletConnectButton onOpenModal={mockOnOpenModal} />
         <AccountCard />
       </>
     );
 
-    await waitFor(() => {
-      expect(screen.getByText('Account')).toBeInTheDocument();
-      expect(screen.getByText('GABC12...WXYZ')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Account')).toBeInTheDocument();
+    expect(screen.getByText('GABC12...WXYZ')).toBeInTheDocument();
 
-    // Click disconnect (the button appears when connected)
     fireEvent.click(screen.getByRole('button', { name: /Wallet connected/ }));
-    expect(mockDisconnect).toHaveBeenCalledTimes(1);
-
-    // Ensure AccountCard is removed after disconnect
-    await waitFor(() => {
-      expect(screen.queryByText('Account')).not.toBeInTheDocument();
-    });
+    expect(mockOnOpenModal).toHaveBeenCalledTimes(1);
   });
 });

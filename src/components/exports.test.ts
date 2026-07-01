@@ -1,6 +1,6 @@
-import * as components from './index';
+import { describe, expect,it } from 'vitest';
 
-import { describe, it, expect } from 'vitest';
+import * as components from './index';
 
 describe('Public exports smoke test', () => {
   it('should have all exports defined and be functions or objects', () => {

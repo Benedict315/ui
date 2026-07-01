@@ -1,11 +1,17 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import { SorokitProvider } from '../context/SorokitProvider';
-import { TransactionPanel } from './TransactionPanel';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+import { useSorokit } from '@/context/useSorokit';
 import { getClient } from '@/lib/client';
+
+import { TransactionPanel } from './TransactionPanel';
 
 vi.mock('@/lib/client', () => ({
   getClient: vi.fn(),
+}));
+
+vi.mock('@/context/useSorokit', () => ({
+  useSorokit: vi.fn(),
 }));
 
 describe('TransactionPanel integration', () => {
@@ -15,17 +21,16 @@ describe('TransactionPanel integration', () => {
       transaction: { submit: mockSubmit },
     } as any);
 
-    const mockClient = {
-      wallet: { connect: vi.fn(), disconnect: vi.fn() },
-      account: { getAccount: vi.fn(), getBalances: vi.fn() },
-      network: { getNetwork: vi.fn(), switchNetwork: vi.fn() },
-    } as any;
+    (useSorokit as any).mockReturnValue({
+      isConnected: true,
+      address: 'GABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF123456',
+      connectWallet: vi.fn(),
+      disconnectWallet: vi.fn(),
+      error: null,
+      clearError: vi.fn(),
+    });
 
-    render(
-      <SorokitProvider client={mockClient}>
-        <TransactionPanel />
-      </SorokitProvider>
-    );
+    render(<TransactionPanel />);
 
     const destInput = screen.getByLabelText('Destination Address');
     const amountInput = screen.getByLabelText('Amount (XLM)');
