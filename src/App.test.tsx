@@ -1,36 +1,86 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
 import App from "./App";
-import { useSorokit } from "@/context/useSorokit";
+import type { AdapterResponse } from "./lib/adapter";
 
-vi.mock("@/context/useSorokit", () => ({
-  useSorokit: vi.fn(),
-}));
+const MOCK_CONNECTED_ADDRESS =
+  "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
 
-vi.mock("@/screens/ConnectScreen", () => ({
-  ConnectScreen: () => <div data-testid="connect-screen" />,
-}));
+function createMockAdapter() {
+  const connect = vi.fn<() => Promise<AdapterResponse<string>>>();
+  const disconnect = vi.fn();
+  const getAddress = vi.fn<() => string | null>();
+  const invokeContract = vi.fn();
+  const getEvents = vi.fn();
 
-vi.mock("@/screens/Dashboard", () => ({
-  Dashboard: () => <div data-testid="dashboard" />,
-}));
+  return { connect, disconnect, getAddress, invokeContract, getEvents };
+}
 
-describe("App routing", () => {
-  it("renders ConnectScreen when the wallet is not connected", () => {
-    vi.mocked(useSorokit).mockReturnValue({
-      isConnected: false,
-    } as ReturnType<typeof useSorokit>);
-    render(<App />);
-    expect(screen.getByTestId("connect-screen")).toBeInTheDocument();
-    expect(screen.queryByTestId("dashboard")).not.toBeInTheDocument();
+describe("App", () => {
+  it("renders the heading and connect button when not connected", () => {
+    const adapter = createMockAdapter();
+
+    render(<App adapter={adapter} />);
+
+    expect(screen.getByText("Sorokit UI")).toBeInTheDocument();
+    expect(screen.getByText("Connect Wallet")).toBeInTheDocument();
+    expect(screen.queryByText(/Connected/i)).not.toBeInTheDocument();
   });
 
-  it("renders Dashboard when the wallet is connected", () => {
-    vi.mocked(useSorokit).mockReturnValue({
-      isConnected: true,
-    } as ReturnType<typeof useSorokit>);
-    render(<App />);
-    expect(screen.getByTestId("dashboard")).toBeInTheDocument();
-    expect(screen.queryByTestId("connect-screen")).not.toBeInTheDocument();
+  it("shows connected state after successful connect", async () => {
+    const adapter = createMockAdapter();
+    adapter.connect.mockResolvedValue({
+      data: MOCK_CONNECTED_ADDRESS,
+      error: null,
+      status: "success",
+    });
+
+    render(<App adapter={adapter} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Connect Wallet"));
+    });
+
+    expect(screen.getByText(/Connected/i)).toBeInTheDocument();
+    expect(screen.getByText("Disconnect")).toBeInTheDocument();
+  });
+
+  it("shows error banner when connect fails", async () => {
+    const adapter = createMockAdapter();
+    adapter.connect.mockResolvedValue({
+      data: null,
+      error: "Connection failed",
+      status: "error",
+    });
+
+    render(<App adapter={adapter} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Connect Wallet"));
+    });
+
+    expect(screen.getByText("Connection failed")).toBeInTheDocument();
+  });
+
+  it("disconnects and returns to initial state", async () => {
+    const adapter = createMockAdapter();
+    adapter.connect.mockResolvedValue({
+      data: MOCK_CONNECTED_ADDRESS,
+      error: null,
+      status: "success",
+    });
+
+    render(<App adapter={adapter} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Connect Wallet"));
+    });
+    expect(screen.getByText(/Connected/i)).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Disconnect"));
+    });
+    expect(screen.getByText("Connect Wallet")).toBeInTheDocument();
   });
 });

@@ -1,8 +1,9 @@
+import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
+
 import { cn } from "@/lib/utils";
 import { truncateAddress } from "@/lib/utils";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 
 interface AddressDisplayProps {
   address: string;
@@ -60,7 +61,7 @@ export function AddressDisplay({
             "shrink-0 p-1 rounded-md transition-all",
             copied
               ? "text-green bg-success-dim"
-              : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
+              : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100 focus-visible:opacity-100",
           )}
           title={copied ? "Copied!" : "Copy address"}
         >

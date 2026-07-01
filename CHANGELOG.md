@@ -18,6 +18,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI (`test.yml`) now runs the bundle-size check after the build and wires up
   the `size` and `test:exports` scripts it previously referenced.
 
+### Fixed
+
+- `NetworkBanner` no longer renders on the Network screen, removing the
+  redundant "You are on <Network>" banner when the active network is already
+  shown in the screen's content (#170).
+- Added copy-to-clipboard buttons to the Passphrase, RPC URL, and Horizon URL
+  `InfoCell`s on the Network screen, matching the existing `AddressDisplay`
+  copy pattern, so developers can copy values for custom infrastructure setup
+  (#170).
+- `NetworkBanner` now transitions smoothly (`transition-all duration-300`)
+  when colour and text change on network switch, instead of updating
+  instantly (#170).
+
+## [1.0.0] - 2026-06-27
+
+### Fixed
+
+- `NetworkBanner` no longer renders on the Network screen, removing the
+  redundant "You are on <Network>" banner when the active network is already
+  shown in the screen's content (#170).
+- Added copy-to-clipboard buttons to the Passphrase, RPC URL, and Horizon URL
+  `InfoCell`s on the Network screen, matching the existing `AddressDisplay`
+  copy pattern, so developers can copy values for custom infrastructure setup
+  (#170).
+- `NetworkBanner` now transitions smoothly (`transition-all duration-300`)
+  when colour and text change on network switch, instead of updating
+  instantly (#170).
+
 ## [1.0.0] - 2026-06-27
 
 ### Added
