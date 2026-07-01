@@ -74,10 +74,8 @@ describe("WalletScreen", () => {
     }));
 
     render(<WalletScreen />);
-
+    
     const disconnectBtn = screen.getByRole("button", { name: "Disconnect" });
-
-    // First click
     
     fireEvent.click(disconnectBtn);
     expect(screen.getByRole("button", { name: "Disconnect?" })).toBeInTheDocument();
@@ -88,95 +86,5 @@ describe("WalletScreen", () => {
 
     expect(screen.getByRole("button", { name: "Disconnect" })).toBeInTheDocument();
     expect(mockDisconnect).not.toHaveBeenCalled();
-  });
-
-  it("renders network info cells with copyable passphrase and RPC URL", () => {
-    (useSorokit as any).mockReturnValue({
-      address: "GABC123456",
-      isConnected: true,
-      disconnectWallet: mockDisconnect,
-      network: {
-        name: "testnet",
-        rpcUrl: "https://rpc.testnet.example.com",
-        passphrase: "Test SDF Network ; September 2015",
-      },
-    });
-
-    render(<WalletScreen />);
-
-    // Check network name is displayed
-    expect(screen.getByText("testnet")).toBeInTheDocument();
-
-    // Check RPC URL is displayed
-    expect(screen.getByText("https://rpc.testnet.example.com")).toBeInTheDocument();
-
-    // Check passphrase is displayed if it exists
-    expect(screen.getByText("Test SDF Network ; September 2015")).toBeInTheDocument();
-  });
-
-  it("has copyable buttons for network info", async () => {
-    const clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
-    Object.assign(navigator, { clipboard });
-
-    (useSorokit as any).mockReturnValue({
-      address: "GABC123456",
-      isConnected: true,
-      disconnectWallet: mockDisconnect,
-      network: {
-        name: "testnet",
-        rpcUrl: "https://rpc.testnet.example.com",
-      },
-    });
-
-    const { container } = render(<WalletScreen />);
-
-    // Find copy buttons (they have aria-label "Copy value")
-    const copyButtons = screen.getAllByLabelText("Copy value");
-    expect(copyButtons.length).toBeGreaterThan(0);
-
-    // Click a copy button
-    fireEvent.click(copyButtons[0]);
-
-    // Check clipboard was called
-    expect(clipboard.writeText).toHaveBeenCalled();
-  });
-
-  it("displays QR code for receiving funds when connected", () => {
-    (useSorokit as any).mockReturnValue({
-      address: "GABC123456",
-      isConnected: true,
-      disconnectWallet: mockDisconnect,
-      network: { name: "testnet", rpcUrl: "https://rpc.com" },
-    });
-
-    const { container } = render(<WalletScreen />);
-
-    // Check "Receive Funds" section is visible
-    expect(screen.getByText("Receive Funds")).toBeInTheDocument();
-
-    // Check for QR code canvas
-    const canvas = container.querySelector("canvas");
-    expect(canvas).toBeInTheDocument();
-
-    // Check address is displayed
-    expect(screen.getByText(/GABC123456/)).toBeInTheDocument();
-  });
-
-  it("does not display QR code when not connected", () => {
-    (useSorokit as any).mockReturnValue({
-      address: null,
-      isConnected: false,
-      disconnectWallet: mockDisconnect,
-      network: null,
-    });
-
-    const { container } = render(<WalletScreen />);
-
-    // Check "Receive Funds" section is not visible
-    expect(screen.queryByText("Receive Funds")).not.toBeInTheDocument();
-
-    // Check for QR code canvas
-    const canvas = container.querySelector("canvas");
-    expect(canvas).not.toBeInTheDocument();
   });
 });

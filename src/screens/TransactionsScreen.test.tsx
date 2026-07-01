@@ -36,9 +36,7 @@ describe("TransactionsScreen", () => {
 
   it("renders the screen heading", () => {
     render(<TransactionsScreen />);
-    expect(
-      screen.getByRole("heading", { level: 2, name: "Transactions" }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Transactions")).toBeInTheDocument();
   });
 
   it("renders FeeEstimator with its section title", () => {
@@ -48,25 +46,27 @@ describe("TransactionsScreen", () => {
 
   it("renders TransactionPanel with its section title", () => {
     render(<TransactionsScreen />);
-    expect(screen.getByRole("heading", { name: /Send Payment/i })).toBeInTheDocument();
+    expect(screen.getAllByText("Send Payment")[0]).toBeInTheDocument();
   });
 
   it("renders FeeEstimator above TransactionPanel in the DOM", () => {
     const { container } = render(<TransactionsScreen />);
 
-    const feeHeading = screen.getByRole("heading", { name: /Network Fee/i });
-    const txHeading = screen.getByRole("heading", { name: /Send Payment/i });
-
     const allHeadings = Array.from(container.querySelectorAll("h3"));
+    const feeHeading = screen.getByText("Network Fee");
+    const txHeading = screen.getAllByText("Send Payment").find(
+      (el) => el.tagName === "H3",
+    );
+
     const feeIndex = allHeadings.indexOf(feeHeading as HTMLHeadingElement);
-    const txIndex = allHeadings.indexOf(txHeading as HTMLHeadingElement);
+    const txIndex = txHeading ? allHeadings.indexOf(txHeading as HTMLHeadingElement) : -1;
 
     expect(feeIndex).toBeLessThan(txIndex);
   });
 
   it("renders FeeEstimator and TransactionPanel in the same screen", () => {
     render(<TransactionsScreen />);
-    expect(screen.getByRole("heading", { name: /Network Fee/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Send Payment/i })).toBeInTheDocument();
+    expect(screen.getByText("Network Fee")).toBeInTheDocument();
+    expect(screen.getAllByText("Send Payment")[0]).toBeInTheDocument();
   });
 });

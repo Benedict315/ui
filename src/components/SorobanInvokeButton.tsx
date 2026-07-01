@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 import type { InvokeParams } from "@/lib/client";
-import { getClient, hasClient } from "@/lib/client";
+import { getClient } from "@/lib/client";
 import { cn, friendlyError } from "@/lib/utils";
 
 type InvokeState = "idle" | "loading" | "success" | "error";
@@ -15,14 +16,10 @@ interface SorobanInvokeButtonProps {
   label?: string;
   /** Show result inline below the button */
   showResult?: boolean;
-  /** Auto reset after successful invocation (ms) */
-  autoResetAfter?: number;
   /** Called on success with the result data */
   onSuccess?: (data: unknown) => void;
   /** Called on error */
   onError?: (error: string) => void;
-  /** Auto-reset to idle after N ms on success/error */
-  autoResetAfter?: number;
   variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -34,7 +31,6 @@ export function SorobanInvokeButton({
   showResult = true,
   onSuccess,
   onError,
-  autoResetAfter,
   variant = "primary",
   size = "md",
   className,
@@ -45,17 +41,6 @@ export function SorobanInvokeButton({
   const [error, setError] = useState<string | null>(null);
   const isInvokingRef = useRef(false);
 
-  useEffect(() => {
-    if (autoResetAfter === undefined) return;
-    if (state !== "success" && state !== "error") return;
-    const timer = window.setTimeout(() => {
-      setState("idle");
-      setResult(null);
-      setError(null);
-    }, autoResetAfter);
-    return () => clearTimeout(timer);
-  }, [state, autoResetAfter]);
-
   async function invoke() {
     if (!isConnected || isInvokingRef.current) return;
 
@@ -65,7 +50,6 @@ export function SorobanInvokeButton({
     setError(null);
 
     try {
-      if (!hasClient()) { setError("[sorokit-ui] Client not initialized."); return; }
       const { data, error: err } =
         await getClient().soroban.invokeContract(params);
       if (err) {
@@ -90,18 +74,6 @@ export function SorobanInvokeButton({
   }
 
   const buttonLabel = label ?? `${params.method}()`;
-
-  // Auto-reset effect after success
-  useEffect(() => {
-    if (state === "success" && typeof autoResetAfter === "number") {
-      const timer = setTimeout(() => {
-        setState("idle");
-        setResult(null);
-        setError(null);
-      }, autoResetAfter);
-      return () => clearTimeout(timer);
-    }
-  }, [state, autoResetAfter]);
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>

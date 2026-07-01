@@ -148,8 +148,10 @@ export type NetworkInfo = {
   horizonUrl: string;
 };
 
-export function hasClient(): boolean {
-  return _client !== null;
+let _client: SorokitClient | null = null;
+
+export function initClient(client: SorokitClient): void {
+  _client = client;
 }
 
 export function hasClient(): boolean {
