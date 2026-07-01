@@ -1,10 +1,11 @@
-import { WalletConnectButton } from "@/components/WalletConnectButton";
-import { NetworkSwitcher } from "@/components/NetworkSwitcher";
-import { useSorokit } from "@/context/useSorokit";
+import { Cancel01Icon,Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Menu01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
-import { SCREEN_LABELS } from "@/lib/nav-labels";
+
+import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import type { NavSection } from "@/components/Sidebar";
+import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { useSorokit } from "@/context/useSorokit";
+import { SCREEN_LABELS } from "@/lib/nav-labels";
 
 const LABELS = SCREEN_LABELS;
 
@@ -42,7 +43,7 @@ export function TopBar({
           </button>
         </div>
       )}
-      <header className="flex min-h-[60px] shrink-0 items-center justify-between border-b border-line bg-surface px-4 sm:px-6">
+      <header className="flex flex-wrap items-center justify-between px-4 sm:px-6 h-[60px] border-b border-line bg-surface shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuToggle}
@@ -66,7 +67,7 @@ export function TopBar({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center justify-end gap-2.5">
           <NetworkSwitcher />
           <WalletConnectButton />
         </div>

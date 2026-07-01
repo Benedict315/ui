@@ -5,9 +5,11 @@
 
 export class DeterministicMockData {
   private seed: number;
+  private readonly initialSeed: number;
 
   constructor(seedValue: number = 12345) {
     this.seed = seedValue;
+    this.initialSeed = seedValue;
   }
 
   /**
@@ -25,6 +27,8 @@ export class DeterministicMockData {
    * @returns Reproducible hex string
    */
   generateHex(length: number = 64): string {
+    // Reset seed to initial before generation for pure output
+    this.seed = this.initialSeed;
     let result = '';
     for (let i = 0; i < length; i++) {
       const hex = Math.floor(this.seededRandom() * 16).toString(16);
@@ -51,11 +55,13 @@ export class DeterministicMockData {
    * Generate mock transaction history with deterministic values
    */
   generateMockHistory(count: number = 5) {
+    // Reset seed for deterministic output
+    this.seed = this.initialSeed;
     const history = [];
     for (let i = 0; i < count; i++) {
       history.push({
         id: this.generateTransactionHash(),
-        timestamp: 1700000000000 - i * 1000, // Fixed base time
+        timestamp: 1700000000000 - i * 1000,
         status: 'success',
         type: 'contract_invoke',
       });
@@ -67,6 +73,8 @@ export class DeterministicMockData {
    * Generate mock events with deterministic values
    */
   generateMockEvents(count: number = 3) {
+    // Reset seed for deterministic output
+    this.seed = this.initialSeed;
     const events = [];
     for (let i = 0; i < count; i++) {
       events.push({
