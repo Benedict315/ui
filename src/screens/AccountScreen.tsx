@@ -12,6 +12,8 @@ export function AccountScreen() {
 
   return (
     <div className="flex flex-col gap-5">
+      <h2 className="text-[18px] font-semibold text-ink">Account</h2>
+      <p className="text-[13px] text-ink-3 -mt-3">Balances and account details</p>
       {isConnected && (
         <div className="flex justify-end">
           <Button

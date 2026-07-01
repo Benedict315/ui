@@ -16,7 +16,7 @@ import { truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 
-function TxRow({ tx }: { tx: Transaction }) {
+export function TxRow({ tx }: { tx: Transaction }) {
   const date = new Date(tx.createdAt);
   const timeStr = date.toLocaleTimeString([], {
     hour: "2-digit",

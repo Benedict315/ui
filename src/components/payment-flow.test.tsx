@@ -1,0 +1,52 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+import { useSorokit } from '@/context/useSorokit';
+import { getClient } from '@/lib/client';
+
+import { TransactionPanel } from './TransactionPanel';
+
+vi.mock('@/lib/client', () => ({
+  getClient: vi.fn(),
+}));
+
+vi.mock('@/context/useSorokit', () => ({
+  useSorokit: vi.fn(),
+}));
+
+describe('TransactionPanel integration', () => {
+  it('submits payment with correct payload', async () => {
+    const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: 'txhash', ledger: 1 }, error: null });
+    vi.mocked(getClient).mockReturnValue({
+      transaction: { submit: mockSubmit },
+    } as any);
+
+    (useSorokit as any).mockReturnValue({
+      isConnected: true,
+      address: 'GABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF123456',
+      connectWallet: vi.fn(),
+      disconnectWallet: vi.fn(),
+      error: null,
+      clearError: vi.fn(),
+    });
+
+    render(<TransactionPanel />);
+
+    const destInput = screen.getByLabelText('Destination Address');
+    const amountInput = screen.getByLabelText('Amount (XLM)');
+    const submitBtn = screen.getByRole('button', { name: 'Send Payment' });
+
+    fireEvent.change(destInput, { target: { value: 'GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC' } });
+    fireEvent.change(amountInput, { target: { value: '10' } });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => expect(mockSubmit).toHaveBeenCalledTimes(1));
+    expect(mockSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        destination: expect.any(String),
+        amount: expect.any(String),
+        source: expect.any(String),
+      })
+    );
+  });
+});
