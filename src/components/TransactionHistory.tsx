@@ -11,12 +11,12 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 import type { Transaction } from "@/lib/client";
-import { getClient } from "@/lib/client";
+import { getClient, hasClient } from "@/lib/client";
 import { truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 
-function TxRow({ tx }: { tx: Transaction }) {
+export function TxRow({ tx }: { tx: Transaction }) {
   const date = new Date(tx.createdAt);
   const timeStr = date.toLocaleTimeString([], {
     hour: "2-digit",
@@ -65,6 +65,10 @@ function TxRow({ tx }: { tx: Transaction }) {
               </span>
             )}
           </div>
+          {/* New feePaid display */}
+          {tx.feePaid && (
+            <span className="text-[10px] text-ink-4">Fee paid: {tx.feePaid}</span>
+          )}
         </div>
       </div>
 
@@ -72,6 +76,12 @@ function TxRow({ tx }: { tx: Transaction }) {
         <Badge variant={tx.successful ? "success" : "error"} live>
           {tx.successful ? "Success" : "Failed"}
         </Badge>
+        {/* New operationCount badge */}
+        {tx.operationCount > 1 && (
+          <Badge variant="primary" className="mt-1">
+            {tx.operationCount} ops
+          </Badge>
+        )}
         <span className="text-[10px] text-ink-3">
           {dateStr} {timeStr}
         </span>
@@ -94,6 +104,7 @@ export function TransactionHistory() {
     let active = true;
     const timerId = window.setTimeout(() => {
       setLoading(true);
+      if (!hasClient()) { setError("[sorokit-ui] Client not initialized."); return; }
       getClient()
         .transaction.getHistory(address, page, PAGE_SIZE)
         .then(({ data, error: err, total: t }) => {

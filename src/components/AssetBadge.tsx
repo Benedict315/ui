@@ -2,6 +2,28 @@ import type { Balance } from "@/lib/client";
 import { cn } from "@/lib/utils";
 import { truncateAddress } from "@/lib/utils";
 
+const ASSET_COLOR_PALETTE: Array<{ bg: string; text: string }> = [
+  { bg: "bg-[rgba(20,184,166,0.12)]", text: "text-teal" },
+  { bg: "bg-[rgba(86,69,212,0.12)]", text: "text-brand" },
+  { bg: "bg-success-dim-strong", text: "text-green" },
+  { bg: "bg-[rgba(249,115,22,0.12)]", text: "text-orange" },
+  { bg: "bg-[rgba(168,85,247,0.12)]", text: "text-purple" },
+  { bg: "bg-[rgba(14,165,233,0.12)]", text: "text-sky-600" },
+  { bg: "bg-[rgba(236,72,153,0.12)]", text: "text-pink-600" },
+  { bg: "bg-[rgba(234,179,8,0.16)]", text: "text-yellow-700" },
+  { bg: "bg-[rgba(99,102,241,0.12)]", text: "text-indigo-600" },
+  { bg: "bg-[rgba(16,185,129,0.12)]", text: "text-emerald-600" },
+];
+
+function hashAssetCode(code: string) {
+  return Array.from(code.toUpperCase()).reduce(
+    (hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0,
+    0,
+  );
+}
+
+function getAssetColor(code: string) {
+  return ASSET_COLOR_PALETTE[hashAssetCode(code) % ASSET_COLOR_PALETTE.length];
 const PALETTE = [
   { bg: "bg-success-dim-strong", text: "text-green" },                      // 0: USDT (hash % 10 = 0)
   { bg: "bg-[rgba(20,184,166,0.12)]", text: "text-teal" },                  // 1: XLM (hash % 10 = 1)
@@ -45,6 +67,7 @@ export function AssetBadge({
       ? "XLM"
       : (balance.assetCode ?? balance.asset);
   const { bg, text } = getAssetColor(code);
+  const iconLabel = code.slice(0, 2).toUpperCase();
 
   const iconSize =
     size === "sm"
@@ -71,7 +94,9 @@ export function AssetBadge({
           text,
         )}
       >
-        {code.slice(0, 2)}
+        <span className="block min-w-[1.25em] text-center leading-none">
+          {iconLabel}
+        </span>
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
         <span className={cn("font-medium text-ink leading-none", labelSize)}>

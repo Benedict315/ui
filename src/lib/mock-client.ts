@@ -15,7 +15,7 @@ import { deterministicMock } from './deterministic-mock';
 // Valid 56-char Stellar testnet address
 export const MOCK_ADDRESS = 'GBRPYHIL2CI3WHGSUJGY6O7SROQOMJG7QBCACN4QPKUOQNXJDGONXHPA';
 
-// Generate deterministic mock data (consistent across test runs)
+// Deterministic mock data for reproducible tests
 export const MOCK_HISTORY = deterministicMock.generateMockHistory(5);
 export const MOCK_EVENTS = deterministicMock.generateMockEvents(3);
 

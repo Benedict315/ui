@@ -1,4 +1,169 @@
 import { useState } from "react";
+import { useSorokit } from "@/context/useSorokit";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+/**
+ * SorobanPanel Component
+ *
+ * Provides a user-friendly interface for interacting with Soroban smart contracts.
+ * Handles contract invocation, parameter input, and result display.
+ *
+ * Features:
+ * - Contract ID input with recent-contract suggestions (last 5, localStorage)
+ * - Method input with per-contract recent-method suggestions (localStorage)
+ * - Arguments input with JSON validation
+ * - Invoke / Clear actions
+ * - Result block with a "Copy result" button
+ *
+ * @component
+ * @example
+ * ```tsx
+ * import { SorobanPanel } from 'sorokit-ui';
+ *
+ * export function App() {
+ *   const [contractId, setContractId] = React.useState("");
+ *   return <SorobanPanel contractId={contractId} onContractIdChange={setContractId} />;
+ * }
+ * ```
+ *
+ * @remarks
+ * - Requires SorokitProvider context
+ * - Automatically handles wallet connection state
+ * - Supports all Soroban contract types
+ *
+ * @see {@link SorokitProvider} for context setup
+ */
+
+import { useRef, useState } from "react";
+import { useSorokit } from "@/context/useSorokit";
+import { getClient } from "@/lib/client";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { cn, friendlyError } from "@/lib/utils";
+
+// ─── localStorage keys ────────────────────────────────────────────────────────
+
+const LS_RECENT_CONTRACTS = "sorokit-recent-contracts";
+const LS_RECENT_METHODS = "sorokit-recent-methods";
+const MAX_RECENT_CONTRACTS = 5;
+const MAX_RECENT_METHODS = 5;
+
+// ─── localStorage helpers ────────────────────────────────────────────────────
+
+function readRecentContracts(): string[] {
+  try {
+    const raw = localStorage.getItem(LS_RECENT_CONTRACTS);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentContract(contractId: string): void {
+  try {
+    const existing = readRecentContracts().filter((id) => id !== contractId);
+    const updated = [contractId, ...existing].slice(0, MAX_RECENT_CONTRACTS);
+    localStorage.setItem(LS_RECENT_CONTRACTS, JSON.stringify(updated));
+  } catch {
+    // localStorage unavailable — silently ignore
+  }
+}
+
+function readRecentMethods(contractId: string): string[] {
+  try {
+    const raw = localStorage.getItem(LS_RECENT_METHODS);
+    const all: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    return all[contractId] ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentMethod(contractId: string, method: string): void {
+  try {
+    const raw = localStorage.getItem(LS_RECENT_METHODS);
+    const all: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    const existing = (all[contractId] ?? []).filter((m) => m !== method);
+    all[contractId] = [method, ...existing].slice(0, MAX_RECENT_METHODS);
+    localStorage.setItem(LS_RECENT_METHODS, JSON.stringify(all));
+  } catch {
+    // localStorage unavailable — silently ignore
+  }
+}
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type InvokeState = "idle" | "loading" | "success" | "error";
+
+interface SorobanPanelProps {
+  /** The current contract ID (controlled) */
+  contractId: string;
+  /** Called when the user edits the contract ID input */
+  onContractIdChange: (id: string) => void;
+  className?: string;
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export function SorobanPanel({
+  contractId,
+  onContractIdChange,
+  className,
+}: SorobanPanelProps) {
+  const { isConnected, address } = useSorokit();
+
+  const [method, setMethod] = useState("");
+  const [args, setArgs] = useState("");
+  const [state, setState] = useState<InvokeState>("idle");
+  const [result, setResult] = useState<unknown>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [argsError, setArgsError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Recent suggestions — re-read from localStorage on each render so they stay
+  // fresh after a successful invocation.
+  const recentContracts = readRecentContracts();
+  const recentMethods = readRecentMethods(contractId);
+
+  const isInvokingRef = useRef(false);
+
+  const canInvoke =
+    isConnected &&
+    contractId.trim() !== "" &&
+    method.trim() !== "" &&
+    state !== "loading";
+
+  // ── Invoke ──────────────────────────────────────────────────────────────────
+
+  async function handleInvoke() {
+    if (!canInvoke || isInvokingRef.current) return;
+
+    // Validate args JSON
+    let parsedArgs: unknown[] = [];
+    if (args.trim() !== "") {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(args);
+      } catch {
+        setArgsError("Invalid JSON in arguments");
+        return;
+      }
+      if (!Array.isArray(parsed)) {
+        setArgsError("Arguments must be a JSON array");
+        return;
+      }
+      parsedArgs = parsed;
+    }
+
+    setArgsError(null);
+    isInvokingRef.current = true;
+    setState("loading");
+    setResult(null);
+    setError(null);
+
+    try {
+import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -7,6 +172,33 @@ import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
 
 type State = "idle" | "loading" | "success" | "error";
+
+/**
+ * SorobanPanel Component
+ * 
+ * Provides a user-friendly interface for interacting with Soroban smart contracts.
+ * Handles contract invocation, parameter input, and result display.
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * import { SorobanPanel } from 'sorokit-ui';
+ * 
+ * export function App() {
+ *   return <SorobanPanel />;
+ * }
+ * ```
+ * 
+ * @returns The rendered SorobanPanel component
+ * 
+ * @remarks
+ * - Requires SorokitProvider context
+ * - Automatically handles wallet connection
+ * - Supports all Soroban contract types
+ * 
+ * @see {@link SorokitProvider} for context setup
+ * @see {@link useClient} for custom client access
+ */
 
 interface SorobanPanelProps {
   contractId: string;
@@ -23,6 +215,13 @@ export function SorobanPanel({
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset state, result, and error when contractId changes to avoid stale result flashes
+  useEffect(() => {
+    setState("idle");
+    setResult(null);
+    setError(null);
+  }, [contractId]);
 
   const canInvoke = isConnected && contractId.trim() && method.trim();
 

@@ -30,8 +30,12 @@ describe("TopBar", () => {
       error: null,
       clearError,
     } as ReturnType<typeof useSorokit>);
-    render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
-    expect(screen.getByRole("heading", { name: /wallet/i })).toBeInTheDocument();
+    render(
+      <TopBar active="wallet" sidebarOpen={false} onMenuToggle={onMenuToggle} />,
+    );
+    expect(
+      screen.getByRole("heading", { level: 1, name: /wallet/i }),
+    ).toBeInTheDocument();
   });
 
   it("renders the correct title for different active sections", () => {
@@ -39,8 +43,16 @@ describe("TopBar", () => {
       error: null,
       clearError,
     } as ReturnType<typeof useSorokit>);
-    render(<TopBar active="network" onMenuToggle={onMenuToggle} />);
-    expect(screen.getByRole("heading", { name: /network/i })).toBeInTheDocument();
+    render(
+      <TopBar
+        active="network"
+        sidebarOpen={false}
+        onMenuToggle={onMenuToggle}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { level: 1, name: /network/i }),
+    ).toBeInTheDocument();
   });
 
   it("does not render the error banner when error is null", () => {
@@ -48,7 +60,9 @@ describe("TopBar", () => {
       error: null,
       clearError,
     } as ReturnType<typeof useSorokit>);
-    render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    render(
+      <TopBar active="wallet" sidebarOpen={false} onMenuToggle={onMenuToggle} />,
+    );
     expect(screen.queryByText(/network unavailable/i)).not.toBeInTheDocument();
   });
 
@@ -57,7 +71,9 @@ describe("TopBar", () => {
       error: "Network unavailable",
       clearError,
     } as ReturnType<typeof useSorokit>);
-    render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    render(
+      <TopBar active="wallet" sidebarOpen={false} onMenuToggle={onMenuToggle} />,
+    );
     expect(screen.getByText("Network unavailable")).toBeInTheDocument();
   });
 
@@ -66,7 +82,9 @@ describe("TopBar", () => {
       error: "Something went wrong",
       clearError,
     } as ReturnType<typeof useSorokit>);
-    render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    render(
+      <TopBar active="wallet" sidebarOpen={false} onMenuToggle={onMenuToggle} />,
+    );
     const errorText = screen.getByText("Something went wrong");
     const banner = errorText.closest("div.flex")!;
     const dismissButton = within(banner).getByRole("button");
@@ -79,8 +97,38 @@ describe("TopBar", () => {
       error: null,
       clearError,
     } as ReturnType<typeof useSorokit>);
-    render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    render(
+      <TopBar active="wallet" sidebarOpen={false} onMenuToggle={onMenuToggle} />,
+    );
     fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
     expect(onMenuToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("adds a tooltip title to the mobile menu button", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    render(
+      <TopBar active="wallet" sidebarOpen={false} onMenuToggle={onMenuToggle} />,
+    );
+    expect(screen.getByRole("button", { name: /open menu/i })).toHaveAttribute(
+      "title",
+      "Open menu",
+    );
+  });
+
+  it("updates the mobile menu button label when the sidebar is open", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    render(
+      <TopBar active="wallet" sidebarOpen onMenuToggle={onMenuToggle} />,
+    );
+    expect(screen.getByRole("button", { name: /close menu/i })).toHaveAttribute(
+      "title",
+      "Close menu",
+    );
   });
 });

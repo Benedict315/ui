@@ -20,7 +20,7 @@ export function NetworkSwitcher() {
   const current = NETWORKS.find((n) => n.name === network?.name) ?? NETWORKS[1];
 
   const handleSelect = async (name: NetworkName) => {
-    if (isSwitching) return;
+    if (isSwitching || name === network?.name) return;
     setIsSwitching(true);
     try {
       await switchNetwork(name);
