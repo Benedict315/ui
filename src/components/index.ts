@@ -76,6 +76,9 @@ export type {
   ClaimableBalance,
   ContractEvent,
   InvokeParams,
+  JsonValue,
   NetworkInfo,
+  SorobanScVal,
   Transaction,
+  TransactionParams,
 } from "../lib/client";
