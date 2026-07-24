@@ -226,4 +226,82 @@ describe("TransactionPanel", () => {
     expect(amountInput).toHaveValue(Number(testAmount));
     expect(memoInput).toHaveValue(testMemo);
   });
+
+  // ── Asset selector (#178) ─────────────────────────────────────────────────
+  describe("asset selector", () => {
+    const balances = [
+      { asset: "XLM", balance: "100.0000000", assetType: "native" as const },
+      {
+        asset: "USDC",
+        balance: "50.0000000",
+        assetType: "credit_alphanum4" as const,
+        assetCode: "USDC",
+        assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+      },
+    ];
+
+    it("populates the asset selector with the correct asset codes from context balances", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        balances,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+
+      const select = screen.getByLabelText("Asset") as HTMLSelectElement;
+      const optionValues = Array.from(select.options).map((o) => o.value);
+      expect(optionValues).toEqual(["XLM", "USDC"]);
+    });
+
+    it("updates the submitted asset when USDC is selected", async () => {
+      const mockSubmit = vi
+        .fn()
+        .mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null });
+      vi.mocked(getClient).mockReturnValue({
+        transaction: { submit: mockSubmit },
+      } as unknown as ReturnType<typeof getClient>);
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        balances,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+
+      const select = screen.getByLabelText("Asset");
+      fireEvent.change(select, { target: { value: "USDC" } });
+      expect(select).toHaveValue("USDC");
+      expect(screen.getByLabelText("Amount (USDC)")).toBeInTheDocument();
+
+      const validDest =
+        "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      fireEvent.change(screen.getByLabelText("Destination Address"), {
+        target: { value: validDest },
+      });
+      fireEvent.change(screen.getByLabelText("Amount (USDC)"), {
+        target: { value: "10" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+
+      await screen.findByText("Transaction submitted");
+      expect(mockSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ asset: "USDC" }),
+      );
+    });
+
+    it("disables the asset selector when no balances are loaded", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        balances: [],
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+
+      const select = screen.getByLabelText("Asset");
+      expect(select).toBeDisabled();
+      expect(select).toHaveValue("XLM");
+    });
+  });
 });

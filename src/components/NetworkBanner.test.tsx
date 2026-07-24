@@ -89,6 +89,17 @@ describe("NetworkBanner", () => {
     expect(await screen.findByText(/localnet/i)).toBeInTheDocument();
   });
 
+  it("does not render when active section is 'network'", async () => {
+    const { client, container } = renderWithNetwork(
+      "testnet",
+      <NetworkBanner active="network" />,
+    );
+    await waitFor(() => {
+      expect(client.network.getNetwork).toHaveBeenCalled();
+    });
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("accepts a custom className", async () => {
     const { container } = renderWithNetwork(
       "testnet",

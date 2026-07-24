@@ -15,6 +15,13 @@ import { getClient } from "@/lib/client";
 import { truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
+const MEMO_TRUNCATE_LENGTH = 20;
+
+function truncateMemo(memo: string): string {
+  return memo.length > MEMO_TRUNCATE_LENGTH
+    ? `${memo.slice(0, MEMO_TRUNCATE_LENGTH)}…`
+    : memo;
+}
 
 export function TxRow({ tx }: { tx: Transaction }) {
   const date = new Date(tx.createdAt);
@@ -50,7 +57,9 @@ export function TxRow({ tx }: { tx: Transaction }) {
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-ink-3">Ledger {tx.ledger}</span>
             {tx.memo && (
-              <span className="text-[10px] text-ink-3">· {tx.memo}</span>
+              <span className="text-[10px] text-ink-3" title={tx.memo}>
+                · {truncateMemo(tx.memo)}
+              </span>
             )}
           </div>
         </div>
