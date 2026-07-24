@@ -2,6 +2,7 @@ import { Refresh01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useState } from "react";
 
+import { Badge } from "@/components/ui/Badge";
 import { getClient } from "@/lib/client";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +60,8 @@ export function FeeEstimator({
 
   return (
     <div
+      role="region"
+      aria-label="Network fee estimate"
       className={cn(
         "rounded-xl border border-line bg-surface overflow-hidden",
         className,
@@ -105,6 +108,9 @@ export function FeeEstimator({
               value={fee.recommended}
               unit="stroops"
               highlight
+              highFee={
+                parseInt(fee.recommended, 10) > parseInt(fee.baseFee, 10) * 2
+              }
             />
           </div>
         ) : null}
@@ -118,17 +124,22 @@ function FeeCell({
   value,
   unit,
   highlight,
+  highFee,
 }: {
   label: string;
   value: string;
   unit: string;
   highlight?: boolean;
+  highFee?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
-        {label}
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
+          {label}
+        </span>
+        {highFee && <Badge variant="warning">High fee</Badge>}
+      </div>
       <div className="flex items-baseline gap-1.5">
         <span
           className={cn(
@@ -140,6 +151,9 @@ function FeeCell({
         </span>
         <span className="text-[10px] text-ink-3">{unit}</span>
       </div>
+      <span className="text-[10px] text-ink-3">
+        (≈ {parseInt(value, 10) / 10_000_000} XLM)
+      </span>
     </div>
   );
 }
