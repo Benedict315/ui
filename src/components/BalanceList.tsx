@@ -93,7 +93,7 @@ export function BalanceList() {
               rel="noopener noreferrer"
               className="text-[13px] text-brand hover:underline"
             >
-              Get test XLM from Friendbot →
+              Fund with Friendbot →
             </a>
           )}
         </div>

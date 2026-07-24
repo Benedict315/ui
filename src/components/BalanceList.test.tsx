@@ -123,8 +123,8 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(screen.getByText(/no assets found/i)).toBeInTheDocument();
-      expect(screen.getByText(/get test xlm from friendbot/i)).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /get test xlm from friendbot/i })).toHaveAttribute("href", "https://friendbot.stellar.org");
+      expect(screen.getByText(/fund with friendbot/i)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /fund with friendbot/i })).toHaveAttribute("href", "https://friendbot.stellar.org");
     });
 
     it("does not render Friendbot link on mainnet with empty balances", () => {
@@ -137,7 +137,7 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(screen.getByText(/no assets found/i)).toBeInTheDocument();
-      expect(screen.queryByText(/get test xlm from friendbot/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
     });
 
     it("does not render Friendbot link on testnet with non-empty balances", () => {
@@ -150,7 +150,7 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(screen.queryByText(/no assets found/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/get test xlm from friendbot/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
     });
 
     it("does not render Friendbot link when not connected", () => {
@@ -163,7 +163,7 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(screen.getByText(/connect your wallet/i)).toBeInTheDocument();
-      expect(screen.queryByText(/get test xlm from friendbot/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
     });
 
     it("does not render Friendbot link when loading account", () => {
@@ -176,7 +176,7 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(screen.getAllByTestId("skeleton-row")).toHaveLength(3);
-      expect(screen.queryByText(/get test xlm from friendbot/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
     });
   });
 });
