@@ -1,6 +1,6 @@
-import * as Toast from "@radix-ui/react-toast";
 import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import * as Toast from "@radix-ui/react-toast";
 import { useEffect, useRef, useState } from "react";
 
 import { AddressDisplay } from "@/components/AddressDisplay";
