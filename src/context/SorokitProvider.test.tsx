@@ -136,13 +136,6 @@ describe("SorokitProvider", () => {
       await new Promise((r) => setTimeout(r, 50));
     });
 
-    // Reset the baseline: however many renders happened so far, record the count
-    // and ref-equality after settling.
-    const baselineCount = parseInt(
-      screen.getByTestId("render-count").textContent ?? "0",
-      10,
-    );
-
     await act(async () => {
       fireEvent.click(screen.getByText("Trigger Parent Render"));
     });
