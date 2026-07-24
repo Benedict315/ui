@@ -1,19 +1,52 @@
 import { useSorokit } from "@/context/useSorokit";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { AssetBadge } from "@/components/AssetBadge";
 import { AssetRowSkeleton } from "@/components/ui/Skeleton";
 import type { Balance } from "@/lib/client";
 
+function getAssetCode(balance: Balance) {
+  return balance.assetType === "native" ? "XLM" : balance.assetCode ?? balance.asset;
+}
+
+function compareBalances(a: Balance, b: Balance) {
+  const aIsXlm = a.assetType === "native";
+  const bIsXlm = b.assetType === "native";
+  if (aIsXlm !== bIsXlm) {
+    return aIsXlm ? -1 : 1;
+  }
+
+  const aZero = Number(a.balance) === 0;
+  const bZero = Number(b.balance) === 0;
+  if (aZero !== bZero) {
+    return aZero ? 1 : -1;
+  }
+
+  return getAssetCode(a).localeCompare(getAssetCode(b));
+}
+
 function AssetRow({ b }: { b: Balance }) {
+  const isZeroBalance = Number(b.balance) === 0;
+
   return (
-    <div className="flex items-center justify-between px-5 py-4 border-b border-line last:border-0">
+    <div
+      className={cn(
+        "flex items-center justify-between px-5 py-4 border-b border-line last:border-0",
+        isZeroBalance && "opacity-50",
+      )}
+    >
       <AssetBadge balance={b} />
-      <span className="text-[14px] font-semibold text-ink tabular-nums">
-        {parseFloat(b.balance).toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 4,
-        })}
-      </span>
+      <div className="flex flex-col items-end gap-1">
+        <span className="text-[14px] font-semibold text-ink tabular-nums">
+          {parseFloat(b.balance).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 4,
+          })}
+        </span>
+        {isZeroBalance && (
+          <span className="text-[12px] text-ink-3">No balance</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -49,7 +82,7 @@ export function BalanceList() {
         </p>
       ) : (
         <div>
-          {balances.map((b) => (
+          {[...balances].sort(compareBalances).map((b) => (
             <AssetRow key={b.asset} b={b} />
           ))}
         </div>

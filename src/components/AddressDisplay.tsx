@@ -11,6 +11,8 @@ interface AddressDisplayProps {
   showFull?: boolean;
   className?: string;
   label?: string;
+  size?: "sm" | "md" | "lg";
+  onCopy?: () => void;
 }
 
 export function AddressDisplay({
@@ -20,6 +22,8 @@ export function AddressDisplay({
   showFull = false,
   className,
   label,
+  size = "md",
+  onCopy,
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
 
@@ -27,6 +31,7 @@ export function AddressDisplay({
     try {
       await navigator.clipboard.writeText(address);
       setCopied(true);
+      onCopy?.();
       setTimeout(() => setCopied(false), 2000);
     } catch {
       /* fallback */
@@ -34,6 +39,12 @@ export function AddressDisplay({
   }
 
   const display = showFull ? address : truncateAddress(address, start, end);
+  const sizeClass =
+    size === "sm"
+      ? "text-[12px]"
+      : size === "lg"
+      ? "text-[16px]"
+      : "text-[14px]";
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
@@ -47,7 +58,8 @@ export function AddressDisplay({
           data-address
           className={cn(
             "break-all leading-relaxed",
-            showFull ? "text-[11px]" : "",
+            sizeClass,
+            showFull ? "select-all" : "",
           )}
           title={address}
         >
