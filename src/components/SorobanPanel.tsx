@@ -13,6 +13,36 @@ interface SorobanPanelProps {
   onContractIdChange: (contractId: string) => void;
 }
 
+const CONTRACT_HISTORY_KEY = "sorokit-soroban-contract-history";
+const CONTRACT_HISTORY_LIMIT = 10;
+const CONTRACT_HISTORY_DATALIST_ID = "sorokit-soroban-contract-history-list";
+
+function readContractHistory(): string[] {
+  try {
+    const raw = localStorage.getItem(CONTRACT_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((id): id is string => typeof id === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function addContractToHistory(contractId: string, current: string[]): string[] {
+  const next = [contractId, ...current.filter((id) => id !== contractId)].slice(
+    0,
+    CONTRACT_HISTORY_LIMIT,
+  );
+  try {
+    localStorage.setItem(CONTRACT_HISTORY_KEY, JSON.stringify(next));
+  } catch {
+    // localStorage unavailable (e.g. private browsing) — history is best-effort
+  }
+  return next;
+}
+
 export function SorobanPanel({
   contractId,
   onContractIdChange,
@@ -23,6 +53,9 @@ export function SorobanPanel({
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
+  const [contractHistory, setContractHistory] = useState<string[]>(() =>
+    readContractHistory(),
+  );
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const canInvoke = isConnected && contractId.trim() && method.trim();
@@ -70,6 +103,7 @@ export function SorobanPanel({
       }
       setResult(data);
       setState("success");
+      setContractHistory((prev) => addContractToHistory(contractId.trim(), prev));
     } catch (e) {
       if (!signal.aborted) {
         const message = e instanceof Error ? e.message : "Unknown error";
@@ -115,7 +149,19 @@ export function SorobanPanel({
               value={contractId}
               onChange={(e) => onContractIdChange(e.target.value)}
               disabled={state === "loading"}
+              list={
+                contractHistory.length > 0
+                  ? CONTRACT_HISTORY_DATALIST_ID
+                  : undefined
+              }
             />
+            {contractHistory.length > 0 && (
+              <datalist id={CONTRACT_HISTORY_DATALIST_ID}>
+                {contractHistory.map((id) => (
+                  <option key={id} value={id} />
+                ))}
+              </datalist>
+            )}
             <Input
               label="Method"
               placeholder="transfer, balance, mint…"
