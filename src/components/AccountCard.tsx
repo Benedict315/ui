@@ -1,11 +1,20 @@
+import { InformationCircleIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useId, useState } from "react";
+
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useSorokit } from "@/context/useSorokit";
 import { truncateAddress } from "@/lib/utils";
 
+/** Stellar base reserve: each subentry (trustline, offer, signer, data entry…) locks up 0.5 XLM. */
+const BASE_RESERVE_XLM = 0.5;
+
 export function AccountCard() {
   const { address, account, isLoadingAccount } = useSorokit();
+  const sequenceLabelId = useId();
+  const [showSequenceTooltip, setShowSequenceTooltip] = useState(false);
   if (!address) return null;
 
   return (
@@ -39,16 +48,54 @@ export function AccountCard() {
             <AddressDisplay address={address} showFull label="Address" />
             {account && (
               <div className="grid grid-cols-2 gap-5">
-                <Field label="Sequence">
-                  <span className="font-mono text-[12px] text-ink-2">
-                    {account.sequence}
-                  </span>
+                <Field label="Sequence" labelId={sequenceLabelId}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-[12px] text-ink-2">
+                      {account.sequence}
+                    </span>
+                    <span className="relative inline-flex">
+                      <button
+                        type="button"
+                        aria-label="What is the sequence number?"
+                        className="text-ink-4 hover:text-ink-2 transition-colors"
+                        onMouseEnter={() => setShowSequenceTooltip(true)}
+                        onMouseLeave={() => setShowSequenceTooltip(false)}
+                        onFocus={() => setShowSequenceTooltip(true)}
+                        onBlur={() => setShowSequenceTooltip(false)}
+                      >
+                        <HugeiconsIcon
+                          icon={InformationCircleIcon}
+                          size={13}
+                          color="currentColor"
+                          strokeWidth={1.5}
+                        />
+                      </button>
+                      {showSequenceTooltip && (
+                        <span
+                          role="tooltip"
+                          aria-labelledby={sequenceLabelId}
+                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 rounded-lg border border-line bg-surface-2 px-3 py-2 text-[11px] leading-relaxed text-ink-2 shadow-lg z-10"
+                        >
+                          Increments with every transaction from this account
+                          to prevent replay attacks.
+                        </span>
+                      )}
+                    </span>
+                  </div>
                 </Field>
                 <Field label="Subentries">
                   <span className="text-[13px] text-ink">
                     {account.subentryCount}
                   </span>
                 </Field>
+                <div className="col-span-2">
+                  <Field label="Reserve Impact">
+                    <span className="text-[13px] text-ink">
+                      {(account.subentryCount * BASE_RESERVE_XLM).toFixed(2)}{" "}
+                      XLM
+                    </span>
+                  </Field>
+                </div>
               </div>
             )}
           </div>
@@ -60,14 +107,19 @@ export function AccountCard() {
 
 function Field({
   label,
+  labelId,
   children,
 }: {
   label: string;
+  labelId?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
+      <span
+        id={labelId}
+        className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4"
+      >
         {label}
       </span>
       {children}

@@ -1,3 +1,5 @@
+import { EyeIcon, EyeOffIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { forwardRef, useEffect,useId, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -17,6 +19,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
     const [lastError, setLastError] = useState<string | undefined>(error);
     const [lastHint, setLastHint] = useState<string | undefined>(hint);
+    const [showPassword, setShowPassword] = useState(false);
+
+    const isPassword = props.type === "password";
 
     useEffect(() => {
       if (error) {
@@ -61,25 +66,49 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
           />
         ) : (
-          <input
-            ref={ref}
-            id={inputId}
-            aria-invalid={!!error}
-            aria-describedby={
-              error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined
-            }
-            className={cn(
-              "h-9 w-full rounded-lg border bg-surface-2 px-3.5",
-              "text-[13px] text-ink placeholder:text-ink-4",
-              "outline-none transition-colors",
-              error
-                ? "border-error-dim-input focus:border-red focus:ring-1 ring-error-dim"
-                : "border-line focus:border-line-2 focus:ring-1 focus:ring-brand-dim",
-              "disabled:opacity-40 disabled:cursor-not-allowed",
-              className,
+          <div className="relative">
+            <input
+              ref={ref}
+              id={inputId}
+              aria-invalid={!!error}
+              aria-describedby={
+                error
+                  ? `${inputId}-error`
+                  : hint
+                    ? `${inputId}-hint`
+                    : undefined
+              }
+              className={cn(
+                "h-9 w-full rounded-lg border bg-surface-2 px-3.5",
+                "text-[13px] text-ink placeholder:text-ink-4",
+                "outline-none transition-colors",
+                error
+                  ? "border-error-dim-input focus:border-red focus:ring-1 ring-error-dim"
+                  : "border-line focus:border-line-2 focus:ring-1 focus:ring-brand-dim",
+                "disabled:opacity-40 disabled:cursor-not-allowed",
+                isPassword && "pr-9",
+                className,
+              )}
+              {...props}
+              type={isPassword ? (showPassword ? "text" : "password") : props.type}
+            />
+            {isPassword && (
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink-2 transition-colors"
+              >
+                <HugeiconsIcon
+                  icon={showPassword ? EyeOffIcon : EyeIcon}
+                  size={15}
+                  color="currentColor"
+                  strokeWidth={1.5}
+                />
+              </button>
             )}
-            {...props}
-          />
+          </div>
         )}
         <div className="min-h-[18px] relative">
           <p
