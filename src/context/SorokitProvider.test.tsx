@@ -141,11 +141,7 @@ describe("SorokitProvider", () => {
     });
 
     expect(screen.getByTestId("render-count")).toHaveTextContent("3");
-    // The context value identity is not referentially stable across parent
-    // re-renders in this scenario (pre-existing behavior). Values are correct,
-    // but `useMemo` produces a new object reference on each provider re-render
-    // due to internal dep transitions.
-    expect(screen.getByTestId("ref-equal")).toHaveTextContent("false");
+    expect(screen.getByTestId("ref-equal")).toHaveTextContent("true");
   });
 
   it("re-populates address after disconnect then reconnect", async () => {
