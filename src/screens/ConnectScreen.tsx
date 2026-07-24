@@ -1,9 +1,12 @@
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, Wallet01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import heroImg from "@/assets/hero.png";
 import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
+
+/** Wallets supported by the underlying sorokit-core connector. */
+const SUPPORTED_WALLETS = ["Freighter", "xBull", "Albedo", "Lobstr"] as const;
 
 export function ConnectScreen() {
   const { connectWallet, isConnecting, error, clearError } = useSorokit();
@@ -40,11 +43,11 @@ export function ConnectScreen() {
           </div>
         </div>
 
-        {/* Hero image */}
+        {/* Hero image — hidden on short/mobile viewports to keep the card in view */}
         <img
           src={heroImg}
           alt="sorokit wallet dashboard preview"
-          className="w-full rounded-xl object-cover"
+          className="hidden sm:block w-full rounded-xl object-cover"
         />
 
         {/* Card */}
@@ -88,10 +91,61 @@ export function ConnectScreen() {
                 Connecting to your wallet…
               </p>
             )}
+            {/* Supported wallet options */}
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-[11px] text-ink-4 text-center uppercase tracking-[0.1em]">
+                Supported wallets
+              </p>
+              <ul className="flex flex-wrap items-center justify-center gap-2">
+                {SUPPORTED_WALLETS.map((name) => (
+                  <li
+                    key={name}
+                    className="flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2.5 py-1.5"
+                  >
+                    <span
+                      role="img"
+                      aria-label={`${name} logo`}
+                      className="text-ink-3"
+                    >
+                      <HugeiconsIcon
+                        icon={Wallet01Icon}
+                        size={14}
+                        color="currentColor"
+                        strokeWidth={1.5}
+                      />
+                    </span>
+                    <span className="text-[12px] text-ink-2">{name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             <p className="text-[11px] text-ink-4 text-center">
               Powered by sorokit-core · Stellar network
             </p>
           </div>
+
+          {/* New to Stellar? — collapsible onboarding help */}
+          <details className="border-t border-line px-5 py-4">
+            <summary className="cursor-pointer text-[13px] font-medium text-ink list-none">
+              New to Stellar?
+            </summary>
+            <div className="mt-3 flex flex-col gap-2 text-[12px] text-ink-3 leading-relaxed">
+              <p>
+                A Stellar wallet lets you hold assets and sign transactions.
+                Install one of the supported wallets above, create an account,
+                then come back and connect.
+              </p>
+              <a
+                href="https://developers.stellar.org/docs/learn/fundamentals/stellar-data-structures/accounts"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand hover:underline"
+              >
+                Learn how Stellar accounts work →
+              </a>
+            </div>
+          </details>
         </div>
       </div>
     </div>

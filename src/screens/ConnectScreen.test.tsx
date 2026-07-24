@@ -103,4 +103,51 @@ describe("ConnectScreen", () => {
 
     expect(connectWallet).toHaveBeenCalledTimes(1);
   });
+
+  describe("supported wallet options (#82)", () => {
+    it("renders a logo and label for each supported wallet", () => {
+      render(<ConnectScreen />);
+
+      for (const name of ["Freighter", "xBull", "Albedo", "Lobstr"]) {
+        expect(screen.getByText(name)).toBeInTheDocument();
+        expect(
+          screen.getByRole("img", { name: `${name} logo` }),
+        ).toBeInTheDocument();
+      }
+    });
+  });
+
+  describe("'New to Stellar?' collapsible (#82)", () => {
+    it("renders the collapsible details element in the DOM", () => {
+      const { container } = render(<ConnectScreen />);
+      const details = container.querySelector("details");
+      expect(details).toBeInTheDocument();
+      expect(screen.getByText("New to Stellar?")).toBeInTheDocument();
+    });
+
+    it("is collapsed by default and expands when the summary is clicked", () => {
+      const { container } = render(<ConnectScreen />);
+      const details = container.querySelector("details") as HTMLDetailsElement;
+
+      expect(details.open).toBe(false);
+
+      fireEvent.click(screen.getByText("New to Stellar?"));
+
+      expect(details.open).toBe(true);
+      expect(
+        screen.getByRole("link", { name: /how stellar accounts work/i }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("responsive hero (#82)", () => {
+    it("applies the responsive hide class to the hero image", () => {
+      render(<ConnectScreen />);
+      const hero = screen.getByRole("img", {
+        name: /sorokit wallet dashboard preview/i,
+      });
+      expect(hero.className).toContain("hidden");
+      expect(hero.className).toContain("sm:block");
+    });
+  });
 });
