@@ -1,5 +1,6 @@
 import {
   ArrowDataTransferHorizontalIcon,
+  Blockchain01Icon,
   CodeIcon,
   Globe02Icon,
   User02Icon,
@@ -17,7 +18,8 @@ export type NavSection =
   | "account"
   | "transactions"
   | "soroban"
-  | "network";
+  | "network"
+  | "nfts";
 
 const NAV: { id: NavSection; label: string; icon: IconSvgElement }[] = [
   { id: "wallet", label: "Wallet", icon: Wallet01Icon },
@@ -29,6 +31,7 @@ const NAV: { id: NavSection; label: string; icon: IconSvgElement }[] = [
   },
   { id: "soroban", label: "Soroban", icon: CodeIcon },
   { id: "network", label: "Network", icon: Globe02Icon },
+  { id: "nfts", label: "NFTs", icon: Blockchain01Icon },
 ];
 
 interface SidebarProps {

@@ -76,6 +76,23 @@ export type SorokitClient = {
       network: NetworkName,
     ) => Promise<{ data: NetworkInfo | null; error: string | null }>;
   };
+  nft: {
+    getNfts: (
+      address: string,
+    ) => Promise<{ data: Nft[] | null; error: string | null }>;
+    sendNft: (params: {
+      tokenId: string;
+      contractId: string;
+      recipient: string;
+      sourceAccount: string;
+    }) => Promise<{ data: TxResult | null; error: string | null }>;
+    listNftForSale: (params: {
+      tokenId: string;
+      contractId: string;
+      price: string;
+      sourceAccount: string;
+    }) => Promise<{ data: TxResult | null; error: string | null }>;
+  };
 };
 
 export type AccountData = {
@@ -146,6 +163,54 @@ export type NetworkInfo = {
   passphrase: string;
   rpcUrl: string;
   horizonUrl: string;
+};
+
+// ─── NFT Types ────────────────────────────────────────────────────────────────
+
+export type NftAttribute = {
+  traitType: string;
+  value: string;
+  /** Rarity as a percentage (0–100). Optional — may not be available for all NFTs. */
+  rarityPct?: number;
+};
+
+export type NftMetadata = {
+  name: string;
+  description?: string;
+  image?: string;
+  externalUrl?: string;
+  attributes: NftAttribute[];
+};
+
+export type Nft = {
+  /** Unique token identifier (contract + token_id combo) */
+  id: string;
+  tokenId: string;
+  contractId: string;
+  collectionName: string;
+  collectionId: string;
+  metadata: NftMetadata;
+  owner: string;
+  /** Floor price in XLM */
+  floorPrice?: string;
+  /** User's estimated valuation in XLM */
+  userValuation?: string;
+  /** Rarity rank within the collection (lower is rarer) */
+  rarityRank?: number;
+  /** Total supply of the collection */
+  collectionSize?: number;
+  mintedAt?: string;
+};
+
+export type NftCollection = {
+  id: string;
+  name: string;
+  contractId: string;
+  description?: string;
+  image?: string;
+  floorPrice?: string;
+  totalSupply?: number;
+  nfts: Nft[];
 };
 
 let _client: SorokitClient | null = null;
