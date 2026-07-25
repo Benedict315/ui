@@ -33,8 +33,6 @@ export default defineConfig({
         'react',
         'react-dom',
         'react/jsx-runtime',
-        // Tailwind CSS should be imported by consumer
-        'tailwindcss',
       ],
       output: {
         globals: {

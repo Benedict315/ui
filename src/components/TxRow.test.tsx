@@ -5,7 +5,7 @@ import type { Transaction } from "@/lib/client";
 import { TxRow } from "./TransactionHistory";
 
 describe("TxRow component", () => {
-  it("renders transaction hash, ledger, status badge, and date", () => {
+  it("renders transaction hash, ledger, status badge, fee, and date", () => {
     const tx: Transaction = {
       hash: "hash123",
       ledger: 1000,
@@ -18,6 +18,7 @@ describe("TxRow component", () => {
     expect(screen.getByText(/hash123/)).toBeInTheDocument();
     expect(screen.getByText(/Ledger 1000/)).toBeInTheDocument();
     expect(screen.getByText("Success")).toBeInTheDocument();
+    expect(screen.getByText(/100 stroops/)).toBeInTheDocument();
   });
 
   it("shows Failed badge for unsuccessful transactions", () => {
