@@ -95,13 +95,13 @@
     {
       "name": "ES module (gzip)",
       "path": "dist/sorokit-ui.es.js",
-      "limit": "65 kB",
+      "limit": "66 kB",
       "gzip": true
     },
     {
       "name": "CommonJS (gzip)",
       "path": "dist/sorokit-ui.cjs.js",
-      "limit": "65 kB",
+      "limit": "66 kB",
       "gzip": true
     }
   ],

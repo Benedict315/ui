@@ -1,6 +1,6 @@
 import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useEffect, useRef,useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { QRCode } from "@/components/QRCode";
@@ -12,6 +12,7 @@ import { cn, truncateAddress } from "@/lib/utils";
 export function WalletScreen() {
   const { address, isConnected, disconnectWallet, network } = useSorokit();
   const [isConfirming, setIsConfirming] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
   const timeoutRef = useRef<number | null>(null);
 
   const handleDisconnect = () => {
@@ -40,6 +41,12 @@ export function WalletScreen() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!toastVisible) return;
+    const id = window.setTimeout(() => setToastVisible(false), 3000);
+    return () => window.clearTimeout(id);
+  }, [toastVisible]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,9 +107,26 @@ export function WalletScreen() {
               ariaLabel={`QR code to receive funds at address ${address}`}
             />
             <div className="flex-1 min-w-0 w-full flex flex-col justify-center gap-1 sm:h-[164px]">
-              <AddressDisplay address={address} showFull label="Address" />
+              <AddressDisplay
+                address={address}
+                showFull
+                label="Address"
+                onCopy={() => setToastVisible(true)}
+              />
             </div>
           </div>
+        </div>
+      )}
+
+      {toastVisible && (
+        <div
+          role="status"
+          className="fixed bottom-6 right-6 z-50 bg-surface border border-line rounded-md px-4 py-3 shadow-lg animate-in fade-in slide-in-from-bottom-2"
+        >
+          <p className="text-[13px] font-semibold text-ink">Address Copied</p>
+          <p className="text-[12px] text-ink-3">
+            The address has been copied to your clipboard.
+          </p>
         </div>
       )}
     </div>
