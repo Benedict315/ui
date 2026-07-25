@@ -1,6 +1,6 @@
 import { InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { Badge } from "@/components/ui/Badge";
@@ -15,6 +15,14 @@ export function AccountCard() {
   const { address, account, isLoadingAccount } = useSorokit();
   const sequenceLabelId = useId();
   const [showSequenceTooltip, setShowSequenceTooltip] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+
+  useEffect(() => {
+    if (!toastVisible) return;
+    const id = window.setTimeout(() => setToastVisible(false), 3000);
+    return () => window.clearTimeout(id);
+  }, [toastVisible]);
+
   if (!address) return null;
 
   return (
