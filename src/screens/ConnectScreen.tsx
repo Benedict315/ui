@@ -5,6 +5,13 @@ import heroImg from "@/assets/hero.png";
 import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 
+const SUPPORTED_WALLETS = [
+  { name: "Freighter", initial: "F", color: "#7B61FF" },
+  { name: "xBull", initial: "X", color: "#F3A93B" },
+  { name: "Lobstr", initial: "L", color: "#2F80ED" },
+  { name: "Albedo", initial: "A", color: "#00B894" },
+];
+
 export function ConnectScreen() {
   const { connectWallet, isConnecting, error, clearError } = useSorokit();
 
@@ -40,11 +47,11 @@ export function ConnectScreen() {
           </div>
         </div>
 
-        {/* Hero image */}
+        {/* Hero image — hidden on short viewports so the connect button stays above the fold */}
         <img
           src={heroImg}
           alt="sorokit wallet dashboard preview"
-          className="w-full rounded-xl object-cover"
+          className="w-full rounded-xl object-cover [@media(max-height:640px)]:hidden"
         />
 
         {/* Card */}
@@ -88,6 +95,61 @@ export function ConnectScreen() {
                 Connecting to your wallet…
               </p>
             )}
+
+            {/* Wallet options — auto-detects whichever extension is installed */}
+            <div className="flex flex-col gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4 text-center">
+                Supported wallets
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {SUPPORTED_WALLETS.map((wallet) => (
+                  <button
+                    key={wallet.name}
+                    type="button"
+                    onClick={connectWallet}
+                    disabled={isConnecting}
+                    aria-label={`Connect with ${wallet.name}`}
+                    title={wallet.name}
+                    className="flex flex-col items-center gap-1.5 rounded-lg border border-line px-2 py-2.5 hover:border-line-2 hover:bg-surface-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <span
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+                      style={{ backgroundColor: wallet.color }}
+                      aria-hidden="true"
+                    >
+                      {wallet.initial}
+                    </span>
+                    <span className="text-[10px] text-ink-3 truncate w-full text-center">
+                      {wallet.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <details className="group rounded-lg border border-line px-4 py-3 open:bg-surface-2">
+              <summary className="text-[12px] font-medium text-ink-2 cursor-pointer select-none list-none flex items-center justify-between">
+                New to Stellar?
+                <span className="text-ink-4 transition-transform group-open:rotate-180">
+                  ▾
+                </span>
+              </summary>
+              <ul className="mt-3 flex flex-col gap-2 text-[12px] text-ink-3 leading-relaxed list-disc pl-4">
+                <li>
+                  A Stellar wallet stores the keys that control your account
+                  and lets you approve transactions.
+                </li>
+                <li>
+                  It never leaves your device — sorokit only asks it to sign
+                  transactions, it can't move funds on its own.
+                </li>
+                <li>
+                  Don't have one yet? Install Freighter, xBull, Lobstr, or
+                  Albedo, then come back and hit Connect Wallet.
+                </li>
+              </ul>
+            </details>
+
             <p className="text-[11px] text-ink-4 text-center">
               Powered by sorokit-core · Stellar network
             </p>

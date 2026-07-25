@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent,render, screen } from "@testing-library/react";
 import { describe, expect,it } from "vitest";
 
 import { Input } from "./Input";
@@ -128,10 +128,60 @@ describe("Input", () => {
     const textarea = screen.getByPlaceholderText("Test Input");
     const errorText = screen.getByText("Invalid format");
     const hintText = screen.getByText("Must be 8 characters long");
-    
+
     expect(textarea.tagName).toBe("TEXTAREA");
     expect(errorText).toBeInTheDocument();
     expect(errorText.className).toContain("opacity-100");
     expect(hintText.className).toContain("opacity-0");
+  });
+
+  // ── Password toggle (#205) ──────────────────────────────────────────────
+  describe("password toggle", () => {
+    it("does not render a toggle button for non-password inputs", () => {
+      render(<Input placeholder="Enter text" />);
+      expect(
+        screen.queryByRole("button", { name: /show password/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("renders type=password and a Show password toggle button", () => {
+      render(<Input type="password" placeholder="Password" />);
+      const input = screen.getByPlaceholderText("Password");
+
+      expect(input).toHaveAttribute("type", "password");
+      expect(
+        screen.getByRole("button", { name: "Show password" }),
+      ).toBeInTheDocument();
+    });
+
+    it("toggles the input type from password to text and back when the eye button is clicked", () => {
+      render(<Input type="password" placeholder="Password" />);
+      const input = screen.getByPlaceholderText("Password");
+      const toggle = screen.getByRole("button", { name: "Show password" });
+
+      fireEvent.click(toggle);
+      expect(input).toHaveAttribute("type", "text");
+      expect(
+        screen.getByRole("button", { name: "Hide password" }),
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
+      expect(input).toHaveAttribute("type", "password");
+    });
+
+    it("still renders label, error, and hint correctly for password inputs", () => {
+      render(
+        <Input
+          type="password"
+          label="Passphrase"
+          hint="Must be 8 characters long"
+          error="Too short"
+        />,
+      );
+
+      expect(screen.getByText("Passphrase")).toBeInTheDocument();
+      const errorText = screen.getByText("Too short");
+      expect(errorText.className).toContain("opacity-100");
+    });
   });
 });

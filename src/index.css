@@ -6,6 +6,32 @@
    BRAND & DESIGN TOKENS
    Edit values here — they propagate to every component.
    Components reference these as: bg-brand, text-ink, border-line, etc.
+
+   ## Design Tokens
+
+   Naming convention: `--color-<group>[-<step>]`. Lower step numbers (or no
+   suffix) are the most prominent/high-contrast value in a group; higher
+   numbers step down in emphasis. Utility classes mirror the token name
+   1:1 (e.g. `--color-ink-3` → `.text-ink-3`), so when adding a component
+   prefer an existing token/utility pair over a one-off hex value — that
+   keeps the palette (and the light-theme override below) authoritative.
+
+   Token groups:
+   - Brand      (`--color-brand*`)   e.g. --color-brand: #55852b
+     Primary action color — buttons, links, active states.
+   - Surfaces   (`--color-base`, `--color-surface*`)  e.g. --color-surface: #141414
+     Background layers, darkest (base) to lightest (surface-3).
+   - Borders    (`--color-line*`)    e.g. --color-line: #2a2a2a
+     Dividers and outlines; `-2` is the stronger/active variant.
+   - Text       (`--color-ink*`)     e.g. --color-ink: #ebebeb
+     Foreground text, from primary (`ink`) to most muted (`ink-4`).
+   - Semantic   (`--color-green|orange|red|teal|purple`)
+     Status accents used for badges, icons, and inline indicators.
+   - State bg/border (`--color-success-*`, `--color-error-*`)
+     Tinted backgrounds/borders for success and error UI (banners, inputs).
+   - QR canvas  (`--color-qr-canvas-*`)
+     Fixed light-on-dark colors for the QR code canvas; not part of the
+     dark/light palette swap since QR codes need consistent contrast.
 ───────────────────────────────────────────────────────── */
 :root {
   /* ── Brand ── */
@@ -56,6 +82,38 @@
   /* ── QR canvas (override for light/dark themes) ── */
   --color-qr-canvas-bg: #ffffff;
   --color-qr-canvas-fg: #0d0d0d;
+}
+
+/* ─────────────────────────────────────────────────────────
+   LIGHT THEME
+   Opt in by setting data-theme="light" on <html> (or any ancestor).
+   Overrides only the core surface/text/border tokens — semantic and
+   state colors stay the same across both themes.
+───────────────────────────────────────────────────────── */
+html[data-theme="light"] {
+  --color-brand: #3f6620;
+  --color-brand-hover: #345415;
+  --color-brand-dim: #eaf3e2;
+
+  --color-base: #ffffff;
+  --color-surface: #f7f7f7;
+  --color-surface-2: #eeeeee;
+  --color-surface-3: #e4e4e4;
+
+  --color-line: #e2e2e2;
+  --color-line-2: #cfcfcf;
+
+  --color-ink: #16181b;
+  --color-ink-2: #4b4b52;
+  --color-ink-3: #6b6b72;
+  --color-ink-4: #8a8a90;
+
+  --color-qr-canvas-bg: #ffffff;
+  --color-qr-canvas-fg: #16181b;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
 }
 
 /* ─────────────────────────────────────────────────────────
