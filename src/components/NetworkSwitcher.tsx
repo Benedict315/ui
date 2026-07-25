@@ -17,6 +17,7 @@ const NETWORKS: { name: NetworkName; label: string; dot: string }[] = [
 export function NetworkSwitcher() {
   const { network, switchNetwork } = useSorokit();
   const [isSwitching, setIsSwitching] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
   const current = NETWORKS.find((n) => n.name === network?.name) ?? NETWORKS[1];
 
   const handleSelect = async (name: NetworkName) => {
@@ -24,6 +25,8 @@ export function NetworkSwitcher() {
     setIsSwitching(true);
     try {
       await switchNetwork(name);
+      const label = NETWORKS.find((n) => n.name === name)?.label ?? name;
+      setAnnouncement(`Switched to ${label}`);
     } finally {
       setIsSwitching(false);
     }
@@ -38,8 +41,12 @@ export function NetworkSwitcher() {
         >
           <span
             className={cn("w-1.5 h-1.5 rounded-full shrink-0", current.dot)}
-          />
-          <span className="hidden sm:inline">{current.label}</span>
+          >
+            <span className="sr-only">{current.label}</span>
+          </span>
+          <span className="hidden sm:inline" aria-hidden="true">
+            {current.label}
+          </span>
           {isSwitching ? (
             <span className="ml-0.5 h-3 w-3 animate-spin rounded-full border-2 border-ink-2 border-t-transparent" />
           ) : (
@@ -58,6 +65,8 @@ export function NetworkSwitcher() {
         <DropdownMenu.Content
           align="end"
           sideOffset={5}
+          avoidCollisions={true}
+          collisionPadding={12}
           className="z-50 min-w-[160px] rounded-xl border border-line bg-surface p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
         >
           {NETWORKS.map((net) => (
@@ -75,8 +84,10 @@ export function NetworkSwitcher() {
             >
               <span
                 className={cn("w-1.5 h-1.5 rounded-full shrink-0", net.dot)}
-              />
-              {net.label}
+              >
+                <span className="sr-only">{net.label}</span>
+              </span>
+              <span aria-hidden="true">{net.label}</span>
               {network?.name === net.name && (
                 <HugeiconsIcon
                   icon={Tick01Icon}
@@ -90,6 +101,10 @@ export function NetworkSwitcher() {
           ))}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
+
+      <span role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </span>
     </DropdownMenu.Root>
   );
 }
