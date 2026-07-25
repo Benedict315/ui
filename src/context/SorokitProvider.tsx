@@ -1,9 +1,13 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import type { AccountData, Balance, NetworkInfo, NetworkName } from "@/lib/client";
-import {
-  SorokitContext,
-  type SorokitProviderProps,
-} from "./sorokit-context";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import type {
+  AccountData,
+  Balance,
+  NetworkInfo,
+  NetworkName,
+} from "@/lib/client";
+
+import { SorokitContext, type SorokitProviderProps } from "./SorokitContext";
 
 export function SorokitProvider({ client, children }: SorokitProviderProps) {
   const [address, setAddress] = useState<string | null>(null);
@@ -46,9 +50,9 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
         .then(([accountRes, balancesRes]) => {
           if (!active) return;
           if (accountRes.data) setAccount(accountRes.data);
-          if (accountRes.error) setError(accountRes.error);
           if (balancesRes.data) setBalances(balancesRes.data);
-          if (balancesRes.error) setError(balancesRes.error);
+          if (accountRes.error) setError(accountRes.error);
+          else if (balancesRes.error) setError(balancesRes.error);
         })
         .finally(() => {
           if (active) setIsLoadingAccount(false);
@@ -112,9 +116,9 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
         client.account.getBalances(address),
       ]);
       if (accountRes.data) setAccount(accountRes.data);
-      if (accountRes.error) setError(accountRes.error);
       if (balancesRes.data) setBalances(balancesRes.data);
-      if (balancesRes.error) setError(balancesRes.error);
+      if (accountRes.error) setError(accountRes.error);
+      else if (balancesRes.error) setError(balancesRes.error);
     } finally {
       setIsLoadingAccount(false);
     }
@@ -125,6 +129,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       address,
       isConnected: !!address,
       isConnecting,
+      isLoading: isConnecting || isLoadingAccount,
       connectWallet,
       disconnectWallet,
       account,
@@ -139,11 +144,11 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
     [
       address,
       isConnecting,
+      isLoadingAccount,
       connectWallet,
       disconnectWallet,
       account,
       balances,
-      isLoadingAccount,
       refreshAccount,
       network,
       switchNetwork,
@@ -153,8 +158,6 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
   );
 
   return (
-    <SorokitContext.Provider value={value}>
-      {children}
-    </SorokitContext.Provider>
+    <SorokitContext.Provider value={value}>{children}</SorokitContext.Provider>
   );
 }

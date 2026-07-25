@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { useSorokit } from "@/context/useSorokit";
-import { Badge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useState } from "react";
+
+import { Badge } from "@/components/ui/Badge";
+import { useSorokit } from "@/context/useSorokit";
 import type { NetworkName } from "@/lib/client";
+import { cn } from "@/lib/utils";
 
 const NETWORKS: {
   name: NetworkName;

@@ -1,8 +1,10 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TransactionPanel } from "./TransactionPanel";
-import { getClient } from "@/lib/client";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+import { getClient } from "@/lib/client";
+
+import { TransactionPanel } from "./TransactionPanel";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -47,7 +49,8 @@ describe("TransactionPanel", () => {
     // Submit and check loading state
     fireEvent.click(submitBtn);
     expect(submitBtn).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Submitting…" })).toBeInTheDocument();
+    // When loading, sr-only "Loading" text prepends to accessible name
+    expect(screen.getByRole("button", { name: "LoadingSubmitting…" })).toBeInTheDocument();
 
     // Check success state
     expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
@@ -110,7 +113,7 @@ describe("TransactionPanel", () => {
   });
 
   it("shows error if address is null at submit time", async () => {
-    (useSorokit as any).mockReturnValue({
+    vi.mocked(useSorokit).mockReturnValue({
       address: null,
       isConnected: true,
     });
@@ -132,7 +135,7 @@ describe("TransactionPanel", () => {
   });
 
   it("shows self-payment warning when destination equals source address", async () => {
-    (useSorokit as any).mockReturnValue({
+    vi.mocked(useSorokit).mockReturnValue({
       address: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
       isConnected: true,
     });
@@ -176,5 +179,129 @@ describe("TransactionPanel", () => {
       "opacity-0",
     );
     expect(submitBtn).not.toBeDisabled();
+  });
+
+  it("preserves form values when clicking Try Again after error", async () => {
+    const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Insufficient balance" });
+
+    vi.mocked(getClient).mockReturnValue({
+      transaction: {
+        submit: mockSubmit,
+      },
+    } as unknown as ReturnType<typeof getClient>);
+
+    render(<TransactionPanel />);
+
+    const destInput = screen.getByLabelText("Destination Address");
+    const amountInput = screen.getByLabelText("Amount (XLM)");
+    const memoInput = screen.getByLabelText("Memo (optional)");
+    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+
+    // Fill in form values
+    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    const testAmount = "10.5";
+    const testMemo = "Test memo";
+
+    fireEvent.change(destInput, { target: { value: validDest } });
+    fireEvent.change(amountInput, { target: { value: testAmount } });
+    fireEvent.change(memoInput, { target: { value: testMemo } });
+
+    // Verify values are set
+    expect(destInput).toHaveValue(validDest);
+    expect(amountInput).toHaveValue(Number(testAmount));
+    expect(memoInput).toHaveValue(testMemo);
+
+    // Submit to trigger error
+    fireEvent.click(submitBtn);
+
+    // Wait for error state
+    await screen.findByText("Transaction failed");
+
+    // Click "New Transaction" (Try Again) button
+    const newTxBtn = screen.getByRole("button", { name: "New Transaction" });
+    fireEvent.click(newTxBtn);
+
+    // Verify form values are preserved (not cleared)
+    expect(destInput).toHaveValue(validDest);
+    expect(amountInput).toHaveValue(Number(testAmount));
+    expect(memoInput).toHaveValue(testMemo);
+  });
+
+  // ── Asset selector (#178) ─────────────────────────────────────────────────
+  describe("asset selector", () => {
+    const balances = [
+      { asset: "XLM", balance: "100.0000000", assetType: "native" as const },
+      {
+        asset: "USDC",
+        balance: "50.0000000",
+        assetType: "credit_alphanum4" as const,
+        assetCode: "USDC",
+        assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+      },
+    ];
+
+    it("populates the asset selector with the correct asset codes from context balances", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        balances,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+
+      const select = screen.getByLabelText("Asset") as HTMLSelectElement;
+      const optionValues = Array.from(select.options).map((o) => o.value);
+      expect(optionValues).toEqual(["XLM", "USDC"]);
+    });
+
+    it("updates the submitted asset when USDC is selected", async () => {
+      const mockSubmit = vi
+        .fn()
+        .mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null });
+      vi.mocked(getClient).mockReturnValue({
+        transaction: { submit: mockSubmit },
+      } as unknown as ReturnType<typeof getClient>);
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        balances,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+
+      const select = screen.getByLabelText("Asset");
+      fireEvent.change(select, { target: { value: "USDC" } });
+      expect(select).toHaveValue("USDC");
+      expect(screen.getByLabelText("Amount (USDC)")).toBeInTheDocument();
+
+      const validDest =
+        "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      fireEvent.change(screen.getByLabelText("Destination Address"), {
+        target: { value: validDest },
+      });
+      fireEvent.change(screen.getByLabelText("Amount (USDC)"), {
+        target: { value: "10" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+
+      await screen.findByText("Transaction submitted");
+      expect(mockSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ asset: "USDC" }),
+      );
+    });
+
+    it("disables the asset selector when no balances are loaded", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        balances: [],
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+
+      const select = screen.getByLabelText("Asset");
+      expect(select).toBeDisabled();
+      expect(select).toHaveValue("XLM");
+    });
   });
 });

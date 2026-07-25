@@ -1,9 +1,11 @@
 import { screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NetworkBanner } from "./NetworkBanner";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { renderWithProvider } from "@/__tests__/utils";
-import { createMockClient } from "@/lib/mock-client";
 import type { NetworkInfo, NetworkName } from "@/lib/client";
+import { createMockClient } from "@/lib/mock-client";
+
+import { NetworkBanner } from "./NetworkBanner";
 
 function networkInfo(name: NetworkName): NetworkInfo {
   return {
@@ -85,6 +87,17 @@ describe("NetworkBanner", () => {
   it("renders the localnet banner by default", async () => {
     renderWithNetwork("localnet");
     expect(await screen.findByText(/localnet/i)).toBeInTheDocument();
+  });
+
+  it("does not render when active section is 'network'", async () => {
+    const { client, container } = renderWithNetwork(
+      "testnet",
+      <NetworkBanner active="network" />,
+    );
+    await waitFor(() => {
+      expect(client.network.getNetwork).toHaveBeenCalled();
+    });
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("accepts a custom className", async () => {

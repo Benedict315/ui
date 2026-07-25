@@ -1,21 +1,29 @@
-import { useEffect, useState } from "react";
-import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { truncateAddress } from "@/lib/utils";
-import type { Transaction } from "@/lib/client";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  CheckmarkCircle01Icon,
-  Cancel01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  Cancel01Icon,
+  CheckmarkCircle01Icon,
 } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useState } from "react";
+
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { useSorokit } from "@/context/useSorokit";
+import type { Transaction } from "@/lib/client";
+import { getClient } from "@/lib/client";
+import { truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
+const MEMO_TRUNCATE_LENGTH = 20;
 
-function TxRow({ tx }: { tx: Transaction }) {
+function truncateMemo(memo: string): string {
+  return memo.length > MEMO_TRUNCATE_LENGTH
+    ? `${memo.slice(0, MEMO_TRUNCATE_LENGTH)}…`
+    : memo;
+}
+
+export function TxRow({ tx }: { tx: Transaction }) {
   const date = new Date(tx.createdAt);
   const timeStr = date.toLocaleTimeString([], {
     hour: "2-digit",
@@ -49,19 +57,33 @@ function TxRow({ tx }: { tx: Transaction }) {
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-ink-3">Ledger {tx.ledger}</span>
             {tx.memo && (
-              <span className="text-[10px] text-ink-3">· {tx.memo}</span>
+              <span className="text-[10px] text-ink-3" title={tx.memo}>
+                · {truncateMemo(tx.memo)}
+              </span>
             )}
           </div>
         </div>
       </div>
 
       <div className="flex flex-col items-end gap-0.5 shrink-0">
-        <Badge variant={tx.successful ? "success" : "error"} live>
-          {tx.successful ? "Success" : "Failed"}
-        </Badge>
-        <span className="text-[10px] text-ink-3">
-          {dateStr} {timeStr}
-        </span>
+        <div className="flex items-center gap-2">
+          <Badge variant={tx.successful ? "success" : "error"} live>
+            {tx.successful ? "Success" : "Failed"}
+          </Badge>
+          {tx.operationCount > 1 && (
+            <Badge variant="default" className="text-[10px] px-1.5 py-0.5">
+              {tx.operationCount} ops
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-ink-3">
+            {dateStr} {timeStr}
+          </span>
+          <span className="text-[10px] text-ink-3">
+            · {tx.feePaid} stroops
+          </span>
+        </div>
       </div>
     </div>
   );

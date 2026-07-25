@@ -1,16 +1,18 @@
 import { createContext } from "react";
+
 import type {
-  SorokitClient,
-  NetworkInfo,
-  Balance,
   AccountData,
+  Balance,
+  NetworkInfo,
   NetworkName,
+  SorokitClient,
 } from "@/lib/client";
 
 export interface SorokitState {
   address: string | null;
   isConnected: boolean;
   isConnecting: boolean;
+  isLoading: boolean;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => Promise<void>;
   account: AccountData | null;

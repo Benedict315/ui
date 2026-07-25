@@ -1,9 +1,11 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TransactionsScreen } from "./TransactionsScreen";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
 import type { SorokitClient } from "@/lib/client";
+import { getClient } from "@/lib/client";
+
+import { TransactionsScreen } from "./TransactionsScreen";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -44,18 +46,20 @@ describe("TransactionsScreen", () => {
 
   it("renders TransactionPanel with its section title", () => {
     render(<TransactionsScreen />);
-    expect(screen.getByText("Send Payment")).toBeInTheDocument();
+    expect(screen.getAllByText("Send Payment")[0]).toBeInTheDocument();
   });
 
   it("renders FeeEstimator above TransactionPanel in the DOM", () => {
     const { container } = render(<TransactionsScreen />);
 
-    const feeHeading = screen.getByText("Network Fee");
-    const txHeading = screen.getByText("Send Payment");
-
     const allHeadings = Array.from(container.querySelectorAll("h3"));
+    const feeHeading = screen.getByText("Network Fee");
+    const txHeading = screen.getAllByText("Send Payment").find(
+      (el) => el.tagName === "H3",
+    );
+
     const feeIndex = allHeadings.indexOf(feeHeading as HTMLHeadingElement);
-    const txIndex = allHeadings.indexOf(txHeading as HTMLHeadingElement);
+    const txIndex = txHeading ? allHeadings.indexOf(txHeading as HTMLHeadingElement) : -1;
 
     expect(feeIndex).toBeLessThan(txIndex);
   });
@@ -63,6 +67,6 @@ describe("TransactionsScreen", () => {
   it("renders FeeEstimator and TransactionPanel in the same screen", () => {
     render(<TransactionsScreen />);
     expect(screen.getByText("Network Fee")).toBeInTheDocument();
-    expect(screen.getByText("Send Payment")).toBeInTheDocument();
+    expect(screen.getAllByText("Send Payment")[0]).toBeInTheDocument();
   });
 });

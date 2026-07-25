@@ -1,6 +1,8 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
+import { defineConfig } from "vite";
+import dts from "vite-plugin-dts";
 
 /**
  * Library build configuration for sorokit-ui
@@ -13,7 +15,12 @@ import path from 'path'
  * Use with: vite build --config vite.lib.config.ts
  */
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss(), dts({
+    tsconfigPath: path.resolve(__dirname, "tsconfig.app.json"),
+    entryRoot: path.resolve(__dirname, "src"),
+    outDir: "dist",
+    include: ["src/components", "src/lib"],
+  })],
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/components/index.ts'),

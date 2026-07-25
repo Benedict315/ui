@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
 import { Button } from "./Button";
 
 describe("Button", () => {
@@ -10,7 +11,8 @@ describe("Button", () => {
 
   it("renders a loading spinner when loading is true", () => {
     const { container } = render(<Button loading>Submit</Button>);
-    expect(screen.getByRole("button", { name: "Submit" })).toBeInTheDocument();
+    // When loading, the sr-only "Loading" text is prepended to accessible name
+    expect(screen.getByRole("button", { name: "LoadingSubmit" })).toBeInTheDocument();
     // The spinner is a span with animate-spin class
     const spinner = container.querySelector(".animate-spin");
     expect(spinner).toBeInTheDocument();
@@ -25,7 +27,8 @@ describe("Button", () => {
 
   it("is disabled when loading is true", () => {
     render(<Button loading>Submit</Button>);
-    const button = screen.getByRole("button", { name: "Submit" });
+    // When loading, the sr-only "Loading" text is prepended to accessible name
+    const button = screen.getByRole("button", { name: "LoadingSubmit" });
     expect(button).toBeDisabled();
   });
 
@@ -72,6 +75,62 @@ describe("Button", () => {
     render(<Button size="lg">Button</Button>);
     const button = screen.getByRole("button", { name: "Button" });
     expect(button.className).toContain("h-10");
+  });
+
+  it("keeps the label visible while loading", () => {
+    render(<Button loading>Send</Button>);
+    const button = screen.getByRole("button", { name: /Send/ });
+    expect(button).toHaveTextContent("Send");
+  });
+
+  it("applies square icon-only sizing with no horizontal padding", () => {
+    render(
+      <Button iconOnly aria-label="Refresh">
+        <svg />
+      </Button>
+    );
+    const button = screen.getByRole("button", { name: "Refresh" });
+    expect(button.className).toContain("w-9");
+    expect(button.className).toContain("h-9");
+    expect(button.className).not.toContain("px-4");
+  });
+
+  it("shows the spinner in place of the icon for iconOnly loading", () => {
+    const { container } = render(
+      <Button iconOnly loading aria-label="Refresh">
+        <svg data-testid="icon" />
+      </Button>
+    );
+    expect(container.querySelector(".animate-spin")).toBeInTheDocument();
+    expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
+  });
+
+  it("requires two clicks when requireConfirm is set", () => {
+    const onClick = vi.fn();
+    render(
+      <Button requireConfirm confirmLabel="Are you sure?" onClick={onClick}>
+        Delete
+      </Button>
+    );
+    const button = screen.getByRole("button");
+    fireEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+    expect(button).toHaveTextContent("Are you sure?");
+    fireEvent.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("resets the confirmation prompt on blur", () => {
+    render(
+      <Button requireConfirm confirmLabel="Are you sure?">
+        Delete
+      </Button>
+    );
+    const button = screen.getByRole("button");
+    fireEvent.click(button);
+    expect(button).toHaveTextContent("Are you sure?");
+    fireEvent.blur(button);
+    expect(button).toHaveTextContent("Delete");
   });
 
   it("supports rendering as a child (asChild prop)", () => {

@@ -1,7 +1,9 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ConnectScreen } from "./ConnectScreen";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import { ConnectScreen } from "./ConnectScreen";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -100,5 +102,66 @@ describe("ConnectScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: /connect wallet/i }));
 
     expect(connectWallet).toHaveBeenCalledTimes(1);
+  });
+
+  // ── Wallet option logos (#198) ──────────────────────────────────────────
+  it("renders a logo/button for each supported wallet", () => {
+    render(<ConnectScreen />);
+
+    for (const wallet of ["Freighter", "xBull", "Lobstr", "Albedo"]) {
+      expect(
+        screen.getByRole("button", { name: `Connect with ${wallet}` }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it("calls connectWallet when a wallet option is clicked", () => {
+    const connectWallet = vi.fn();
+    vi.mocked(useSorokit).mockReturnValue({
+      ...BASE_CONTEXT,
+      connectWallet,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<ConnectScreen />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Connect with Freighter" }),
+    );
+
+    expect(connectWallet).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables wallet option buttons while connecting", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      ...BASE_CONTEXT,
+      isConnecting: true,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<ConnectScreen />);
+    expect(
+      screen.getByRole("button", { name: "Connect with Freighter" }),
+    ).toBeDisabled();
+  });
+
+  // ── "New to Stellar?" collapsible section (#198) ────────────────────────
+  it("renders a collapsible 'New to Stellar?' section that is closed by default", () => {
+    render(<ConnectScreen />);
+
+    const summary = screen.getByText("New to Stellar?");
+    expect(summary).toBeInTheDocument();
+    const details = summary.closest("details");
+    expect(details).not.toHaveAttribute("open");
+    expect(
+      screen.getByText(/never leaves your device/i),
+    ).toBeInTheDocument();
+  });
+
+  it("opens the 'New to Stellar?' section when clicked", () => {
+    render(<ConnectScreen />);
+
+    const summary = screen.getByText("New to Stellar?");
+    fireEvent.click(summary);
+
+    const details = summary.closest("details");
+    expect(details).toHaveAttribute("open");
   });
 });

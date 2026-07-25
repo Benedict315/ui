@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { describe, expect,it } from "vitest";
+
 import { Input } from "./Input";
 
 describe("Input", () => {
@@ -76,5 +77,111 @@ describe("Input", () => {
     expect(input).toBeDisabled();
     expect(input.className).toContain("disabled:opacity-40");
     expect(input.className).toContain("disabled:cursor-not-allowed");
+  });
+
+  it("renders a textarea when multiline prop is true", () => {
+    render(<Input multiline placeholder="Enter text" />);
+    const textarea = screen.getByPlaceholderText("Enter text");
+    
+    expect(textarea.tagName).toBe("TEXTAREA");
+    expect(textarea).toBeInTheDocument();
+  });
+
+  it("associates label with textarea using htmlFor and id when multiline is true", () => {
+    render(<Input label="Description" multiline />);
+    const label = screen.getByText("Description");
+    const textarea = screen.getByRole("textbox");
+    
+    expect(label).toBeInTheDocument();
+    expect(label.tagName).toBe("LABEL");
+    expect(textarea.tagName).toBe("TEXTAREA");
+    
+    const id = textarea.getAttribute("id");
+    expect(id).toBe("description");
+    expect(label.getAttribute("for")).toBe("description");
+  });
+
+  it("renders error message correctly in multiline mode", () => {
+    render(<Input multiline placeholder="Test Input" error="This field is required" />);
+    const textarea = screen.getByPlaceholderText("Test Input");
+    const errorText = screen.getByText("This field is required");
+    
+    expect(textarea.tagName).toBe("TEXTAREA");
+    expect(errorText).toBeInTheDocument();
+    expect(errorText.className).toContain("text-red");
+    expect(errorText.className).toContain("opacity-100");
+  });
+
+  it("renders hint message correctly in multiline mode when error is not present", () => {
+    render(<Input multiline placeholder="Test Input" hint="Must be 8 characters long" />);
+    const textarea = screen.getByPlaceholderText("Test Input");
+    const hintText = screen.getByText("Must be 8 characters long");
+    
+    expect(textarea.tagName).toBe("TEXTAREA");
+    expect(hintText).toBeInTheDocument();
+    expect(hintText.className).toContain("text-ink-3");
+    expect(hintText.className).toContain("opacity-100");
+  });
+
+  it("hides hint and shows error when error is present in multiline mode", () => {
+    render(<Input multiline placeholder="Test Input" hint="Must be 8 characters long" error="Invalid format" />);
+    const textarea = screen.getByPlaceholderText("Test Input");
+    const errorText = screen.getByText("Invalid format");
+    const hintText = screen.getByText("Must be 8 characters long");
+
+    expect(textarea.tagName).toBe("TEXTAREA");
+    expect(errorText).toBeInTheDocument();
+    expect(errorText.className).toContain("opacity-100");
+    expect(hintText.className).toContain("opacity-0");
+  });
+
+  // ── Password toggle (#205) ──────────────────────────────────────────────
+  describe("password toggle", () => {
+    it("does not render a toggle button for non-password inputs", () => {
+      render(<Input placeholder="Enter text" />);
+      expect(
+        screen.queryByRole("button", { name: /show password/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("renders type=password and a Show password toggle button", () => {
+      render(<Input type="password" placeholder="Password" />);
+      const input = screen.getByPlaceholderText("Password");
+
+      expect(input).toHaveAttribute("type", "password");
+      expect(
+        screen.getByRole("button", { name: "Show password" }),
+      ).toBeInTheDocument();
+    });
+
+    it("toggles the input type from password to text and back when the eye button is clicked", () => {
+      render(<Input type="password" placeholder="Password" />);
+      const input = screen.getByPlaceholderText("Password");
+      const toggle = screen.getByRole("button", { name: "Show password" });
+
+      fireEvent.click(toggle);
+      expect(input).toHaveAttribute("type", "text");
+      expect(
+        screen.getByRole("button", { name: "Hide password" }),
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
+      expect(input).toHaveAttribute("type", "password");
+    });
+
+    it("still renders label, error, and hint correctly for password inputs", () => {
+      render(
+        <Input
+          type="password"
+          label="Passphrase"
+          hint="Must be 8 characters long"
+          error="Too short"
+        />,
+      );
+
+      expect(screen.getByText("Passphrase")).toBeInTheDocument();
+      const errorText = screen.getByText("Too short");
+      expect(errorText.className).toContain("opacity-100");
+    });
   });
 });
