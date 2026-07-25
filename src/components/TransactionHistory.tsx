@@ -34,8 +34,13 @@ export function TxRow({ tx }: { tx: Transaction }) {
     day: "numeric",
   });
 
+
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-line last:border-0 gap-4">
+    <div
+      role="article"
+      aria-label={`Transaction ${truncateAddress(tx.hash, 10, 6)} — ${tx.successful ? "Success" : "Failed"} — Fee: ${tx.feePaid} stroops`}
+      className="flex items-center justify-between px-5 py-3.5 border-b border-line last:border-0 gap-4"
+    >
       <div className="flex items-center gap-3 min-w-0">
         {/* Status icon */}
         <div

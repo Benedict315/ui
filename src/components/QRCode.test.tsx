@@ -46,8 +46,8 @@ describe("QRCode", () => {
 
   it("does not render label text when label prop is omitted", () => {
     const { container } = render(<QRCode value={value} />);
-    // There should be no <p> label element
-    expect(container.querySelector("p")).not.toBeInTheDocument();
+    // There should be no <figcaption> label element
+    expect(container.querySelector("figcaption")).not.toBeInTheDocument();
   });
 
   it("renders a fallback when getContext returns null", () => {
