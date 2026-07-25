@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { BalanceList } from "./BalanceList";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import { BalanceList } from "./BalanceList";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -157,5 +159,112 @@ describe("BalanceList", () => {
     const nonZeroRow = screen.getByText("ABC").closest(".border-b");
     expect(nonZeroRow).not.toHaveClass("opacity-50");
     expect(screen.queryAllByText(/no balance/i)).toHaveLength(1);
+  });
+
+  // ── Friendbot link conditional rendering tests (#81) ────────────────────────
+  describe("Friendbot link", () => {
+    it("renders Friendbot link on testnet with empty balances", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [],
+        isLoadingAccount: false,
+        isConnected: true,
+        network: { name: "testnet" as const, passphrase: "Test SDF Network", rpcUrl: "https://testnet.rpc.com", horizonUrl: "https://testnet.horizon.com" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+      expect(screen.getByText(/no assets found/i)).toBeInTheDocument();
+      expect(screen.getByText(/fund with friendbot/i)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /fund with friendbot/i })).toHaveAttribute("href", "https://friendbot.stellar.org");
+    });
+
+    it("does not render Friendbot link on mainnet with empty balances", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [],
+        isLoadingAccount: false,
+        isConnected: true,
+        network: { name: "mainnet" as const, passphrase: "Public Global Stellar Network", rpcUrl: "https://mainnet.rpc.com", horizonUrl: "https://mainnet.horizon.com" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+      expect(screen.getByText(/no assets found/i)).toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
+    });
+
+    it("does not render Friendbot link on testnet with non-empty balances", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockXlmBalance],
+        isLoadingAccount: false,
+        isConnected: true,
+        network: { name: "testnet" as const, passphrase: "Test SDF Network", rpcUrl: "https://testnet.rpc.com", horizonUrl: "https://testnet.horizon.com" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+      expect(screen.queryByText(/no assets found/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
+    });
+
+    it("does not render Friendbot link when not connected", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [],
+        isLoadingAccount: false,
+        isConnected: false,
+        network: { name: "testnet" as const, passphrase: "Test SDF Network", rpcUrl: "https://testnet.rpc.com", horizonUrl: "https://testnet.horizon.com" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+      expect(screen.getByText(/connect your wallet/i)).toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
+    });
+
+    it("shows a skeleton row count that matches the last known balance count on refresh (#205)", () => {
+      // Initial load: no balances loaded yet -> falls back to 3 skeletons.
+      const { rerender } = render(<BalanceList />);
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [],
+        isLoadingAccount: true,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+      rerender(<BalanceList />);
+      expect(screen.getAllByTestId("skeleton-row")).toHaveLength(3);
+
+      // Balances load: 7 assets.
+      const sevenBalances = Array.from({ length: 7 }, (_, i) => ({
+        asset: `ASSET${i}`,
+        balance: "1.0000000",
+        assetType: "credit_alphanum4" as const,
+        assetCode: `A${i}`,
+        assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+      }));
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: sevenBalances,
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+      rerender(<BalanceList />);
+      expect(screen.getAllByTestId("asset-badge")).toHaveLength(7);
+
+      // Refresh: loading again, but the last known 7 balances are still in
+      // context (not cleared to []) — skeleton count should match 7, not 3.
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: sevenBalances,
+        isLoadingAccount: true,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+      rerender(<BalanceList />);
+      expect(screen.getAllByTestId("skeleton-row")).toHaveLength(7);
+    });
+
+    it("does not render Friendbot link when loading account", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [],
+        isLoadingAccount: true,
+        isConnected: true,
+        network: { name: "testnet" as const, passphrase: "Test SDF Network", rpcUrl: "https://testnet.rpc.com", horizonUrl: "https://testnet.horizon.com" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+      expect(screen.getAllByTestId("skeleton-row")).toHaveLength(3);
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
+    });
   });
 });

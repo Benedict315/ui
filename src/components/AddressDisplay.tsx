@@ -1,19 +1,26 @@
+import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
+
 import { cn } from "@/lib/utils";
 import { truncateAddress } from "@/lib/utils";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 
-interface AddressDisplayProps {
+export interface AddressDisplayProps {
   address: string;
   start?: number;
   end?: number;
   showFull?: boolean;
   className?: string;
   label?: string;
-  size?: "sm" | "md" | "lg";
   onCopy?: () => void;
+  size?: "sm" | "md" | "lg";
 }
+
+const sizeConfig = {
+  sm: { text: "text-[10px]", icon: 10 },
+  md: { text: "text-[11px]", icon: 12 },
+  lg: { text: "text-[13px]", icon: 14 },
+} as const;
 
 export function AddressDisplay({
   address,
@@ -22,8 +29,8 @@ export function AddressDisplay({
   showFull = false,
   className,
   label,
-  size = "md",
   onCopy,
+  size = "md",
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
 
@@ -39,12 +46,7 @@ export function AddressDisplay({
   }
 
   const display = showFull ? address : truncateAddress(address, start, end);
-  const sizeClass =
-    size === "sm"
-      ? "text-[12px]"
-      : size === "lg"
-      ? "text-[16px]"
-      : "text-[14px]";
+  const { text, icon: iconSize } = sizeConfig[size];
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
@@ -58,8 +60,8 @@ export function AddressDisplay({
           data-address
           className={cn(
             "break-all leading-relaxed",
-            sizeClass,
-            showFull ? "select-all" : "",
+            text,
+            showFull && "select-all",
           )}
           title={address}
         >
@@ -78,7 +80,7 @@ export function AddressDisplay({
         >
           <HugeiconsIcon
             icon={copied ? Tick01Icon : Copy01Icon}
-            size={12}
+            size={iconSize}
             color="currentColor"
             strokeWidth={2}
           />

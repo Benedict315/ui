@@ -1,7 +1,9 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Sidebar } from "./Sidebar";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import { Sidebar } from "./Sidebar";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -102,6 +104,37 @@ describe("Sidebar", () => {
     );
     const navElement = screen.getByRole("navigation");
     expect(navElement).toHaveAttribute("aria-label", "Main navigation");
+  });
+
+  it("reads localStorage on mount and pre-selects the saved section", () => {
+    localStorage.setItem("sorokit-active-nav", "network");
+
+    render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+    );
+
+    expect(onNavigate).toHaveBeenCalledWith("network");
+    localStorage.removeItem("sorokit-active-nav");
+  });
+
+  it("does not call onNavigate when localStorage has no saved section", () => {
+    localStorage.removeItem("sorokit-active-nav");
+
+    render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+    );
+
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it("updates localStorage when navigating to a new section", () => {
+    render(
+      <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /account/i }));
+
+    expect(localStorage.getItem("sorokit-active-nav")).toBe("account");
   });
 
   it("traps focus and handles escape/restoration on mobile", () => {

@@ -1,9 +1,9 @@
-import { useSorokit } from "@/context/useSorokit";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/Badge";
 import { AssetBadge } from "@/components/AssetBadge";
+import { Badge } from "@/components/ui/Badge";
 import { AssetRowSkeleton } from "@/components/ui/Skeleton";
+import { useSorokit } from "@/context/useSorokit";
 import type { Balance } from "@/lib/client";
+import { cn } from "@/lib/utils";
 
 function getAssetCode(balance: Balance) {
   return balance.assetType === "native" ? "XLM" : balance.assetCode ?? balance.asset;
@@ -36,8 +36,13 @@ function AssetRow({ b }: { b: Balance }) {
       )}
     >
       <AssetBadge balance={b} />
-      <div className="flex flex-col items-end gap-1">
-        <span className="text-[14px] font-semibold text-ink tabular-nums">
+      <div className="flex flex-col items-end gap-0.5">
+        <span
+          className={cn(
+            "text-[14px] font-semibold tabular-nums",
+            isZeroBalance ? "text-ink-3" : "text-ink",
+          )}
+        >
           {parseFloat(b.balance).toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 4,
@@ -52,7 +57,14 @@ function AssetRow({ b }: { b: Balance }) {
 }
 
 export function BalanceList() {
-  const { balances, isLoadingAccount, isConnected } = useSorokit();
+  const { balances, isLoadingAccount, isConnected, network } = useSorokit();
+
+  const isTestnet = network?.name === "testnet";
+  const showFriendbot = isTestnet && isConnected && !isLoadingAccount && balances.length === 0;
+
+  // Use balance count for skeleton rows so the loading state matches the real list
+  const skeletonCount = balances.length > 0 ? balances.length : 3;
+  const sorted = [...balances].sort(compareBalances);
 
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
@@ -72,17 +84,29 @@ export function BalanceList() {
         </p>
       ) : isLoadingAccount ? (
         <div>
-          {[1, 2, 3].map((i) => (
+          {Array.from({ length: skeletonCount }).map((_, i) => (
             <AssetRowSkeleton key={i} />
           ))}
         </div>
       ) : balances.length === 0 ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          No assets found
-        </p>
+        <div className="flex flex-col items-center gap-3 py-10">
+          <p className="text-[13px] text-ink-3">
+            No assets found
+          </p>
+          {showFriendbot && (
+            <a
+              href="https://friendbot.stellar.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[13px] text-brand hover:underline"
+            >
+              Fund with Friendbot →
+            </a>
+          )}
+        </div>
       ) : (
         <div>
-          {[...balances].sort(compareBalances).map((b) => (
+          {sorted.map((b) => (
             <AssetRow key={b.asset} b={b} />
           ))}
         </div>

@@ -1,15 +1,16 @@
-import { useRef, useEffect } from "react";
-import { cn } from "@/lib/utils";
-import { useSorokit } from "@/context/useSorokit";
-import { AccountCardCompact } from "@/components/AccountCard";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
-  Wallet01Icon,
-  User02Icon,
   ArrowDataTransferHorizontalIcon,
   CodeIcon,
   Globe02Icon,
+  User02Icon,
+  Wallet01Icon,
 } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { useEffect, useRef } from "react";
+
+import { AccountCardCompact } from "@/components/AccountCard";
+import { useSorokit } from "@/context/useSorokit";
+import { cn } from "@/lib/utils";
 
 export type NavSection =
   | "wallet"
@@ -42,7 +43,15 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
   const sidebarRef = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
+  useEffect(() => {
+    const saved = localStorage.getItem("sorokit-active-nav");
+    if (saved && saved !== active) {
+      onNavigate(saved as NavSection);
+    }
+  }, [active, onNavigate]);
+
   function handleNav(id: NavSection) {
+    localStorage.setItem("sorokit-active-nav", id);
     onNavigate(id);
     onClose();
   }
@@ -67,9 +76,10 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
 
       if (e.key === "Tab") {
         if (!sidebarRef.current) return;
-        const focusableElements = sidebarRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
+        const focusableElements =
+          sidebarRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+          );
         if (focusableElements.length === 0) return;
 
         const firstElement = focusableElements[0];
@@ -150,7 +160,10 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
         </div>
 
         {/* Nav */}
-        <nav aria-label="Main navigation" className="flex-1 overflow-y-auto py-3 px-3">
+        <nav
+          aria-label="Main navigation"
+          className="flex-1 overflow-y-auto py-3 px-3"
+        >
           <p className="px-2 mb-2 mt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
             Navigation
           </p>

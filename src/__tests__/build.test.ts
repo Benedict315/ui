@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { describe, expect,it } from 'vitest';
 
 describe('Library Build', () => {
   it('should produce ES module output', () => {
@@ -15,7 +15,7 @@ describe('Library Build', () => {
     const cjsPath = path.resolve(__dirname, '../../dist/sorokit-ui.cjs.js');
     if (fs.existsSync(cjsPath)) {
       const content = fs.readFileSync(cjsPath, 'utf-8');
-      expect(content).toContain('module.exports');
+      expect(content).toContain('exports.');
     }
   });
 
