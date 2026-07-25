@@ -1,5 +1,5 @@
-import { act,fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeAll,describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AddressDisplay } from "./AddressDisplay";
 
@@ -13,6 +13,10 @@ beforeAll(() => {
     configurable: true,
     writable: true,
   });
+});
+
+beforeEach(() => {
+  mockWriteText.mockClear();
 });
 
 describe("AddressDisplay", () => {
@@ -56,9 +60,28 @@ describe("AddressDisplay", () => {
     expect(copyBtn.className).not.toContain("opacity-0");
   });
 
-  it("shows the full address when showFull is true", () => {
+  it("shows the full address when showFull is true and applies select-all class", () => {
     render(<AddressDisplay address={address} showFull />);
-    expect(screen.getByText(address)).toBeInTheDocument();
+    const addressSpan = screen.getByText(address);
+    expect(addressSpan).toBeInTheDocument();
+    expect(addressSpan.className).toContain("select-all");
+  });
+
+  it("fires onCopy after clipboard write and applies custom size classes", async () => {
+    const onCopy = vi.fn();
+    render(<AddressDisplay address={address} size="lg" onCopy={onCopy} />);
+
+    const copyBtn = screen.getByRole("button", { name: "Copy address" });
+
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    expect(mockWriteText).toHaveBeenCalledWith(address);
+    expect(onCopy).toHaveBeenCalledTimes(1);
+
+    const addressSpan = screen.getByText(/GBAMQXTQ...ZJQQQQ/);
+    expect(addressSpan.className).toContain("text-[13px]");
   });
 
   it("renders a label above the address when label prop is provided", () => {

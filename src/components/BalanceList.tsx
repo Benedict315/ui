@@ -3,46 +3,53 @@ import { Badge } from "@/components/ui/Badge";
 import { AssetRowSkeleton } from "@/components/ui/Skeleton";
 import { useSorokit } from "@/context/useSorokit";
 import type { Balance } from "@/lib/client";
+import { cn } from "@/lib/utils";
 
-/**
- * Sort balances: XLM (native) always first, then alphabetically by asset code.
- */
-function sortBalances(balances: Balance[]): Balance[] {
-  return [...balances].sort((a, b) => {
-    const aIsNative = a.assetType === "native";
-    const bIsNative = b.assetType === "native";
-    if (aIsNative && !bIsNative) return -1;
-    if (!aIsNative && bIsNative) return 1;
-    const aCode = a.assetType === "native" ? "XLM" : (a.assetCode ?? a.asset);
-    const bCode = b.assetType === "native" ? "XLM" : (b.assetCode ?? b.asset);
-    return aCode.localeCompare(bCode);
-  });
+function getAssetCode(balance: Balance) {
+  return balance.assetType === "native" ? "XLM" : balance.assetCode ?? balance.asset;
 }
 
-function isZeroBalance(balance: string): boolean {
-  return parseFloat(balance) === 0;
+function compareBalances(a: Balance, b: Balance) {
+  const aIsXlm = a.assetType === "native";
+  const bIsXlm = b.assetType === "native";
+  if (aIsXlm !== bIsXlm) {
+    return aIsXlm ? -1 : 1;
+  }
+
+  const aZero = Number(a.balance) === 0;
+  const bZero = Number(b.balance) === 0;
+  if (aZero !== bZero) {
+    return aZero ? 1 : -1;
+  }
+
+  return getAssetCode(a).localeCompare(getAssetCode(b));
 }
 
 function AssetRow({ b }: { b: Balance }) {
-  const zero = isZeroBalance(b.balance);
+  const isZeroBalance = Number(b.balance) === 0;
 
   return (
     <div
-      className={`flex items-center justify-between px-5 py-4 border-b border-line last:border-0${zero ? " opacity-50" : ""}`}
-      aria-label={zero ? "zero balance trustline" : undefined}
+      className={cn(
+        "flex items-center justify-between px-5 py-4 border-b border-line last:border-0",
+        isZeroBalance && "opacity-50",
+      )}
     >
       <AssetBadge balance={b} />
       <div className="flex flex-col items-end gap-0.5">
         <span
-          className={`text-[14px] font-semibold tabular-nums${zero ? " text-ink-3" : " text-ink"}`}
+          className={cn(
+            "text-[14px] font-semibold tabular-nums",
+            isZeroBalance ? "text-ink-3" : "text-ink",
+          )}
         >
           {parseFloat(b.balance).toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 4,
           })}
         </span>
-        {zero && (
-          <span className="text-[11px] text-ink-3">Empty trustline</span>
+        {isZeroBalance && (
+          <span className="text-[12px] text-ink-3">No balance</span>
         )}
       </div>
     </div>
@@ -57,7 +64,7 @@ export function BalanceList() {
 
   // Use balance count for skeleton rows so the loading state matches the real list
   const skeletonCount = balances.length > 0 ? balances.length : 3;
-  const sorted = sortBalances(balances);
+  const sorted = [...balances].sort(compareBalances);
 
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">

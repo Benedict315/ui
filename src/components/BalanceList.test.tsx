@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach,describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
 
@@ -24,6 +24,20 @@ vi.mock("@/components/ui/Badge", () => ({
 }));
 
 const mockXlmBalance = { asset: "XLM", balance: "100.0000000", assetType: "native" as const };
+const mockAbcBalance = {
+  asset: "ABC",
+  balance: "25.0000000",
+  assetType: "credit_alphanum4" as const,
+  assetCode: "ABC",
+  assetIssuer: "GABCDEFGHJKLMNPQRSTUVWXYZ1234567890ABCDEFGH",
+};
+const mockUsdtZeroBalance = {
+  asset: "USDT",
+  balance: "0.0000000",
+  assetType: "credit_alphanum4" as const,
+  assetCode: "USDT",
+  assetIssuer: "GB6USDTISSUERABCDEFGHIJKLMNOPQRSTUVWXYZ12345",
+};
 const mockUsdcBalance = {
   asset: "USDC",
   balance: "50.0000000",
@@ -109,6 +123,42 @@ describe("BalanceList", () => {
 
     render(<BalanceList />);
     expect(screen.getByText(/1[,.]?234/)).toBeInTheDocument();
+  });
+
+  it("sorts balances with XLM first, non-zero before zero, and alphabetical order within groups", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      balances: [mockUsdtZeroBalance, mockAbcBalance, mockXlmBalance, mockUsdcBalance],
+      isLoadingAccount: false,
+      isConnected: true,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<BalanceList />);
+    const badges = screen.getAllByTestId("asset-badge");
+    expect(badges).toHaveLength(4);
+    expect(badges[0]).toHaveTextContent("XLM");
+    expect(badges[1]).toHaveTextContent("ABC");
+    expect(badges[2]).toHaveTextContent("USDC");
+    expect(badges[3]).toHaveTextContent("USDT");
+  });
+
+  it("renders zero-balance rows with opacity and no-balance label, but not for non-zero assets", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      balances: [mockAbcBalance, mockUsdtZeroBalance],
+      isLoadingAccount: false,
+      isConnected: true,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<BalanceList />);
+
+    const noBalanceLabel = screen.getByText(/no balance/i);
+    expect(noBalanceLabel).toBeInTheDocument();
+
+    const zeroBalanceRow = noBalanceLabel.closest(".border-b");
+    expect(zeroBalanceRow).toHaveClass("opacity-50");
+
+    const nonZeroRow = screen.getByText("ABC").closest(".border-b");
+    expect(nonZeroRow).not.toHaveClass("opacity-50");
+    expect(screen.queryAllByText(/no balance/i)).toHaveLength(1);
   });
 
   // ── Friendbot link conditional rendering tests (#81) ────────────────────────

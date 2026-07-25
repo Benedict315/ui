@@ -60,7 +60,7 @@ export function AddressDisplay({
           data-address
           className={cn(
             "break-all leading-relaxed",
-            showFull && text,
+            text,
             showFull && "select-all",
           )}
           title={address}
