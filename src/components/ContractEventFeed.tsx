@@ -39,13 +39,14 @@
  * @see {@link SorokitProvider} for setup
  * @see GitHub issue #8 for QR code scanner limitation
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getClient } from "@/lib/client";
-import { Badge } from "@/components/ui/Badge";
-import { cn, truncateAddress } from "@/lib/utils";
-import type { ContractEvent } from "@/lib/client";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { Badge } from "@/components/ui/Badge";
+import type { ContractEvent } from "@/lib/client";
+import { getClient } from "@/lib/client";
+import { cn, truncateAddress } from "@/lib/utils";
 
 const EVENT_TYPE_VARIANT: Record<
   string,
@@ -150,6 +151,7 @@ function EventRow({
 }
 
 export interface ContractEventFeedProps {
+  /** The Soroban contract ID to monitor */
   contractId: string;
   /** Auto-poll interval in ms. 0 = manual only. */
   pollInterval?: number;

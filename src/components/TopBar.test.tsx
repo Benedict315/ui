@@ -1,7 +1,9 @@
-import { render, screen, fireEvent, within } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TopBar } from "./TopBar";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import { TopBar } from "./TopBar";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -80,5 +82,34 @@ describe("TopBar", () => {
     render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
     fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
     expect(onMenuToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the title as an h1 element", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    const { container } = render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toBeInTheDocument();
+    expect(container.querySelector("h1")).toBe(heading);
+  });
+
+  it("renders the title text matching the active nav label", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    render(<TopBar active="account" onMenuToggle={onMenuToggle} />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Account");
+  });
+
+  it("renders only one h1 element", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    const { container } = render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    expect(container.querySelectorAll("h1")).toHaveLength(1);
   });
 });

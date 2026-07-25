@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AccountCard } from "./AccountCard";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import { AccountCard } from "./AccountCard";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -54,6 +56,74 @@ describe("AccountCard", () => {
 
     const { container } = render(<AccountCard />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  // ── Reserve indicator (#178) ────────────────────────────────────────────
+  it("displays the XLM reserve impact as subentryCount * 0.5 XLM", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      address: "GABC",
+      account: {
+        sequence: "123456",
+        subentryCount: 4,
+      },
+      isLoadingAccount: false,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<AccountCard />);
+
+    expect(screen.getByText("Reserve Impact")).toBeInTheDocument();
+    expect(screen.getByText("2.00 XLM")).toBeInTheDocument();
+  });
+
+  it("shows 0.00 XLM reserve impact when subentryCount is 0", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      address: "GABC",
+      account: {
+        sequence: "123456",
+        subentryCount: 0,
+      },
+      isLoadingAccount: false,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<AccountCard />);
+    expect(screen.getByText("0.00 XLM")).toBeInTheDocument();
+  });
+
+  // ── Sequence tooltip (#178) ─────────────────────────────────────────────
+  it("shows the sequence tooltip text on focus/hover and links it via aria-labelledby", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      address: "GABC",
+      account: {
+        sequence: "123456",
+        subentryCount: 2,
+      },
+      isLoadingAccount: false,
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<AccountCard />);
+
+    expect(
+      screen.queryByText(/prevent replay attacks/i),
+    ).not.toBeInTheDocument();
+
+    const trigger = screen.getByRole("button", {
+      name: "What is the sequence number?",
+    });
+    fireEvent.mouseEnter(trigger);
+
+    const tooltip = screen.getByText(/prevent replay attacks/i);
+    expect(tooltip).toBeInTheDocument();
+    expect(tooltip).toHaveAttribute("role", "tooltip");
+
+    const sequenceLabel = screen.getByText("Sequence");
+    expect(tooltip.getAttribute("aria-labelledby")).toBe(
+      sequenceLabel.getAttribute("id"),
+    );
+
+    fireEvent.mouseLeave(trigger);
+    expect(
+      screen.queryByText(/prevent replay attacks/i),
+    ).not.toBeInTheDocument();
   });
 });
 
