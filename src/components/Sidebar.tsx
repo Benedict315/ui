@@ -17,7 +17,11 @@ export type NavSection =
   | "account"
   | "transactions"
   | "soroban"
-  | "network";
+  | "network"
+  | "recovery"
+  | "charts"
+  | "farming"
+  | "budget";
 
 const NAV: { id: NavSection; label: string; icon: IconSvgElement }[] = [
   { id: "wallet", label: "Wallet", icon: Wallet01Icon },
@@ -29,6 +33,10 @@ const NAV: { id: NavSection; label: string; icon: IconSvgElement }[] = [
   },
   { id: "soroban", label: "Soroban", icon: CodeIcon },
   { id: "network", label: "Network", icon: Globe02Icon },
+  { id: "recovery", label: "Recovery Assistant", icon: User02Icon },
+  { id: "charts", label: "Advanced Charting", icon: ArrowDataTransferHorizontalIcon },
+  { id: "farming", label: "Yield Farming", icon: CodeIcon },
+  { id: "budget", label: "Budget Manager", icon: Wallet01Icon },
 ];
 
 interface SidebarProps {
