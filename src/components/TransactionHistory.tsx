@@ -34,8 +34,6 @@ export function TxRow({ tx }: { tx: Transaction }) {
     day: "numeric",
   });
 
-  const truncatedMemo =
-    tx.memo && tx.memo.length > 20 ? `${tx.memo.slice(0, 20)}…` : tx.memo;
 
   return (
     <div
