@@ -32,4 +32,57 @@ describe("TxRow component", () => {
     render(<TxRow tx={tx} />);
     expect(screen.getByText("Failed")).toBeInTheDocument();
   });
+
+  // ── feePaid display (#178) ───────────────────────────────────────────────
+  it("renders the feePaid value in stroops", () => {
+    const tx: Transaction = {
+      hash: "hash-fee",
+      ledger: 1003,
+      createdAt: new Date().toISOString(),
+      successful: true,
+      operationCount: 1,
+      feePaid: "12345",
+    } as Transaction;
+    render(<TxRow tx={tx} />);
+    expect(screen.getByText(/12345 stroops/)).toBeInTheDocument();
+  });
+
+  // ── Memo truncation (#178) ───────────────────────────────────────────────
+  it("truncates a memo longer than 20 characters and shows the full memo in the title attribute", () => {
+    const longMemo = "a".repeat(30);
+    const tx: Transaction = {
+      hash: "hash-memo",
+      ledger: 1004,
+      createdAt: new Date().toISOString(),
+      successful: true,
+      operationCount: 1,
+      feePaid: "100",
+      memo: longMemo,
+    } as Transaction;
+    render(<TxRow tx={tx} />);
+
+    const truncated = `${longMemo.slice(0, 20)}…`;
+    const memoEl = screen.getByText(`· ${truncated}`);
+    expect(memoEl).toBeInTheDocument();
+    expect(memoEl).toHaveAttribute("title", longMemo);
+    expect(memoEl.textContent).not.toContain(longMemo);
+  });
+
+  it("does not truncate a memo of 20 characters or fewer", () => {
+    const shortMemo = "short memo";
+    const tx: Transaction = {
+      hash: "hash-short-memo",
+      ledger: 1005,
+      createdAt: new Date().toISOString(),
+      successful: true,
+      operationCount: 1,
+      feePaid: "100",
+      memo: shortMemo,
+    } as Transaction;
+    render(<TxRow tx={tx} />);
+
+    const memoEl = screen.getByText(`· ${shortMemo}`);
+    expect(memoEl).toBeInTheDocument();
+    expect(memoEl).toHaveAttribute("title", shortMemo);
+  });
 });

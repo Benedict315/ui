@@ -123,8 +123,8 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(screen.getByText(/no assets found/i)).toBeInTheDocument();
-      expect(screen.getByText(/get test xlm from friendbot/i)).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /get test xlm from friendbot/i })).toHaveAttribute("href", "https://friendbot.stellar.org");
+      expect(screen.getByText(/fund with friendbot/i)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /fund with friendbot/i })).toHaveAttribute("href", "https://friendbot.stellar.org");
     });
 
     it("does not render Friendbot link on mainnet with empty balances", () => {
@@ -137,7 +137,7 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(screen.getByText(/no assets found/i)).toBeInTheDocument();
-      expect(screen.queryByText(/get test xlm from friendbot/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
     });
 
     it("does not render Friendbot link on testnet with non-empty balances", () => {
@@ -150,7 +150,7 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(screen.queryByText(/no assets found/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/get test xlm from friendbot/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
     });
 
     it("does not render Friendbot link when not connected", () => {
@@ -163,7 +163,45 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(screen.getByText(/connect your wallet/i)).toBeInTheDocument();
-      expect(screen.queryByText(/get test xlm from friendbot/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
+    });
+
+    it("shows a skeleton row count that matches the last known balance count on refresh (#205)", () => {
+      // Initial load: no balances loaded yet -> falls back to 3 skeletons.
+      const { rerender } = render(<BalanceList />);
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [],
+        isLoadingAccount: true,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+      rerender(<BalanceList />);
+      expect(screen.getAllByTestId("skeleton-row")).toHaveLength(3);
+
+      // Balances load: 7 assets.
+      const sevenBalances = Array.from({ length: 7 }, (_, i) => ({
+        asset: `ASSET${i}`,
+        balance: "1.0000000",
+        assetType: "credit_alphanum4" as const,
+        assetCode: `A${i}`,
+        assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+      }));
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: sevenBalances,
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+      rerender(<BalanceList />);
+      expect(screen.getAllByTestId("asset-badge")).toHaveLength(7);
+
+      // Refresh: loading again, but the last known 7 balances are still in
+      // context (not cleared to []) — skeleton count should match 7, not 3.
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: sevenBalances,
+        isLoadingAccount: true,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+      rerender(<BalanceList />);
+      expect(screen.getAllByTestId("skeleton-row")).toHaveLength(7);
     });
 
     it("does not render Friendbot link when loading account", () => {
@@ -176,7 +214,7 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(screen.getAllByTestId("skeleton-row")).toHaveLength(3);
-      expect(screen.queryByText(/get test xlm from friendbot/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
     });
   });
 });
