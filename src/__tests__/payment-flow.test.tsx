@@ -79,9 +79,7 @@ describe("Payment Flow Integration", () => {
     fireEvent.change(destInput, { target: { value: validDest } });
     fireEvent.change(amountInput, { target: { value: validAmount } });
 
-    await act(async () => {
-      fireEvent.click(submitBtn);
-    });
+    fireEvent.click(submitBtn);
 
     // Verify loading state appears
     expect(screen.getByRole("button", { name: /submitting/i })).toBeInTheDocument();
