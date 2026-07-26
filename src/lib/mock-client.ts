@@ -156,6 +156,7 @@ export const MOCK_TIMELINE_GROUPS: TimelineGroup[] = [
 ];
 
 // ─── Allowances ────────────────────────────────────────────────
+const MOCK_ALLOWANCES: AllowanceEntry[] = [
   {
     asset: 'USDC',
     spender: 'CAIBNITKJZ2P2H3XJ2VW2YOX4X3JQBQ3F6VXZ4X3J2Q3X4X3J2Q3X4',
@@ -353,9 +354,8 @@ export function createMockClient(networkName?: string): SorokitClient | { data: 
          const paged = filtered.slice(start, end);
          return { data: paged.length > 0 ? paged : null, error: null, total };
        },
-     },
-   } as SorokitClient;
-    allowance: {
+      },
+     allowance: {
       getAllowances: async (_address: string) => ({
         data: MOCK_ALLOWANCES,
         error: null,
