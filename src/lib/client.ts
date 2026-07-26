@@ -5,6 +5,35 @@
  * No direct blockchain logic lives in the UI -- everything goes through sorokit-core.
  */
 
+export type GasPriceData = {
+  baseFee: string;
+  gasPrice: string;
+  ledgerCloseTime: number;
+  baseReserve: string;
+};
+
+export type OperationGasBreakdown = {
+  operationType: string;
+  gasUnits: number;
+  feeStroops: string;
+  feeXlm: string;
+};
+
+export type FeeScenario = {
+  label: "low" | "average" | "high";
+  gasPrice: string;
+  totalFeeStroops: string;
+  totalFeeXlm: string;
+  savings: string;
+};
+
+export type GasEstimate = {
+  totalGasUnits: number;
+  breakdown: OperationGasBreakdown[];
+  scenarios: FeeScenario[];
+  customMultiplier: number;
+};
+
 export type SorokitClient = {
   wallet: {
     connect: () => Promise<{
@@ -57,6 +86,20 @@ export type SorokitClient = {
       data: { baseFee: string; recommended: string } | null;
       error: string | null;
     }>;
+    estimateDetailedFee: (params: {
+      operations: string[];
+      feeMultiplier?: number;
+    }) => Promise<{
+      data: GasEstimate | null;
+      error: string | null;
+    }>;
+    getFeeScenarios: (params: {
+      operations: string[];
+      baseGasUnits: number;
+    }) => Promise<{
+      data: FeeScenario[] | null;
+      error: string | null;
+    }>;
   };
   soroban: {
     invokeContract: (
@@ -75,6 +118,10 @@ export type SorokitClient = {
     switchNetwork: (
       network: NetworkName,
     ) => Promise<{ data: NetworkInfo | null; error: string | null }>;
+    getGasPrice: () => Promise<{
+      data: GasPriceData | null;
+      error: string | null;
+    }>;
   };
   nft: {
     getNfts: (
@@ -92,6 +139,84 @@ export type SorokitClient = {
       price: string;
       sourceAccount: string;
     }) => Promise<{ data: TxResult | null; error: string | null }>;
+  };
+  operation: {
+    getOperations: (
+      txHash: string,
+    ) => Promise<{
+      data: Operation[] | null;
+      error: string | null;
+    }>;
+    getTimeline: (
+      params: TimelineParams,
+    ) => Promise<{
+      data: TimelineGroup[] | null;
+      error: string | null;
+      total: number;
+    }>;
+  };
+  allowance: {
+    getAllowances: (
+      address: string,
+    ) => Promise<{
+      data: AllowanceEntry[] | null;
+      error: string | null;
+    }>;
+    approveAllowance: (params: {
+      sourceAccount: string;
+      asset: string;
+      spender: string;
+      amount: string;
+    }) => Promise<{
+      data: TxResult | null;
+      error: string | null;
+      status: string;
+    }>;
+    revokeAllowance: (params: {
+      sourceAccount: string;
+      asset: string;
+      spender: string;
+    }) => Promise<{
+      data: TxResult | null;
+      error: string | null;
+      status: string;
+    }>;
+    estimateAllowanceFee: (params: {
+      asset: string;
+      spender: string;
+      amount: string;
+      mode: "increase" | "decrease" | "revoke";
+    }) => Promise<{
+      data: { baseFee: string; recommended: string } | null;
+      error: string | null;
+    }>;
+  };
+  batch: {
+    submitBatch: (params: {
+      entries: BatchEntry[];
+      sourceAccount: string;
+      asset?: string;
+      maxRetries?: number;
+    }) => Promise<{
+      data: BatchResult | null;
+      error: string | null;
+      batchId: string;
+    }>;
+    getBatchStatus: (batchId: string) => Promise<{
+      data: BatchProgress | null;
+      error: string | null;
+    }>;
+    cancelBatch: (batchId: string) => Promise<{
+      data: boolean;
+      error: string | null;
+    }>;
+    retryEntry: (params: {
+      batchId: string;
+      entryIndex: number;
+    }) => Promise<{
+      data: BatchEntryResult | null;
+      error: string | null;
+    }>;
   };
 };
 
@@ -165,6 +290,60 @@ export type NetworkInfo = {
   horizonUrl: string;
 };
 
+// ─── Allowance Types ───────────────────────────────────────────────────
+
+export type AllowanceEntry = {
+  asset: string;
+  spender: string;
+  spenderName?: string;
+  amount: string;
+  expirationDate?: string;
+  tokenCode?: string;
+  tokenIssuer?: string;
+};
+
+export type AllowanceChangeParams = {
+  asset: string;
+  spender: string;
+  amount: string;
+  mode: "increase" | "decrease" | "revoke";
+};
+
+// ─── Batch Payment Types ──────────────────────────────────────────
+
+export type BatchEntry = {
+  address: string;
+  amount: string;
+  asset?: string;
+  memo?: string;
+};
+
+export type BatchEntryResult = {
+  address: string;
+  amount: string;
+  status: "queued" | "signing" | "submitted" | "confirmed" | "failed";
+  txHash?: string;
+  error?: string;
+  retryCount: number;
+};
+
+export type BatchResult = {
+  batchId: string;
+  totalEntries: number;
+  successful: number;
+  failed: number;
+  entries: BatchEntryResult[];
+};
+
+export type BatchProgress = {
+  batchId: string;
+  completed: number;
+  total: number;
+  percentage: number;
+  etaSeconds: number;
+  currentStatus: BatchEntryResult["status"];
+};
+
 // ─── NFT Types ────────────────────────────────────────────────────────────────
 
 export type NftAttribute = {
@@ -211,6 +390,52 @@ export type NftCollection = {
   floorPrice?: string;
   totalSupply?: number;
   nfts: Nft[];
+};
+
+// ─── Activity Timeline Types ──────────────────────────────────────────
+
+export type Operation = {
+  id: string;
+  txHash: string;
+  type: string;
+  source: string;
+  destination: string;
+  amount: string;
+  asset: string;
+  memo?: string;
+  fee: string;
+  success: boolean;
+  createdAt: string;
+};
+
+export type GroupedTransaction = {
+  hash: string;
+  date: string;
+  time: string;
+  type: string;
+  totalAmount: string;
+  status: "success" | "failed";
+  operationCount: number;
+  operations: Operation[];
+};
+
+export type TimelineGroup = {
+  date: string;
+  transactions: GroupedTransaction[];
+};
+
+export type TimelineFilter = {
+  operationType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  searchQuery?: string;
+};
+
+export type TimelineParams = {
+  address: string;
+  page?: number;
+  limit?: number;
+  filters?: TimelineFilter;
 };
 
 let _client: SorokitClient | null = null;

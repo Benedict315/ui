@@ -1,4 +1,6 @@
+import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { FeeEstimator } from "@/components/FeeEstimator";
+import { GasOptimizer } from "@/components/GasOptimizer";
 import { TransactionPanel } from "@/components/TransactionPanel";
 import { SCREEN_LABELS } from "@/lib/nav-labels";
 
@@ -13,8 +15,10 @@ export function TransactionsScreen() {
         </h2>
         <p className="text-[11px] text-ink-3 mt-0.5">{sub}</p>
       </div>
+      <GasOptimizer />
       <FeeEstimator />
       <TransactionPanel />
+      <ActivityTimeline />
     </div>
   );
 }
