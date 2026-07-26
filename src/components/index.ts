@@ -74,10 +74,13 @@ export type {
 } from "./TransactionConfirmModal";
 export { TransactionConfirmModal } from "./TransactionConfirmModal";
 export { TransactionHistory } from "./TransactionHistory";
+export { MultiSigTransactionBuilder } from "./MultiSigTransactionBuilder";
 export { TransactionPanel } from "./TransactionPanel";
+export { TransactionStatusTracker } from "./TransactionStatusTracker";
 
 // Soroban
 export { ContractEventFeed } from "./ContractEventFeed";
+export { ContractInteractionDebugger } from "./ContractInteractionDebugger";
 export { SorobanInvokeButton } from "./SorobanInvokeButton";
 export { SorobanPanel } from "./SorobanPanel";
 
@@ -99,6 +102,7 @@ export type { RewardsPanelProps } from "./RewardsPanel";
 export { RewardsPanel } from "./RewardsPanel";
 export type { StakingDashboardProps } from "./StakingDashboard";
 export { StakingDashboard } from "./StakingDashboard";
+export { SwapExecutionTracker } from "./SwapExecutionTracker";
 export { SwapRoute } from "./SwapRoute";
 export type { PieChartProps, PieSlice } from "./ui/PieChart";
 export { PieChart } from "./ui/PieChart";

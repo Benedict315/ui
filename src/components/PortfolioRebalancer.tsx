@@ -21,6 +21,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AllocationInput } from "@/components/AllocationInput";
 import { RebalancerHistory } from "@/components/RebalancerHistory";
+import { SwapExecutionTracker } from "@/components/SwapExecutionTracker";
 import { SwapRoute } from "@/components/SwapRoute";
 import { PieChart } from "@/components/ui/PieChart";
 import { Badge } from "@/components/ui/Badge";
@@ -508,6 +509,17 @@ export function PortfolioRebalancer({ className }: PortfolioRebalancerProps) {
                   swapCount={swaps.length}
                   error={execError}
                 />
+
+                {swaps.length > 0 && execution.swapStatuses.some((status) => status !== "pending") ? (
+                  <SwapExecutionTracker
+                    swap={swaps[0]}
+                    txHash={execution.txHashes[0]}
+                    executedAt={execution.startedAt}
+                    actualOutput={swaps[0].toAmountExpected * 0.98}
+                    slippageThresholdPct={0.2}
+                    priceImpactPct={swaps[0].slippagePct}
+                  />
+                ) : null}
 
                 <SwapRoute
                   swaps={swaps}

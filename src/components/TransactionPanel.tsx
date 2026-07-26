@@ -16,6 +16,7 @@ import {
   TransactionConfirmModal,
   type TransactionPreviewData,
 } from "./TransactionConfirmModal";
+import { TransactionStatusTracker } from "./TransactionStatusTracker";
 
 type State = "idle" | "loading" | "success" | "error";
 
@@ -224,7 +225,7 @@ export function TransactionPanel() {
                   <ExternalLinkIcon className="mt-[3px] shrink-0 opacity-70" />
                 </a>
               ) : (
-                <span data-txhash className="break-all leading-relaxed">
+                <span data-testid="submitted-tx-hash" data-txhash className="break-all leading-relaxed">
                   {result.hash}
                 </span>
               )}
@@ -244,6 +245,7 @@ export function TransactionPanel() {
                 )}
               </div>
             </div>
+            <TransactionStatusTracker hash={result.hash} className="mt-2" />
           </div>
         ) : state === "error" ? (
           <div className="flex items-start gap-3">
