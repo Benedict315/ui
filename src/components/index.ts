@@ -62,6 +62,14 @@ export { ContractEventFeed } from "./ContractEventFeed";
 export { SorobanInvokeButton } from "./SorobanInvokeButton";
 export { SorobanPanel } from "./SorobanPanel";
 
+// Portfolio Rebalancer
+export { PortfolioRebalancer } from "./PortfolioRebalancer";
+export { AllocationInput } from "./AllocationInput";
+export { SwapRoute } from "./SwapRoute";
+export { RebalancerHistory } from "./RebalancerHistory";
+export { PieChart } from "./ui/PieChart";
+export type { PieChartProps, PieSlice } from "./ui/PieChart";
+
 // Utilities
 export { QRCode } from "./QRCode";
 
