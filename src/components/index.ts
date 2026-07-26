@@ -74,6 +74,13 @@ export type {
 } from "./TransactionConfirmModal";
 export { TransactionConfirmModal } from "./TransactionConfirmModal";
 export { TransactionHistory } from "./TransactionHistory";
+export { TransactionHistoryTable } from "./TransactionHistoryTable";
+export type {
+  TransactionHistoryTableProps,
+  SortField,
+  SortDirection,
+  TransactionFilters,
+} from "./TransactionHistoryTable";
 export { TransactionPanel } from "./TransactionPanel";
 
 // Soroban
@@ -199,3 +206,6 @@ export type {
   TimelineGroup,
   Transaction,
 } from "../lib/client";
+export { ToastContainer } from "./ui/Toast";
+export { ToastProvider, useToast } from "../context/ToastContext";
+export type { Toast, ToastType } from "../context/ToastContext";
