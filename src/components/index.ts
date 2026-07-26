@@ -64,6 +64,7 @@ export { SorobanPanel } from "./SorobanPanel";
 
 // Utilities
 export { QRCode } from "./QRCode";
+export { SwapSimulator } from "./SwapSimulator";
 
 // Providers and hooks
 export { SorokitProvider } from "../context/SorokitProvider";
