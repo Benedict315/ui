@@ -10,7 +10,12 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient, type NetworkInfo, type TxResult } from "@/lib/client";
-import { cn } from "@/lib/utils";
+import { cn, truncateAddress } from "@/lib/utils";
+
+import {
+  TransactionConfirmModal,
+  type TransactionPreviewData,
+} from "./TransactionConfirmModal";
 
 type State = "idle" | "loading" | "success" | "error";
 
@@ -43,7 +48,7 @@ function explorerTxUrl(
 }
 
 export function TransactionPanel() {
-  const { address, isConnected, balances, network } = useSorokit();
+  const { address, isConnected, balances, network, account } = useSorokit();
   const [dest, setDest] = useState("");
   const [destDirty, setDestDirty] = useState(false);
   const [amount, setAmount] = useState("");
@@ -54,6 +59,8 @@ export function TransactionPanel() {
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<TxResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<TransactionPreviewData | null>(null);
+  const [isBuildingPreview, setIsBuildingPreview] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const assetOptions = balances ?? [];
@@ -79,14 +86,13 @@ export function TransactionPanel() {
     isAmountValid &&
     isMemoIdValid;
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  /** The actual submission — only ever called from the confirm modal. */
+  async function submitTransaction() {
     if (!address) {
       setError("Wallet not connected");
       setState("error");
       return;
     }
-    if (!canSubmit) return;
 
     // Cancel previous requests
     abortControllerRef.current?.abort();
@@ -124,11 +130,43 @@ export function TransactionPanel() {
         setError(e instanceof Error ? e.message : "Unknown error");
         setState("error");
       }
+    } finally {
+      setPreview(null);
+    }
+  }
+
+  /** Builds a preview of the transaction and opens the confirmation modal. */
+  async function handleReview(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!address || !canSubmit) return;
+
+    setIsBuildingPreview(true);
+    try {
+      const { data: feeData } = await getClient().transaction.estimateFee();
+      const memoSuffix =
+        memoType !== "none" && memo.trim() !== "" ? ` — memo: "${memo.trim()}"` : "";
+      setPreview({
+        transactionType: "Payment",
+        operations: [
+          {
+            type: "Payment",
+            description: `Send ${amount.trim()} ${selectedAsset} to ${truncateAddress(dest.trim(), 8, 6)}${memoSuffix}`,
+          },
+        ],
+        fee: {
+          baseFeeStroops: feeData?.baseFee ?? "100",
+          totalStroops: feeData?.recommended ?? feeData?.baseFee ?? "100",
+        },
+        sourceAccount: address,
+        sequenceNumber: account?.sequence,
+      });
+    } finally {
+      setIsBuildingPreview(false);
     }
   }
 
   const handleSendClick = () => {
-    submit({ preventDefault: () => {} } as React.FormEvent);
+    void handleReview();
   };
 
   const explorerUrl = result ? explorerTxUrl(network, result.hash) : null;
@@ -226,7 +264,7 @@ export function TransactionPanel() {
             </div>
           </div>
         ) : (
-          <form onSubmit={submit} className="flex flex-col gap-5">
+          <form onSubmit={handleReview} className="flex flex-col gap-5">
             <Input
               label="Destination Address"
               placeholder="G..."
@@ -338,14 +376,26 @@ export function TransactionPanel() {
         ) : (
           <Button
             size="md"
-            loading={state === "loading"}
+            loading={state === "loading" || isBuildingPreview}
             disabled={!canSubmit}
             onClick={handleSendClick}
           >
-            {state === "loading" ? "Submitting…" : "Send Payment"}
+            {state === "loading"
+              ? "Submitting…"
+              : isBuildingPreview
+                ? "Preparing…"
+                : "Send Payment"}
           </Button>
         )}
       </div>
+
+      <TransactionConfirmModal
+        open={preview !== null}
+        transaction={preview}
+        isSigning={state === "loading"}
+        onCancel={() => setPreview(null)}
+        onConfirm={() => void submitTransaction()}
+      />
     </div>
   );
 }
