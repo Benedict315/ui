@@ -55,6 +55,13 @@ export { NetworkSwitcher } from "./NetworkSwitcher";
 export { ClaimableBalanceCard } from "./ClaimableBalanceCard";
 export { FeeEstimator } from "./FeeEstimator";
 export { TransactionHistory } from "./TransactionHistory";
+export { TransactionHistoryTable } from "./TransactionHistoryTable";
+export type {
+  TransactionHistoryTableProps,
+  SortField,
+  SortDirection,
+  TransactionFilters,
+} from "./TransactionHistoryTable";
 export { TransactionPanel } from "./TransactionPanel";
 
 // Soroban
