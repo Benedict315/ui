@@ -58,9 +58,14 @@ export { AddressDisplay } from "./AddressDisplay";
 export { NetworkBanner } from "./NetworkBanner";
 export { NetworkSwitcher } from "./NetworkSwitcher";
 
+// Allowances
+export { AllowanceManager } from "./AllowanceManager";
+
 // Transactions
+export { ActivityTimeline } from "./ActivityTimeline";
 export { ClaimableBalanceCard } from "./ClaimableBalanceCard";
 export { FeeEstimator } from "./FeeEstimator";
+export { GasOptimizer } from "./GasOptimizer";
 export type {
   TransactionConfirmModalProps,
   TransactionFeeBreakdown,
@@ -182,11 +187,15 @@ export type {
   Balance,
   ClaimableBalance,
   ContractEvent,
+  GroupedTransaction,
   InvokeParams,
   NetworkInfo,
   Nft,
   NftAttribute,
   NftCollection,
   NftMetadata,
+  Operation,
+  TimelineFilter,
+  TimelineGroup,
   Transaction,
 } from "../lib/client";
