@@ -29,6 +29,14 @@ const unknownBalance: Balance = {
   balanceFloat: 10,
 };
 
+const lpSharesBalance: Balance = {
+  assetType: "liquidity_pool_shares",
+  assetCode: undefined,
+  assetIssuer: undefined,
+  balance: "25",
+  balanceFloat: 25,
+};
+
 describe("AssetBadge", () => {
   it("renders 'XLM' for native asset type", () => {
     render(<AssetBadge balance={nativeBalance} />);
@@ -79,6 +87,20 @@ describe("AssetBadge", () => {
   it("renders the asset code for an unknown asset", () => {
     render(<AssetBadge balance={unknownBalance} />);
     expect(screen.getByText("WAVEX")).toBeInTheDocument();
+  });
+
+  it("renders 'LP' for liquidity_pool_shares without undefined display", () => {
+    const { container } = render(<AssetBadge balance={lpSharesBalance} />);
+    expect(screen.getAllByText("LP").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/undefined/i)).not.toBeInTheDocument();
+    const icon = container.querySelector(".bg-surface-2.text-ink-2");
+    expect(icon).toBeInTheDocument();
+    expect(icon?.textContent).toBe("LP");
+  });
+
+  it("renders 'Liquidity Pool Shares' sub-label for LP when showIssuer is true", () => {
+    render(<AssetBadge balance={lpSharesBalance} showIssuer />);
+    expect(screen.getByText("Liquidity Pool Shares")).toBeInTheDocument();
   });
 });
 
