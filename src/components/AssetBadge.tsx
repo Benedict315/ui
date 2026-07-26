@@ -26,11 +26,15 @@ export function AssetBadge({
   size = "md",
   className,
 }: AssetBadgeProps) {
-  const code =
-    balance.assetType === "native"
+  const isLpShares = balance.assetType === "liquidity_pool_shares";
+  const code = isLpShares
+    ? "LP"
+    : balance.assetType === "native"
       ? "XLM"
       : (balance.assetCode ?? balance.asset);
-  const { bg, text } = getAssetColor(code);
+  const { bg, text } = isLpShares
+    ? { bg: "bg-surface-2", text: "text-ink-2" }
+    : getAssetColor(code);
 
   const iconSize =
     size === "sm"
@@ -65,6 +69,10 @@ export function AssetBadge({
         {showIssuer &&
           (balance.assetType === "native" ? (
             <span className={cn("text-ink-3", subSize)}>Stellar Lumens</span>
+          ) : isLpShares ? (
+            <span className={cn("text-ink-3", subSize)}>
+              Liquidity Pool Shares
+            </span>
           ) : balance.assetIssuer ? (
             <span data-address className={subSize}>
               {truncateAddress(balance.assetIssuer, 6, 4)}
