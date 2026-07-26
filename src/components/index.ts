@@ -62,6 +62,10 @@ export { ContractEventFeed } from "./ContractEventFeed";
 export { SorobanInvokeButton } from "./SorobanInvokeButton";
 export { SorobanPanel } from "./SorobanPanel";
 
+// NFT Gallery
+export { NFTCard, NFTGallery } from "./NFTGallery";
+export type { NFTGalleryProps } from "./NFTGallery";
+
 // Portfolio Rebalancer
 export { PortfolioRebalancer } from "./PortfolioRebalancer";
 export { AllocationInput } from "./AllocationInput";
@@ -72,6 +76,37 @@ export type { PieChartProps, PieSlice } from "./ui/PieChart";
 
 // Utilities
 export { QRCode } from "./QRCode";
+export {
+  BASE_FEE_STROOPS,
+  DEFAULT_SWAP_FEE_PCT,
+  MIN_TRADE_USD,
+  SLIPPAGE_BASE_PCT,
+  SLIPPAGE_MARKET_IMPACT_PER_1K,
+  buildRebalanceRecord,
+  computeAllocationDiffs,
+  computeCurrentAllocations,
+  createInitialExecution,
+  estimateSlippagePct,
+  estimateSwapCostUsd,
+  formatPct,
+  formatUsd,
+  generateSwapSuggestions,
+  isTargetValid,
+  normaliseTargets,
+  parseSwapResult,
+  totalFeeStroops,
+  totalRebalanceCostUsd,
+  updateSwapStatus,
+  weightedAverageSlippage,
+} from "../lib/rebalancer";
+export type {
+  AllocationDiff,
+  PortfolioAsset,
+  RebalanceExecution,
+  RebalanceRecord,
+  SwapStatus,
+  SwapSuggestion,
+} from "../lib/rebalancer";
 
 // Providers and hooks
 export { SorokitProvider } from "../context/SorokitProvider";
@@ -85,5 +120,9 @@ export type {
   ContractEvent,
   InvokeParams,
   NetworkInfo,
+  Nft,
+  NftAttribute,
+  NftCollection,
+  NftMetadata,
   Transaction,
 } from "../lib/client";
