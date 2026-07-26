@@ -38,8 +38,15 @@ export { ErrorBoundary } from "./ErrorBoundary";
 
 // Wallet
 export { AccountCard, AccountCardCompact } from "./AccountCard";
+export type { AccountSidebarProps } from "./AccountSidebar";
+export { AccountSidebar } from "./AccountSidebar";
 export { BalanceList } from "./BalanceList";
 export { WalletConnectButton } from "./WalletConnectButton";
+export type { WalletConnectModalProps, WalletOption } from "./WalletConnectModal";
+export {
+  DEFAULT_WALLET_OPTIONS,
+  WalletConnectModal,
+} from "./WalletConnectModal";
 
 // Assets
 export { AssetBadge, AssetPill } from "./AssetBadge";
@@ -54,6 +61,13 @@ export { NetworkSwitcher } from "./NetworkSwitcher";
 // Transactions
 export { ClaimableBalanceCard } from "./ClaimableBalanceCard";
 export { FeeEstimator } from "./FeeEstimator";
+export type {
+  TransactionConfirmModalProps,
+  TransactionFeeBreakdown,
+  TransactionOperationSummary,
+  TransactionPreviewData,
+} from "./TransactionConfirmModal";
+export { TransactionConfirmModal } from "./TransactionConfirmModal";
 export { TransactionHistory } from "./TransactionHistory";
 export { TransactionPanel } from "./TransactionPanel";
 
@@ -63,56 +77,32 @@ export { SorobanInvokeButton } from "./SorobanInvokeButton";
 export { SorobanPanel } from "./SorobanPanel";
 
 // NFT Gallery
-export { NFTCard, NFTGallery } from "./NFTGallery";
 export type { NFTGalleryProps } from "./NFTGallery";
+export { NFTCard, NFTGallery } from "./NFTGallery";
 
 // Portfolio Rebalancer
 export { PortfolioRebalancer } from "./PortfolioRebalancer";
 
 // Staking Dashboard
-export { StakingDashboard } from "./StakingDashboard";
-export type { StakingDashboardProps } from "./StakingDashboard";
-export { ValidatorCard } from "./ValidatorCard";
-export type { ValidatorCardProps } from "./ValidatorCard";
-export { DelegationRow } from "./DelegationRow";
-export type { DelegationRowProps } from "./DelegationRow";
-export { RewardsPanel } from "./RewardsPanel";
-export type { RewardsPanelProps } from "./RewardsPanel";
-export { RewardHistory } from "./RewardHistory";
-export type { RewardHistoryProps } from "./RewardHistory";
-export { ValidatorSearch } from "./ValidatorSearch";
-export type { ValidatorSearchProps } from "./ValidatorSearch";
 export { AllocationInput } from "./AllocationInput";
-export { SwapRoute } from "./SwapRoute";
+export type { DelegationRowProps } from "./DelegationRow";
+export { DelegationRow } from "./DelegationRow";
 export { RebalancerHistory } from "./RebalancerHistory";
-export { PieChart } from "./ui/PieChart";
+export type { RewardHistoryProps } from "./RewardHistory";
+export { RewardHistory } from "./RewardHistory";
+export type { RewardsPanelProps } from "./RewardsPanel";
+export { RewardsPanel } from "./RewardsPanel";
+export type { StakingDashboardProps } from "./StakingDashboard";
+export { StakingDashboard } from "./StakingDashboard";
+export { SwapRoute } from "./SwapRoute";
 export type { PieChartProps, PieSlice } from "./ui/PieChart";
+export { PieChart } from "./ui/PieChart";
+export type { ValidatorCardProps } from "./ValidatorCard";
+export { ValidatorCard } from "./ValidatorCard";
+export type { ValidatorSearchProps } from "./ValidatorSearch";
+export { ValidatorSearch } from "./ValidatorSearch";
 
 // Utilities
-export { QRCode } from "./QRCode";
-export {
-  BASE_FEE_STROOPS,
-  DEFAULT_SWAP_FEE_PCT,
-  MIN_TRADE_USD,
-  SLIPPAGE_BASE_PCT,
-  SLIPPAGE_MARKET_IMPACT_PER_1K,
-  buildRebalanceRecord,
-  computeAllocationDiffs,
-  computeCurrentAllocations,
-  createInitialExecution,
-  estimateSlippagePct,
-  estimateSwapCostUsd,
-  formatPct,
-  formatUsd,
-  generateSwapSuggestions,
-  isTargetValid,
-  normaliseTargets,
-  parseSwapResult,
-  totalFeeStroops,
-  totalRebalanceCostUsd,
-  updateSwapStatus,
-  weightedAverageSlippage,
-} from "../lib/rebalancer";
 export type {
   AllocationDiff,
   PortfolioAsset,
@@ -121,30 +111,31 @@ export type {
   SwapStatus,
   SwapSuggestion,
 } from "../lib/rebalancer";
+export {
+  BASE_FEE_STROOPS,
+  buildRebalanceRecord,
+  computeAllocationDiffs,
+  computeCurrentAllocations,
+  createInitialExecution,
+  DEFAULT_SWAP_FEE_PCT,
+  estimateSlippagePct,
+  estimateSwapCostUsd,
+  formatPct,
+  formatUsd,
+  generateSwapSuggestions,
+  isTargetValid,
+  MIN_TRADE_USD,
+  normaliseTargets,
+  SLIPPAGE_BASE_PCT,
+  SLIPPAGE_MARKET_IMPACT_PER_1K,
+  totalFeeStroops,
+  totalRebalanceCostUsd,
+  updateSwapStatus,
+  weightedAverageSlippage,
+} from "../lib/rebalancer";
+export { QRCode } from "./QRCode";
 
 // Staking utilities
-export {
-  DELEGATION_BASE_FEE_STROOPS,
-  MIN_DELEGATION_XLM,
-  MOCK_DELEGATIONS,
-  MOCK_REWARD_SCHEDULE,
-  MOCK_VALIDATORS,
-  REWARD_HISTORY_DAYS,
-  STROOPS_PER_XLM,
-  aggregateDailyRewards,
-  createDefaultFilter,
-  estimateDelegationFeeXlm,
-  filterValidators,
-  formatXlm,
-  generateMockRewardHistory,
-  totalClaimableXlm,
-  totalDelegatedXlm,
-  totalPendingXlm,
-  totalRewardHistoryXlm,
-  validateDelegationAmount,
-  /** @alias formatPct from staking lib */
-  formatPct as formatStakingPct,
-} from "../lib/staking";
 export type {
   DailyReward,
   Delegation,
@@ -157,6 +148,28 @@ export type {
   ValidatorFilter,
   ValidatorSortField,
   ValidatorStatus,
+} from "../lib/staking";
+export {
+  aggregateDailyRewards,
+  createDefaultFilter,
+  DELEGATION_BASE_FEE_STROOPS,
+  estimateDelegationFeeXlm,
+  filterValidators,
+  /** @alias formatPct from staking lib */
+  formatPct as formatStakingPct,
+  formatXlm,
+  generateMockRewardHistory,
+  MIN_DELEGATION_XLM,
+  MOCK_DELEGATIONS,
+  MOCK_REWARD_SCHEDULE,
+  MOCK_VALIDATORS,
+  REWARD_HISTORY_DAYS,
+  STROOPS_PER_XLM,
+  totalClaimableXlm,
+  totalDelegatedXlm,
+  totalPendingXlm,
+  totalRewardHistoryXlm,
+  validateDelegationAmount,
 } from "../lib/staking";
 
 // Providers and hooks

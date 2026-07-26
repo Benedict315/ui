@@ -122,5 +122,16 @@ export function createMockClient(networkName?: string): SorokitClient | { data: 
         return { data: null, error: `Invalid network: ${name}` };
       },
     },
+    nft: {
+      getNfts: async (_address: string) => ({ data: [], error: null }),
+      sendNft: async () => ({
+        data: { hash: deterministicMock.generateTransactionHash(), ledger: 12345, successful: true },
+        error: null,
+      }),
+      listNftForSale: async () => ({
+        data: { hash: deterministicMock.generateTransactionHash(), ledger: 12345, successful: true },
+        error: null,
+      }),
+    },
   } as SorokitClient;
 }
