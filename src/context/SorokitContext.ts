@@ -10,6 +10,7 @@ import type {
 
 export interface SorokitState {
   address: string | null;
+  walletName: string | null;
   isConnected: boolean;
   isConnecting: boolean;
   isLoading: boolean;

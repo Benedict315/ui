@@ -185,6 +185,19 @@ export {
   validateDelegationAmount,
 } from "../lib/staking";
 
+// Wallet Status
+export { WalletStatusBadge } from "./WalletStatusBadge";
+
+// Transaction Fee Calculator
+export { TransactionFeeCalculator } from "./TransactionFeeCalculator";
+
+// Contract Interaction Builder
+export type { ContractSpec } from "./ContractInteractionBuilder";
+export { ContractInteractionBuilder } from "./ContractInteractionBuilder";
+
+// Account Balance Chart
+export { AccountBalanceChart } from "./AccountBalanceChart";
+
 // Providers and hooks
 export { SorokitProvider } from "../context/SorokitProvider";
 export { useSorokit } from "../context/useSorokit";

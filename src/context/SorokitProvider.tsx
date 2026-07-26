@@ -14,6 +14,7 @@ const STORAGE_KEY_CUSTOM_NETWORKS = "sorokit_custom_networks";
 
 export function SorokitProvider({ client, children }: SorokitProviderProps) {
   const [address, setAddress] = useState<string | null>(null);
+  const [walletName, setWalletName] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [account, setAccount] = useState<AccountData | null>(null);
   const [balances, setBalances] = useState<Balance[]>([]);
@@ -101,10 +102,22 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
     };
   }, [address, client]);
 
+  function detectWalletName(): string | null {
+    if (typeof window === "undefined") return null;
+    const win = window as unknown as Record<string, unknown>;
+    if (win.freighter) return "Freighter";
+    if (win.xBull) return "xBull";
+    if (win.albedo) return "Albedo";
+    if (win.lobstr) return "Lobstr";
+    return null;
+  }
+
   const connectWallet = useCallback(async () => {
     setIsConnecting(true);
     setError(null);
     try {
+      const name = detectWalletName();
+      setWalletName(name);
       const { data, error } = await client.wallet.connect();
       if (error) {
         setError(error);
@@ -119,6 +132,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
   const disconnectWallet = useCallback(async () => {
     await client.wallet.disconnect();
     setAddress(null);
+    setWalletName(null);
     setAccount(null);
     setBalances([]);
   }, [client]);
@@ -190,6 +204,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
   const value = useMemo(
     () => ({
       address,
+      walletName,
       isConnected: !!address,
       isConnecting,
       isLoading: isConnecting || isLoadingAccount,
@@ -208,6 +223,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
     }),
     [
       address,
+      walletName,
       isConnecting,
       isLoadingAccount,
       connectWallet,
