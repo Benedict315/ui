@@ -9,6 +9,9 @@ import type {
 
 import { SorokitContext, type SorokitProviderProps } from "./SorokitContext";
 
+const STORAGE_KEY_NETWORK = "sorokit_network";
+const STORAGE_KEY_CUSTOM_NETWORKS = "sorokit_custom_networks";
+
 export function SorokitProvider({ client, children }: SorokitProviderProps) {
   const [address, setAddress] = useState<string | null>(null);
   const [walletName, setWalletName] = useState<string | null>(null);
@@ -17,18 +20,51 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
   const [balances, setBalances] = useState<Balance[]>([]);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
   const [network, setNetwork] = useState<NetworkInfo | null>(null);
+  const [customNetworks, setCustomNetworks] = useState<NetworkInfo[]>(() => {
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY_CUSTOM_NETWORKS);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [error, setError] = useState<string | null>(null);
 
-  // Load network on mount
+  // Load network on mount with localStorage persistence restore
   useEffect(() => {
     let active = true;
 
     const timerId = window.setTimeout(() => {
-      client.network.getNetwork().then(({ data, error: nextError }) => {
-        if (!active) return;
-        if (data) setNetwork(data);
-        if (nextError) setError(nextError);
-      });
+      let savedNet: string | NetworkInfo | null = null;
+      try {
+        const item = window.localStorage.getItem(STORAGE_KEY_NETWORK);
+        if (item) {
+          try {
+            savedNet = JSON.parse(item);
+          } catch {
+            savedNet = item as NetworkName;
+          }
+        }
+      } catch {
+        savedNet = null;
+      }
+
+      if (savedNet) {
+        client.network.switchNetwork(savedNet).then(({ data, error: nextError }) => {
+          if (!active) return;
+          if (data) setNetwork(data);
+          else client.network.getNetwork().then(({ data: fallbackData }) => {
+            if (active && fallbackData) setNetwork(fallbackData);
+          });
+          if (nextError) setError(nextError);
+        });
+      } else {
+        client.network.getNetwork().then(({ data, error: nextError }) => {
+          if (!active) return;
+          if (data) setNetwork(data);
+          if (nextError) setError(nextError);
+        });
+      }
     }, 0);
 
     return () => {
@@ -102,8 +138,8 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
   }, [client]);
 
   const switchNetwork = useCallback(
-    async (name: NetworkName) => {
-      const { data, error } = await client.network.switchNetwork(name);
+    async (param: NetworkName | NetworkInfo) => {
+      const { data, error } = await client.network.switchNetwork(param);
       if (error) {
         setError(error);
         return;
@@ -111,12 +147,39 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       if (data) {
         setError(null);
         setNetwork(data);
+        try {
+          window.localStorage.setItem(
+            STORAGE_KEY_NETWORK,
+            typeof param === "string" ? param : JSON.stringify(data),
+          );
+        } catch {
+          /* fallback */
+        }
         setAddress(null);
         setAccount(null);
         setBalances([]);
       }
     },
     [client],
+  );
+
+  const addCustomNetwork = useCallback(
+    async (config: NetworkInfo) => {
+      setCustomNetworks((prev) => {
+        const next = [...prev.filter((n) => n.name !== config.name), config];
+        try {
+          window.localStorage.setItem(
+            STORAGE_KEY_CUSTOM_NETWORKS,
+            JSON.stringify(next),
+          );
+        } catch {
+          /* fallback */
+        }
+        return next;
+      });
+      await switchNetwork(config);
+    },
+    [switchNetwork],
   );
 
   const clearError = useCallback(() => setError(null), []);
@@ -153,6 +216,8 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       refreshAccount,
       network,
       switchNetwork,
+      customNetworks,
+      addCustomNetwork,
       error,
       clearError,
     }),
@@ -168,6 +233,8 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       refreshAccount,
       network,
       switchNetwork,
+      customNetworks,
+      addCustomNetwork,
       error,
       clearError,
     ],
