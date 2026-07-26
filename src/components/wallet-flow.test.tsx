@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { useSorokit } from '@/context/useSorokit';
@@ -40,6 +40,10 @@ describe('Wallet flow integration', () => {
     expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Connect Wallet' }));
+    await waitFor(() =>
+      screen.getByRole('dialog', { name: /connect a wallet/i }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Freighter' }));
     expect(mockConnect).toHaveBeenCalledTimes(1);
 
     (useSorokit as any).mockReturnValue({

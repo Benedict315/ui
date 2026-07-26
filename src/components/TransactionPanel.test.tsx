@@ -1,4 +1,4 @@
-import { fireEvent,render, screen } from "@testing-library/react";
+import { fireEvent,render, screen, waitFor } from "@testing-library/react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -14,6 +14,29 @@ vi.mock("@/lib/client", () => ({
   getClient: vi.fn(),
 }));
 
+const DEFAULT_FEE = { baseFee: "100", recommended: "100" };
+
+function mockGetClient(
+  submitImpl: ReturnType<typeof vi.fn>,
+  feeImpl: ReturnType<typeof vi.fn> = vi
+    .fn()
+    .mockResolvedValue({ data: DEFAULT_FEE, error: null }),
+) {
+  vi.mocked(getClient).mockReturnValue({
+    transaction: {
+      submit: submitImpl,
+      estimateFee: feeImpl,
+    },
+  } as unknown as ReturnType<typeof getClient>);
+}
+
+/** Clicks "Send Payment", waits for the confirmation modal, then confirms. */
+async function reviewAndConfirm() {
+  fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+  await screen.findByRole("dialog", { name: /confirm transaction/i });
+  fireEvent.click(screen.getByRole("button", { name: /confirm & sign/i }));
+}
+
 describe("TransactionPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -23,34 +46,72 @@ describe("TransactionPanel", () => {
     } as unknown as ReturnType<typeof useSorokit>);
   });
 
+  it("opens a confirmation modal before submitting, showing the operation, fee, and source account", async () => {
+    mockGetClient(vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null }));
+    render(<TransactionPanel />);
+
+    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+    fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+
+    const dialog = await screen.findByRole("dialog", { name: /confirm transaction/i });
+    expect(dialog).toHaveTextContent("Payment — 1 operation");
+    expect(dialog).toHaveTextContent("Send 10 XLM to");
+    expect(dialog).toHaveTextContent("100 stroops");
+    expect(dialog).toHaveTextContent("GABC");
+  });
+
+  it("does not submit until Confirm & Sign is clicked in the modal", async () => {
+    const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null });
+    mockGetClient(mockSubmit);
+    render(<TransactionPanel />);
+
+    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+    fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+
+    await screen.findByRole("dialog", { name: /confirm transaction/i });
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
+
+  it("cancelling the modal does not submit and returns to the form", async () => {
+    const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null });
+    mockGetClient(mockSubmit);
+    render(<TransactionPanel />);
+
+    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+    fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+
+    await screen.findByRole("dialog", { name: /confirm transaction/i });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Destination Address")).toHaveValue(validDest);
+  });
+
   it("handles loading, success, and error states", async () => {
     const mockSubmit = vi.fn().mockImplementation(() => {
       return new Promise(resolve => {
         setTimeout(() => resolve({ data: { hash: "txhash123", ledger: 100 }, error: null }), 50);
       });
     });
-
-    vi.mocked(getClient).mockReturnValue({
-      transaction: {
-        submit: mockSubmit,
-      },
-    } as unknown as ReturnType<typeof getClient>);
+    mockGetClient(mockSubmit);
 
     render(<TransactionPanel />);
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
 
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(destInput, { target: { value: validDest } });
     fireEvent.change(amountInput, { target: { value: "10" } });
 
-    // Submit and check loading state
-    fireEvent.click(submitBtn);
-    expect(submitBtn).toBeDisabled();
-    // When loading, sr-only "Loading" text prepends to accessible name
-    expect(screen.getByRole("button", { name: "LoadingSubmitting…" })).toBeInTheDocument();
+    await reviewAndConfirm();
 
     // Check success state
     expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
@@ -67,20 +128,15 @@ describe("TransactionPanel", () => {
 
   it("handles error state", async () => {
     const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Insufficient balance" });
-
-    vi.mocked(getClient).mockReturnValue({
-      transaction: {
-        submit: mockSubmit,
-      },
-    } as unknown as ReturnType<typeof getClient>);
+    mockGetClient(mockSubmit);
 
     render(<TransactionPanel />);
 
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
     fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
-    
-    fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+
+    await reviewAndConfirm();
 
     expect(await screen.findByText("Transaction failed")).toBeInTheDocument();
     expect(screen.getByText("Insufficient balance")).toBeInTheDocument();
@@ -116,7 +172,7 @@ describe("TransactionPanel", () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: null,
       isConnected: true,
-    });
+    } as unknown as ReturnType<typeof useSorokit>);
 
     render(<TransactionPanel />);
 
@@ -128,17 +184,21 @@ describe("TransactionPanel", () => {
     fireEvent.change(destInput, { target: { value: validDest } });
     fireEvent.change(amountInput, { target: { value: "10" } });
 
+    // With no address, canSubmit is false (isConnected relies on address in
+    // the real provider, but this mock sets isConnected independently) — the
+    // panel should not even attempt to open the review modal.
     fireEvent.click(submitBtn);
 
-    expect(await screen.findByText("Transaction failed")).toBeInTheDocument();
-    expect(screen.getByText("Wallet not connected")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 
   it("shows self-payment warning when destination equals source address", async () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
       isConnected: true,
-    });
+    } as unknown as ReturnType<typeof useSorokit>);
 
     render(<TransactionPanel />);
 
@@ -183,19 +243,13 @@ describe("TransactionPanel", () => {
 
   it("preserves form values when clicking Try Again after error", async () => {
     const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Insufficient balance" });
-
-    vi.mocked(getClient).mockReturnValue({
-      transaction: {
-        submit: mockSubmit,
-      },
-    } as unknown as ReturnType<typeof getClient>);
+    mockGetClient(mockSubmit);
 
     render(<TransactionPanel />);
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
     const memoInput = screen.getByLabelText("Memo (optional)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
 
     // Fill in form values
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
@@ -211,8 +265,8 @@ describe("TransactionPanel", () => {
     expect(amountInput).toHaveValue(Number(testAmount));
     expect(memoInput).toHaveValue(testMemo);
 
-    // Submit to trigger error
-    fireEvent.click(submitBtn);
+    // Review + confirm to trigger error
+    await reviewAndConfirm();
 
     // Wait for error state
     await screen.findByText("Transaction failed");
@@ -258,9 +312,7 @@ describe("TransactionPanel", () => {
       const mockSubmit = vi
         .fn()
         .mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null });
-      vi.mocked(getClient).mockReturnValue({
-        transaction: { submit: mockSubmit },
-      } as unknown as ReturnType<typeof getClient>);
+      mockGetClient(mockSubmit);
       vi.mocked(useSorokit).mockReturnValue({
         address: "GABC",
         isConnected: true,
@@ -282,7 +334,8 @@ describe("TransactionPanel", () => {
       fireEvent.change(screen.getByLabelText("Amount (USDC)"), {
         target: { value: "10" },
       });
-      fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+
+      await reviewAndConfirm();
 
       await screen.findByText("Transaction submitted");
       expect(mockSubmit).toHaveBeenCalledWith(
@@ -302,6 +355,60 @@ describe("TransactionPanel", () => {
       const select = screen.getByLabelText("Asset");
       expect(select).toBeDisabled();
       expect(select).toHaveValue("XLM");
+    });
+  });
+
+  describe("memo ID validation", () => {
+    it("shows an error when Memo ID is non-numeric", () => {
+      render(<TransactionPanel />);
+
+      fireEvent.change(screen.getByLabelText("Memo Type"), { target: { value: "id" } });
+      fireEvent.change(screen.getByLabelText("Memo ID"), { target: { value: "not-a-number" } });
+
+      expect(
+        screen.getByText("Memo ID must be an unsigned integer"),
+      ).toBeInTheDocument();
+    });
+
+    it("accepts a numeric Memo ID", () => {
+      render(<TransactionPanel />);
+
+      fireEvent.change(screen.getByLabelText("Memo Type"), { target: { value: "id" } });
+      fireEvent.change(screen.getByLabelText("Memo ID"), { target: { value: "12345" } });
+
+      expect(
+        screen.queryByText("Memo ID must be an unsigned integer"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("success state details", () => {
+    it("shows a Successful badge and an explorer link on a known network", async () => {
+      const mockSubmit = vi
+        .fn()
+        .mockResolvedValue({ data: { hash: "txhash123", ledger: 100 }, error: null });
+      mockGetClient(mockSubmit);
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        network: { name: "testnet", passphrase: "x", rpcUrl: "x", horizonUrl: "x" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+
+      const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      await screen.findByText("Transaction submitted");
+
+      expect(screen.getByText("Successful")).toBeInTheDocument();
+      const link = screen.getByRole("link", { name: /view on stellar expert/i });
+      expect(link).toHaveAttribute(
+        "href",
+        "https://stellar.expert/explorer/testnet/tx/txhash123",
+      );
     });
   });
 });

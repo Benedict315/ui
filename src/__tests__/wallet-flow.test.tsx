@@ -49,9 +49,15 @@ describe("Wallet Connect Flow Integration", () => {
     expect(screen.getByRole("button", { name: /connect/i })).toBeInTheDocument();
     expect(screen.queryByText(/Sequence:/i)).not.toBeInTheDocument();
 
-    // Action 1: Connect Wallet
+    // Action 1: Connect Wallet — opens the adapter-selection modal
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /connect/i }));
+    });
+    await waitFor(() =>
+      screen.getByRole("dialog", { name: /connect a wallet/i }),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
     });
 
     // Verification 1: Wallet connected, AccountCard renders account data
