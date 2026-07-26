@@ -146,6 +146,7 @@ export {
   weightedAverageSlippage,
 } from "../lib/rebalancer";
 export { QRCode } from "./QRCode";
+export { SwapSimulator } from "./SwapSimulator";
 
 // Staking utilities
 export type {
