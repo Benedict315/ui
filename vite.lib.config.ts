@@ -41,11 +41,14 @@ export default defineConfig({
         },
       },
     },
-    minify: 'esbuild',
+    minify: false,
     sourcemap: true,
     // Preserve specific directory structure
     outDir: 'dist',
     emptyOutDir: true,
+  },
+  optimizeDeps: {
+    include: ["sorokit-core", "@creit.tech/stellar-wallets-kit"],
   },
   resolve: {
     alias: {

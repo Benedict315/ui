@@ -169,7 +169,8 @@ export class ClientAdapter {
    */
   async getEvents(
     contractId: string,
-    limit: number = 100
+    limit: number = 100,
+    _fromLedger?: number
   ): Promise<AdapterResponse<unknown[]>> {
     try {
       if (!this.userAddress) {

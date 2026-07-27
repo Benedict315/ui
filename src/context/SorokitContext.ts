@@ -25,11 +25,14 @@ export interface SorokitState {
   customNetworks?: NetworkInfo[];
   addCustomNetwork?: (config: NetworkInfo) => Promise<void>;
   error: string | null;
+  errorSeverity?: "info" | "error";
+  errorHistory: string[];
   clearError: () => void;
 }
 
 export interface SorokitProviderProps {
   client: SorokitClient;
+  onError?: (error: string, source: string) => void;
   children: React.ReactNode;
 }
 
