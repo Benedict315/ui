@@ -50,7 +50,7 @@ export {
 } from "./WalletConnectModal";
 
 // Assets
-export { AssetBadge, AssetPill } from "./AssetBadge";
+export { AssetBadge, AssetPill, isKnownAsset } from "./AssetBadge";
 
 // Address
 export { AddressDisplay } from "./AddressDisplay";
