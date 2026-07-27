@@ -226,6 +226,8 @@ export type AccountData = {
   sequence: string;
   subentryCount: number;
   thresholds?: { low: number; med: number; high: number; master: number };
+  homeDomain?: string;
+  createdAt?: string;
 };
 
 export type Balance = {
