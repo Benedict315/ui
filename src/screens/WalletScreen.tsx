@@ -9,10 +9,44 @@ import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 import { cn, truncateAddress } from "@/lib/utils";
 
+function QRModal({
+  open,
+  onClose,
+  address,
+}: {
+  open: boolean;
+  onClose: () => void;
+  address: string;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface rounded-xl border border-line p-6 flex flex-col items-center gap-4 max-w-xs w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <QRCode value={address} size={240} ariaLabel="Full-size QR code" />
+        <p className="text-[11px] text-ink-3 break-all text-center font-mono">
+          {address}
+        </p>
+        <Button variant="secondary" size="sm" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function WalletScreen() {
-  const { address, isConnected, disconnectWallet, network } = useSorokit();
+  const { address, isConnected, disconnectWallet, network, account } = useSorokit();
   const [isConfirming, setIsConfirming] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
   const timeoutRef = useRef<number | null>(null);
 
   const handleDisconnect = () => {
@@ -89,6 +123,19 @@ export function WalletScreen() {
             <InfoCell label="RPC Endpoint" value={network.rpcUrl} mono copyable />
           </div>
         )}
+        {account?.homeDomain && (
+          <div className="border-t border-line">
+            <InfoCell label="Home Domain" value={account.homeDomain} />
+          </div>
+        )}
+        {account?.createdAt && (
+          <div className="border-t border-line">
+            <InfoCell
+              label="Active Since"
+              value={new Date(account.createdAt).getFullYear().toString()}
+            />
+          </div>
+        )}
       </div>
 
       {isConnected && address && (
@@ -100,12 +147,21 @@ export function WalletScreen() {
             </p>
           </div>
           <div className="px-6 py-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            <QRCode
-              value={address}
-              size={140}
-              className="shrink-0"
-              ariaLabel={`QR code to receive funds at address ${address}`}
-            />
+            <div className="flex flex-col items-center gap-2">
+              <QRCode
+                value={address}
+                size={140}
+                className="shrink-0"
+                ariaLabel={`QR code to receive funds at address ${address}`}
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setQrModalOpen(true)}
+              >
+                Show QR
+              </Button>
+            </div>
             <div className="flex-1 min-w-0 w-full flex flex-col justify-center gap-1 sm:h-[164px]">
               <AddressDisplay
                 address={address}
@@ -129,6 +185,12 @@ export function WalletScreen() {
           </p>
         </div>
       )}
+
+      <QRModal
+        open={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        address={address || ""}
+      />
     </div>
   );
 }

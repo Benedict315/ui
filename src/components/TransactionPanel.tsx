@@ -48,15 +48,29 @@ function explorerTxUrl(
   return `https://stellar.expert/explorer/${segment}/tx/${hash}`;
 }
 
-export function TransactionPanel() {
+export interface TransactionPanelProps {
+  defaultDestination?: string;
+  defaultAmount?: string;
+  defaultMemo?: string;
+  onSuccess?: (result: TxResult) => void;
+  onError?: (error: string) => void;
+}
+
+export function TransactionPanel({
+  defaultDestination = "",
+  defaultAmount = "",
+  defaultMemo = "",
+  onSuccess,
+  onError,
+}: TransactionPanelProps = {}) {
   const { address, isConnected, balances, network, account } = useSorokit();
-  const [dest, setDest] = useState("");
+  const [dest, setDest] = useState(defaultDestination);
   const [destDirty, setDestDirty] = useState(false);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(defaultAmount);
   const [amountDirty, setAmountDirty] = useState(false);
   const [asset, setAsset] = useState("XLM");
   const [memoType, setMemoType] = useState<MemoType>("text");
-  const [memo, setMemo] = useState("");
+  const [memo, setMemo] = useState(defaultMemo);
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<TxResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -117,10 +131,12 @@ export function TransactionPanel() {
       if (err) {
         setError(err);
         setState("error");
+        onError?.(err);
         return;
       }
       setResult(data);
       setState("success");
+      onSuccess?.(data!);
       setDest("");
       setAmount("");
       setMemo("");
@@ -128,8 +144,10 @@ export function TransactionPanel() {
       setAmountDirty(false);
     } catch (e) {
       if (!signal.aborted) {
-        setError(e instanceof Error ? e.message : "Unknown error");
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        setError(msg);
         setState("error");
+        onError?.(msg);
       }
     } finally {
       setPreview(null);
@@ -342,19 +360,28 @@ export function TransactionPanel() {
               ))}
             </Select>
             {memoType !== "none" && (
-              <Input
-                label={memoType === "id" ? "Memo ID" : "Memo (optional)"}
-                placeholder={memoType === "id" ? "1234567890" : "Text memo"}
-                inputMode={memoType === "id" ? "numeric" : undefined}
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                error={
-                  memoType === "id" && memo.trim() !== "" && !isMemoIdValid
-                    ? "Memo ID must be an unsigned integer"
-                    : undefined
-                }
-                disabled={state === "loading"}
-              />
+              <div className="flex flex-col gap-1.5">
+                <Input
+                  label={memoType === "id" ? "Memo ID" : "Memo (optional)"}
+                  placeholder={memoType === "id" ? "1234567890" : "Text memo"}
+                  inputMode={memoType === "id" ? "numeric" : undefined}
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  error={
+                    memoType === "id" && memo.trim() !== "" && !isMemoIdValid
+                      ? "Memo ID must be an unsigned integer"
+                      : undefined
+                  }
+                  disabled={state === "loading"}
+                />
+                {memoType === "text" && (
+                  <span
+                    className={`text-[10px] text-right ${memo.length >= 28 ? "text-red" : "text-ink-3"}`}
+                  >
+                    {memo.length}/28
+                  </span>
+                )}
+              </div>
             )}
           </form>
         )}
