@@ -224,6 +224,7 @@ export type AccountData = {
   address: string;
   sequence: string;
   subentryCount: number;
+  thresholds?: { low: number; med: number; high: number; master: number };
 };
 
 export type Balance = {

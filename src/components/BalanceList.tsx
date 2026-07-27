@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { AssetBadge } from "@/components/AssetBadge";
 import { Badge } from "@/components/ui/Badge";
 import { AssetRowSkeleton } from "@/components/ui/Skeleton";
 import { useSorokit } from "@/context/useSorokit";
 import type { Balance } from "@/lib/client";
 import { cn } from "@/lib/utils";
+
+type SortMode = "default" | "balance-desc" | "alpha";
 
 function getAssetCode(balance: Balance) {
   return balance.assetType === "native" ? "XLM" : balance.assetCode ?? balance.asset;
@@ -25,14 +28,52 @@ function compareBalances(a: Balance, b: Balance) {
   return getAssetCode(a).localeCompare(getAssetCode(b));
 }
 
-function AssetRow({ b }: { b: Balance }) {
+function sortBalances(balances: Balance[], mode: SortMode) {
+  if (mode === "balance-desc") {
+    return [...balances].sort((a, b) => Number(b.balance) - Number(a.balance));
+  }
+  if (mode === "alpha") {
+    return [...balances].sort((a, b) =>
+      getAssetCode(a).localeCompare(getAssetCode(b)),
+    );
+  }
+  return [...balances].sort(compareBalances);
+}
+
+const sortLabels: Record<SortMode, string> = {
+  default: "Default",
+  "balance-desc": "Balance",
+  alpha: "A-Z",
+};
+
+function AssetRow({
+  b,
+  onClick,
+}: {
+  b: Balance;
+  onClick?: () => void;
+}) {
   const isZeroBalance = Number(b.balance) === 0;
 
   return (
     <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       className={cn(
         "flex items-center justify-between px-5 py-4 border-b border-line last:border-0",
         isZeroBalance && "opacity-50",
+        onClick && "cursor-pointer hover:bg-surface-2 transition-colors",
       )}
     >
       <AssetBadge balance={b} />
@@ -56,15 +97,42 @@ function AssetRow({ b }: { b: Balance }) {
   );
 }
 
-export function BalanceList() {
+export interface BalanceListProps {
+  onAssetClick?: (balance: Balance) => void;
+  detailRef?: React.RefObject<HTMLElement | null>;
+}
+
+export function BalanceList({ onAssetClick, detailRef }: BalanceListProps) {
   const { balances, isLoadingAccount, isConnected, network } = useSorokit();
+  const [search, setSearch] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("default");
 
   const isTestnet = network?.name === "testnet";
   const showFriendbot = isTestnet && isConnected && !isLoadingAccount && balances.length === 0;
 
-  // Use balance count for skeleton rows so the loading state matches the real list
   const skeletonCount = balances.length > 0 ? balances.length : 3;
-  const sorted = [...balances].sort(compareBalances);
+
+  const filtered = search
+    ? balances.filter((b) =>
+        getAssetCode(b).toLowerCase().includes(search.toLowerCase()),
+      )
+    : balances;
+
+  const sorted = sortBalances(filtered, sortMode);
+
+  const cycleSort = () => {
+    setSortMode((m) =>
+      m === "default" ? "balance-desc" : m === "balance-desc" ? "alpha" : "default",
+    );
+  };
+
+  const handleAssetClick = (b: Balance) => {
+    onAssetClick?.(b);
+    // Move focus to the detail view if a ref is provided
+    requestAnimationFrame(() => {
+      detailRef?.current?.focus();
+    });
+  };
 
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
@@ -74,9 +142,30 @@ export function BalanceList() {
           <p className="text-[12px] text-ink-3 mt-0.5">Token balances</p>
         </div>
         {isConnected && !isLoadingAccount && (
-          <Badge variant="default">{balances.length} assets</Badge>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={cycleSort}
+              className="text-[11px] text-ink-3 hover:text-ink-2 transition-colors px-2 py-1 rounded-md hover:bg-surface-2"
+              title={`Sort: ${sortLabels[sortMode]}`}
+            >
+              ↕ {sortLabels[sortMode]}
+            </button>
+            <Badge variant="default">{balances.length} assets</Badge>
+          </div>
         )}
       </div>
+
+      {isConnected && !isLoadingAccount && balances.length > 0 && (
+        <div className="px-4 py-2 border-b border-line">
+          <input
+            type="text"
+            placeholder="Search assets…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full text-[12px] bg-surface-2 border border-line rounded-md px-3 py-1.5 text-ink placeholder:text-ink-4 focus:outline-none focus:border-brand"
+          />
+        </div>
+      )}
 
       {!isConnected ? (
         <p className="text-[13px] text-ink-3 text-center py-10">
@@ -88,12 +177,12 @@ export function BalanceList() {
             <AssetRowSkeleton key={i} />
           ))}
         </div>
-      ) : balances.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-10">
           <p className="text-[13px] text-ink-3">
-            No assets found
+            {search ? "No matching assets" : "No assets found"}
           </p>
-          {showFriendbot && (
+          {showFriendbot && !search && (
             <a
               href="https://friendbot.stellar.org"
               target="_blank"
@@ -107,7 +196,11 @@ export function BalanceList() {
       ) : (
         <div>
           {sorted.map((b) => (
-            <AssetRow key={b.asset} b={b} />
+            <AssetRow
+              key={b.asset}
+              b={b}
+              onClick={onAssetClick ? () => handleAssetClick(b) : undefined}
+            />
           ))}
         </div>
       )}
