@@ -112,7 +112,7 @@ describe("SorobanPanel", () => {
     expect(
       screen.queryByText(/Arguments must be a JSON array/i),
     ).not.toBeInTheDocument();
-    expect(await screen.findByText(/Result/i)).toBeInTheDocument();
+    expect(await screen.findByText("Result", { selector: "span" })).toBeInTheDocument();
   });
 
   it("should show error when invokeContract fails", async () => {
@@ -147,7 +147,7 @@ describe("SorobanPanel", () => {
     fireEvent.click(invokeBtn);
 
     // Verify result is displayed
-    const resultHeader = await screen.findByText("Result");
+    const resultHeader = await screen.findByText("Result", { selector: "span" });
     expect(resultHeader).toBeInTheDocument();
     expect(screen.getByText(/"balance": 1000/)).toBeInTheDocument();
 

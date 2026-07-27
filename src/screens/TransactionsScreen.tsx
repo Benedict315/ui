@@ -1,6 +1,7 @@
 import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { FeeEstimator } from "@/components/FeeEstimator";
 import { GasOptimizer } from "@/components/GasOptimizer";
+import { MultiSigTransactionBuilder } from "@/components/MultiSigTransactionBuilder";
 import { TransactionPanel } from "@/components/TransactionPanel";
 import { SCREEN_LABELS } from "@/lib/nav-labels";
 
@@ -17,6 +18,7 @@ export function TransactionsScreen() {
       </div>
       <GasOptimizer />
       <FeeEstimator />
+      <MultiSigTransactionBuilder />
       <TransactionPanel />
       <ActivityTimeline />
     </div>
