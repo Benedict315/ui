@@ -1,5 +1,6 @@
 import {
   Add01Icon,
+  Alert01Icon,
   ArrowDown01Icon,
   Cancel01Icon,
   Tick01Icon,
@@ -8,7 +9,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { useSorokit } from "@/context/useSorokit";
 import type { NetworkInfo, NetworkName } from "@/lib/client";
@@ -63,9 +64,13 @@ export const STANDARD_NETWORKS: NetworkPreset[] = [
   },
 ];
 
+/** Keyboard shortcut that toggles the network picker from anywhere. */
+export const NETWORK_SWITCHER_SHORTCUT = "Alt+N";
+
 export function NetworkSwitcher() {
   const {
     network,
+    initialNetwork,
     switchNetwork,
     customNetworks = [],
     addCustomNetwork,
@@ -74,6 +79,22 @@ export function NetworkSwitcher() {
   const [isSwitching, setIsSwitching] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Alt+N toggles the picker from anywhere in the app.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // e.key is layout-dependent under Alt on some platforms, so accept the
+      // physical key too.
+      const isN = e.key?.toLowerCase() === "n" || e.code === "KeyN";
+      if (!e.altKey || e.ctrlKey || e.metaKey || !isN) return;
+      e.preventDefault();
+      setIsOpen((prev) => !prev);
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Form state for custom network modal
   const [customName, setCustomName] = useState("");
@@ -94,6 +115,14 @@ export function NetworkSwitcher() {
     rpcUrl: network?.rpcUrl ?? activePreset?.defaultRpcUrl ?? "https://soroban-testnet.stellar.org",
     status: network?.status ?? "online",
   };
+
+  // The selected network drifting from the one the client was initialised with
+  // means the client's underlying config may not match what is shown.
+  const isMismatched =
+    !!network && !!initialNetwork && network.name !== initialNetwork.name;
+  const mismatchMessage = isMismatched
+    ? `Selected ${currentInfo.label}, but the client was initialised with ${initialNetwork.name}. The underlying client config may not match.`
+    : "";
 
   const handleSelectNetwork = async (target: NetworkName | NetworkInfo) => {
     if (isSwitching) return;
@@ -155,14 +184,22 @@ export function NetworkSwitcher() {
 
   return (
     <Tooltip.Provider delayDuration={200}>
-      <DropdownMenu.Root>
+      <DropdownMenu.Root open={isOpen} onOpenChange={setIsOpen}>
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
             <DropdownMenu.Trigger asChild>
               <button
                 disabled={isSwitching}
-                aria-label={`Current network: ${currentInfo.label}. Click to switch network.`}
-                className="inline-flex items-center gap-1.5 sm:gap-2 h-8 px-2 sm:px-3.5 rounded-lg bg-surface-2 border border-line hover:border-line-2 transition-colors cursor-pointer text-[12px] text-ink-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50 disabled:cursor-not-allowed group"
+                aria-keyshortcuts={NETWORK_SWITCHER_SHORTCUT}
+                aria-label={`Current network: ${currentInfo.label}. Click to switch network. Shortcut ${NETWORK_SWITCHER_SHORTCUT}.${
+                  isMismatched ? ` Warning: ${mismatchMessage}` : ""
+                }`}
+                className={cn(
+                  "inline-flex items-center gap-1.5 sm:gap-2 h-8 px-2 sm:px-3.5 rounded-lg bg-surface-2 border transition-colors cursor-pointer text-[12px] text-ink-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50 disabled:cursor-not-allowed group",
+                  isMismatched
+                    ? "border-orange hover:border-orange"
+                    : "border-line hover:border-line-2",
+                )}
               >
                 <span className="relative flex items-center justify-center shrink-0">
                   <span
@@ -184,6 +221,23 @@ export function NetworkSwitcher() {
                 <span className="hidden sm:inline font-medium text-ink" aria-hidden="true">
                   {currentInfo.label}
                 </span>
+
+                {isMismatched && (
+                  <span
+                    data-testid="network-mismatch-badge"
+                    aria-hidden="true"
+                    title={mismatchMessage}
+                    className="inline-flex items-center gap-1 rounded-full bg-[rgba(249,115,22,0.12)] px-1.5 py-0.5 text-[10px] font-semibold text-orange"
+                  >
+                    <HugeiconsIcon
+                      icon={Alert01Icon}
+                      size={10}
+                      color="currentColor"
+                      strokeWidth={2}
+                    />
+                    <span className="hidden sm:inline">Mismatch</span>
+                  </span>
+                )}
 
                 {isSwitching ? (
                   <span className="ml-0.5 h-3 w-3 animate-spin rounded-full border-2 border-ink-2 border-t-transparent" />
@@ -209,6 +263,12 @@ export function NetworkSwitcher() {
               <p className="font-semibold text-ink">{currentInfo.label} ({currentInfo.status})</p>
               <p className="font-mono text-[10px] text-ink-3 break-all mt-0.5">
                 RPC: {currentInfo.rpcUrl}
+              </p>
+              {isMismatched && (
+                <p className="text-[10px] text-orange mt-1">{mismatchMessage}</p>
+              )}
+              <p className="text-[10px] text-ink-4 mt-1">
+                Press {NETWORK_SWITCHER_SHORTCUT} to switch networks
               </p>
               <Tooltip.Arrow className="fill-surface border-line" />
             </Tooltip.Content>
@@ -236,6 +296,22 @@ export function NetworkSwitcher() {
                 {currentInfo.rpcUrl}
               </p>
             </div>
+
+            {isMismatched && (
+              <div
+                role="alert"
+                className="mx-1.5 mb-1 flex items-start gap-2 rounded-lg border border-orange bg-[rgba(249,115,22,0.08)] px-2.5 py-2 text-[11px] text-orange"
+              >
+                <HugeiconsIcon
+                  icon={Alert01Icon}
+                  size={12}
+                  color="currentColor"
+                  strokeWidth={2}
+                  className="mt-0.5 shrink-0"
+                />
+                <span>{mismatchMessage}</span>
+              </div>
+            )}
 
             {/* Standard networks */}
             <DropdownMenu.Group>

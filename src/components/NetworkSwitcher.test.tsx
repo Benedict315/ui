@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll,beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
 
@@ -39,6 +39,15 @@ vi.mock("@radix-ui/react-dialog", async (importOriginal) => {
 describe("NetworkSwitcher", () => {
   let switchNetwork: ReturnType<typeof vi.fn>;
   let addCustomNetwork: ReturnType<typeof vi.fn>;
+
+  beforeAll(() => {
+    // Radix measures the tooltip arrow with ResizeObserver, which jsdom lacks.
+    globalThis.ResizeObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -185,6 +194,128 @@ describe("NetworkSwitcher", () => {
       horizonUrl: "http://localhost:8000",
       passphrase: "Standalone Network ; February 2017",
       status: "online",
+    });
+  });
+
+  describe("Alt+N keyboard shortcut", () => {
+    beforeEach(() => {
+      vi.mocked(useSorokit).mockReturnValue({
+        network: { name: "testnet", rpcUrl: "https://soroban-testnet.stellar.org" },
+        switchNetwork,
+        customNetworks: [],
+      } as unknown as ReturnType<typeof useSorokit>);
+    });
+
+    it("advertises the shortcut on the trigger", () => {
+      render(<NetworkSwitcher />);
+      expect(
+        screen.getByRole("button", { name: /current network: testnet/i }),
+      ).toHaveAttribute("aria-keyshortcuts", "Alt+N");
+    });
+
+    it("opens the dropdown on Alt+N", async () => {
+      render(<NetworkSwitcher />);
+      expect(screen.queryByText("Select Network")).not.toBeInTheDocument();
+
+      fireEvent.keyDown(document, { key: "n", code: "KeyN", altKey: true });
+
+      await waitFor(() => {
+        expect(screen.getByText("Select Network")).toBeInTheDocument();
+      });
+    });
+
+    it("closes the dropdown on a second Alt+N", async () => {
+      render(<NetworkSwitcher />);
+
+      fireEvent.keyDown(document, { key: "n", code: "KeyN", altKey: true });
+      await waitFor(() => {
+        expect(screen.getByText("Select Network")).toBeInTheDocument();
+      });
+
+      fireEvent.keyDown(document, { key: "n", code: "KeyN", altKey: true });
+      await waitFor(() => {
+        expect(screen.queryByText("Select Network")).not.toBeInTheDocument();
+      });
+    });
+
+    it("ignores N without Alt", () => {
+      render(<NetworkSwitcher />);
+      fireEvent.keyDown(document, { key: "n", code: "KeyN" });
+      expect(screen.queryByText("Select Network")).not.toBeInTheDocument();
+    });
+
+    it("ignores Alt+N combined with Ctrl or Meta", () => {
+      render(<NetworkSwitcher />);
+      fireEvent.keyDown(document, { key: "n", code: "KeyN", altKey: true, ctrlKey: true });
+      fireEvent.keyDown(document, { key: "n", code: "KeyN", altKey: true, metaKey: true });
+      expect(screen.queryByText("Select Network")).not.toBeInTheDocument();
+    });
+
+    it("detaches the listener on unmount", () => {
+      const { unmount } = render(<NetworkSwitcher />);
+      unmount();
+      fireEvent.keyDown(document, { key: "n", code: "KeyN", altKey: true });
+      expect(screen.queryByText("Select Network")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("client/network mismatch warning", () => {
+    it("shows a warning badge when the selection differs from the initialised network", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        network: { name: "mainnet", rpcUrl: "https://soroban.stellar.org" },
+        initialNetwork: { name: "testnet", rpcUrl: "https://soroban-testnet.stellar.org" },
+        switchNetwork,
+        customNetworks: [],
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<NetworkSwitcher />);
+
+      expect(screen.getByTestId("network-mismatch-badge")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /initialised with testnet/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("explains the mismatch inside the dropdown", async () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        network: { name: "mainnet", rpcUrl: "https://soroban.stellar.org" },
+        initialNetwork: { name: "testnet" },
+        switchNetwork,
+        customNetworks: [],
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<NetworkSwitcher />);
+      fireEvent.keyDown(document, { key: "n", code: "KeyN", altKey: true });
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          /client was initialised with testnet/i,
+        );
+      });
+    });
+
+    it("shows no badge when the selection matches the initialised network", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        network: { name: "testnet" },
+        initialNetwork: { name: "testnet" },
+        switchNetwork,
+        customNetworks: [],
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<NetworkSwitcher />);
+      expect(screen.queryByTestId("network-mismatch-badge")).not.toBeInTheDocument();
+    });
+
+    it("shows no badge when the initialised network is unknown", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        network: { name: "mainnet" },
+        initialNetwork: null,
+        switchNetwork,
+        customNetworks: [],
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<NetworkSwitcher />);
+      expect(screen.queryByTestId("network-mismatch-badge")).not.toBeInTheDocument();
     });
   });
 

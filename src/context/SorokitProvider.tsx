@@ -20,6 +20,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
   const [balances, setBalances] = useState<Balance[]>([]);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
   const [network, setNetwork] = useState<NetworkInfo | null>(null);
+  const [initialNetwork, setInitialNetwork] = useState<NetworkInfo | null>(null);
   const [customNetworks, setCustomNetworks] = useState<NetworkInfo[]>(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY_CUSTOM_NETWORKS);
@@ -66,22 +67,31 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
         savedNet = null;
       }
 
-      if (savedNet) {
-        client.network.switchNetwork(savedNet).then(({ data, error: nextError }) => {
-          if (!active) return;
-          if (data) setNetwork(data);
-          else client.network.getNetwork().then(({ data: fallbackData }) => {
-            if (active && fallbackData) setNetwork(fallbackData);
-          });
-          if (nextError) reportError(nextError, "network", "info");
-        });
-      } else {
-        client.network.getNetwork().then(({ data, error: nextError }) => {
-          if (!active) return;
-          if (data) setNetwork(data);
-          if (nextError) reportError(nextError, "network", "info");
-        });
-      }
+      // Read the client's own network first so the network it was initialised
+      // with is known even when a persisted preference overrides it. Both
+      // pieces of state are committed together at the end so restoring a
+      // preference costs no extra render.
+      void (async () => {
+        const { data: clientNet, error: clientError } =
+          await client.network.getNetwork();
+
+        let restored: NetworkInfo | null = null;
+        let restoreError: string | null = null;
+        if (savedNet) {
+          const { data, error: nextError } =
+            await client.network.switchNetwork(savedNet);
+          restored = data;
+          restoreError = nextError;
+        }
+
+        if (!active) return;
+        if (clientNet) setInitialNetwork(clientNet);
+        const resolved = restored ?? clientNet;
+        if (resolved) setNetwork(resolved);
+
+        const nextError = restoreError ?? clientError;
+        if (nextError) reportError(nextError, "network", "info");
+      })();
     }, 0);
 
     return () => {
@@ -232,6 +242,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
       isLoadingAccount,
       refreshAccount,
       network,
+      initialNetwork,
       switchNetwork,
       customNetworks,
       addCustomNetwork,
@@ -251,6 +262,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
       balances,
       refreshAccount,
       network,
+      initialNetwork,
       switchNetwork,
       customNetworks,
       addCustomNetwork,
