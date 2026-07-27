@@ -8,14 +8,23 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useSorokit } from "@/context/useSorokit";
 import { truncateAddress } from "@/lib/utils";
 
+function getStellarExpertUrl(address: string, networkName?: string) {
+  const base =
+    networkName === "testnet"
+      ? "https://testnet.stellar.expert"
+      : "https://stellar.expert";
+  return `${base}/explorer/public/account/${address}`;
+}
+
 /** Stellar base reserve: each subentry (trustline, offer, signer, data entry…) locks up 0.5 XLM. */
 const BASE_RESERVE_XLM = 0.5;
 
 export function AccountCard() {
-  const { address, account, isLoadingAccount } = useSorokit();
+  const { address, account, isLoadingAccount, network } = useSorokit();
   const sequenceLabelId = useId();
   const [showSequenceTooltip, setShowSequenceTooltip] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
+  const [showThresholds, setShowThresholds] = useState(false);
 
   useEffect(() => {
     if (!toastVisible) return;
@@ -59,6 +68,14 @@ export function AccountCard() {
               label="Address"
               onCopy={() => setToastVisible(true)}
             />
+            <a
+              href={getStellarExpertUrl(address, network?.name)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-brand hover:underline"
+            >
+              View on Stellar Expert →
+            </a>
             {account && (
               <div className="grid grid-cols-2 gap-5">
                 <Field label="Sequence" labelId={sequenceLabelId}>
@@ -109,6 +126,30 @@ export function AccountCard() {
                     </span>
                   </Field>
                 </div>
+              </div>
+            )}
+            {account?.thresholds && (
+              <div>
+                <button
+                  onClick={() => setShowThresholds((v) => !v)}
+                  className="text-[11px] text-ink-3 hover:text-ink-2 transition-colors"
+                >
+                  {showThresholds ? "▾ Hide thresholds" : "▸ Show thresholds"}
+                </button>
+                {showThresholds && (
+                  <div className="mt-2 grid grid-cols-4 gap-3">
+                    {(["low", "med", "high", "master"] as const).map((key) => (
+                      <div key={key} className="flex flex-col gap-0.5">
+                        <span className="text-[9px] uppercase tracking-wider text-ink-4">
+                          {key}
+                        </span>
+                        <span className="text-[12px] font-mono text-ink">
+                          {account.thresholds![key]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

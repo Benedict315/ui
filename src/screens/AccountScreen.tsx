@@ -1,4 +1,4 @@
-import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { Refresh01Icon, Download01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useState } from "react";
 
@@ -8,8 +8,19 @@ import { ClaimableBalanceCard } from "@/components/ClaimableBalanceCard";
 import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 
+function handleExport(address: string, account: ReturnType<typeof useSorokit>["account"], balances: ReturnType<typeof useSorokit>["balances"]) {
+  const data = { address, account, balances, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `sorokit-account-${address.slice(0, 8)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function AccountScreen() {
-  const { isConnected, isLoadingAccount, refreshAccount } = useSorokit();
+  const { isConnected, isLoadingAccount, refreshAccount, address, account, balances } = useSorokit();
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [now, setNow] = useState<Date>(new Date());
 
@@ -40,16 +51,29 @@ export function AccountScreen() {
       <p className="text-[13px] text-ink-3 -mt-3">Balances and account details</p>
       {isConnected && (
         <div className="flex flex-col items-end gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            loading={isLoadingAccount}
-            onClick={handleRefresh}
-            aria-label="Refresh account data"
-          >
-            <HugeiconsIcon icon={Refresh01Icon} size={14} strokeWidth={1.5} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              loading={isLoadingAccount}
+              onClick={handleRefresh}
+              aria-label="Refresh account data"
+            >
+              <HugeiconsIcon icon={Refresh01Icon} size={14} strokeWidth={1.5} />
+              Refresh
+            </Button>
+            {address && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleExport(address, account, balances)}
+                aria-label="Export account data"
+              >
+                <HugeiconsIcon icon={Download01Icon} size={14} strokeWidth={1.5} />
+                Export
+              </Button>
+            )}
+          </div>
           {lastRefreshed && (
             <span className="text-[11px] text-ink-3 pr-1">
               Last updated: {getRelativeTime(lastRefreshed)}
