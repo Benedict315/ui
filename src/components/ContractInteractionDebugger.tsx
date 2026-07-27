@@ -42,6 +42,16 @@ interface ContractInteractionDebuggerProps {
   result?: unknown;
   txHash?: string | null;
   error?: string | null;
+  stateBefore?: unknown;
+  stateAfter?: unknown;
+}
+
+interface DiffEntry {
+  path: string;
+  beforeValue: unknown;
+  afterValue: unknown;
+  beforeType: string;
+  afterType: string;
 }
 
 const DEBUG_HISTORY_KEY = "sorokit-soroban-debug-history";
@@ -86,6 +96,88 @@ function copyToClipboard(value: string) {
   return navigator.clipboard.writeText(value);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function describeValue(value: unknown): string {
+  if (value === null) return "null";
+  if (typeof value === "undefined") return "undefined";
+  if (typeof value === "string") return `string (${value.length})`;
+  if (typeof value === "number") return `number (${value})`;
+  if (typeof value === "boolean") return `boolean (${value})`;
+  if (Array.isArray(value)) return `array[${value.length}]`;
+  if (isPlainObject(value)) return `object{${Object.keys(value).length}}`;
+  return typeof value;
+}
+
+function formatSnapshot(value: unknown): string {
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function collectDiffEntries(before: unknown, after: unknown, basePath = ""): DiffEntry[] {
+  if (before === after) return [];
+
+  if (Array.isArray(before) && Array.isArray(after)) {
+    const entries: DiffEntry[] = [];
+    const maxLength = Math.max(before.length, after.length);
+    for (let index = 0; index < maxLength; index += 1) {
+      const path = basePath ? `${basePath}[${index}]` : `[${index}]`;
+      const beforeValue = before[index];
+      const afterValue = after[index];
+      if (beforeValue === afterValue) continue;
+      if (Array.isArray(beforeValue) || Array.isArray(afterValue) || isPlainObject(beforeValue) || isPlainObject(afterValue)) {
+        entries.push(...collectDiffEntries(beforeValue, afterValue, path));
+      } else {
+        entries.push({
+          path,
+          beforeValue: beforeValue,
+          afterValue: afterValue,
+          beforeType: describeValue(beforeValue),
+          afterType: describeValue(afterValue),
+        });
+      }
+    }
+    return entries;
+  }
+
+  if (isPlainObject(before) && isPlainObject(after)) {
+    const entries: DiffEntry[] = [];
+    const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
+    for (const key of keys) {
+      const path = basePath ? `${basePath}.${key}` : key;
+      const beforeValue = before[key];
+      const afterValue = after[key];
+      if (beforeValue === afterValue) continue;
+      if (Array.isArray(beforeValue) || Array.isArray(afterValue) || isPlainObject(beforeValue) || isPlainObject(afterValue)) {
+        entries.push(...collectDiffEntries(beforeValue, afterValue, path));
+      } else {
+        entries.push({
+          path,
+          beforeValue: beforeValue,
+          afterValue: afterValue,
+          beforeType: describeValue(beforeValue),
+          afterType: describeValue(afterValue),
+        });
+      }
+    }
+    return entries;
+  }
+
+  return [{
+    path: basePath || "value",
+    beforeValue: before,
+    afterValue: after,
+    beforeType: describeValue(before),
+    afterType: describeValue(after),
+  }];
+}
+
 export function ContractInteractionDebugger({
   contractId,
   method,
@@ -94,6 +186,8 @@ export function ContractInteractionDebugger({
   result,
   txHash,
   error,
+  stateBefore,
+  stateAfter,
 }: ContractInteractionDebuggerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -117,6 +211,11 @@ export function ContractInteractionDebugger({
       { id: "attempt-1", timestamp: new Date().toISOString(), retryCount: 0, status: state === "success" ? "submitted" : state === "error" ? "failed" : "pending", hash: txHash ?? undefined },
     ];
   }, [state, txHash]);
+
+  const stateDiffEntries = useMemo(() => {
+    if (typeof stateBefore === "undefined" || typeof stateAfter === "undefined") return [];
+    return collectDiffEntries(stateBefore, stateAfter);
+  }, [stateAfter, stateBefore]);
 
   useEffect(() => {
     if (!contractId || !method) return;
@@ -185,6 +284,68 @@ export function ContractInteractionDebugger({
             "prepared-call",
             preparedCall,
           )}
+
+          {stateBefore !== undefined || stateAfter !== undefined ? (
+            buildSection(
+              "State diff",
+              "Before and after snapshots for state-changing contract operations.",
+              <div className="flex flex-col gap-4">
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-lg border border-line bg-surface p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[12px] font-semibold text-ink">Pre-invocation snapshot</p>
+                      <Button variant="secondary" size="sm" onClick={() => void handleCopy("state-before", formatSnapshot(stateBefore))}>
+                        {copiedKey === "state-before" ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                    <div className="mt-3 overflow-x-auto rounded-md border border-line bg-surface-2 p-3">
+                      <pre className="text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">{formatSnapshot(stateBefore)}</pre>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-line bg-surface p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[12px] font-semibold text-ink">Post-invocation snapshot</p>
+                      <Button variant="secondary" size="sm" onClick={() => void handleCopy("state-after", formatSnapshot(stateAfter))}>
+                        {copiedKey === "state-after" ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                    <div className="mt-3 overflow-x-auto rounded-md border border-line bg-surface-2 p-3">
+                      <pre className="text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">{formatSnapshot(stateAfter)}</pre>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-line bg-surface p-3">
+                  <p className="text-[12px] font-semibold text-ink">Changed fields</p>
+                  {stateDiffEntries.length > 0 ? (
+                    <div className="mt-3 flex flex-col gap-2">
+                      {stateDiffEntries.map((entry) => (
+                        <details key={entry.path} className="rounded-lg border border-line bg-surface-2 p-3">
+                          <summary className="cursor-pointer text-[13px] font-semibold text-ink">
+                            {entry.path} · {entry.beforeType} → {entry.afterType}
+                          </summary>
+                          <div className="mt-3 grid gap-3 md:grid-cols-2">
+                            <div className="rounded-md border border-line bg-surface p-3">
+                              <p className="text-[11px] uppercase tracking-[0.08em] text-ink-4">Before</p>
+                              <pre className="mt-2 text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">{formatSnapshot(entry.beforeValue)}</pre>
+                            </div>
+                            <div className="rounded-md border border-line bg-surface p-3">
+                              <p className="text-[11px] uppercase tracking-[0.08em] text-ink-4">After</p>
+                              <pre className="mt-2 text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">{formatSnapshot(entry.afterValue)}</pre>
+                            </div>
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-[12px] text-ink-3">No state differences detected.</p>
+                  )}
+                </div>
+              </div>,
+              "state-diff",
+              JSON.stringify({ before: stateBefore, after: stateAfter }, null, 2),
+            )
+          ) : null}
 
           {buildSection(
             "Simulation result",
