@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   AccountData,
@@ -12,7 +12,7 @@ import { SorokitContext, type SorokitProviderProps } from "./SorokitContext";
 const STORAGE_KEY_NETWORK = "sorokit_network";
 const STORAGE_KEY_CUSTOM_NETWORKS = "sorokit_custom_networks";
 
-export function SorokitProvider({ client, children }: SorokitProviderProps) {
+export function SorokitProvider({ client, onError, children }: SorokitProviderProps) {
   const [address, setAddress] = useState<string | null>(null);
   const [walletName, setWalletName] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -29,6 +29,23 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
     }
   });
   const [error, setError] = useState<string | null>(null);
+  const [errorSeverity, setErrorSeverity] = useState<"info" | "error">("error");
+  const [errorHistory, setErrorHistory] = useState<string[]>([]);
+
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  const reportError = useCallback(
+    (err: string, source: string, severity: "info" | "error" = "error") => {
+      setError(err);
+      setErrorSeverity(severity);
+      setErrorHistory((prev) => [...prev, err]);
+      onErrorRef.current?.(err, source);
+    },
+    [],
+  );
 
   // Load network on mount with localStorage persistence restore
   useEffect(() => {
@@ -56,13 +73,13 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
           else client.network.getNetwork().then(({ data: fallbackData }) => {
             if (active && fallbackData) setNetwork(fallbackData);
           });
-          if (nextError) setError(nextError);
+          if (nextError) reportError(nextError, "network", "info");
         });
       } else {
         client.network.getNetwork().then(({ data, error: nextError }) => {
           if (!active) return;
           if (data) setNetwork(data);
-          if (nextError) setError(nextError);
+          if (nextError) reportError(nextError, "network", "info");
         });
       }
     }, 0);
@@ -71,7 +88,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       active = false;
       window.clearTimeout(timerId);
     };
-  }, [client]);
+  }, [client, reportError]);
 
   // Load account when address changes
   useEffect(() => {
@@ -88,8 +105,8 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
           if (!active) return;
           if (accountRes.data) setAccount(accountRes.data);
           if (balancesRes.data) setBalances(balancesRes.data);
-          if (accountRes.error) setError(accountRes.error);
-          else if (balancesRes.error) setError(balancesRes.error);
+          if (accountRes.error) reportError(accountRes.error, "account", "error");
+          else if (balancesRes.error) reportError(balancesRes.error, "account", "error");
         })
         .finally(() => {
           if (active) setIsLoadingAccount(false);
@@ -100,7 +117,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       active = false;
       window.clearTimeout(timerId);
     };
-  }, [address, client]);
+  }, [address, client, reportError]);
 
   function detectWalletName(): string | null {
     if (typeof window === "undefined") return null;
@@ -120,14 +137,14 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       setWalletName(name);
       const { data, error } = await client.wallet.connect();
       if (error) {
-        setError(error);
+        reportError(error, "wallet", "error");
         return;
       }
       if (data?.address) setAddress(data.address);
     } finally {
       setIsConnecting(false);
     }
-  }, [client]);
+  }, [client, reportError]);
 
   const disconnectWallet = useCallback(async () => {
     await client.wallet.disconnect();
@@ -141,7 +158,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
     async (param: NetworkName | NetworkInfo) => {
       const { data, error } = await client.network.switchNetwork(param);
       if (error) {
-        setError(error);
+        reportError(error, "network", "error");
         return;
       }
       if (data) {
@@ -160,7 +177,7 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
         setBalances([]);
       }
     },
-    [client],
+    [client, reportError],
   );
 
   const addCustomNetwork = useCallback(
@@ -194,12 +211,12 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       ]);
       if (accountRes.data) setAccount(accountRes.data);
       if (balancesRes.data) setBalances(balancesRes.data);
-      if (accountRes.error) setError(accountRes.error);
-      else if (balancesRes.error) setError(balancesRes.error);
+      if (accountRes.error) reportError(accountRes.error, "account", "error");
+      else if (balancesRes.error) reportError(balancesRes.error, "account", "error");
     } finally {
       setIsLoadingAccount(false);
     }
-  }, [address, client]);
+  }, [address, client, reportError]);
 
   const value = useMemo(
     () => ({
@@ -219,6 +236,8 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       customNetworks,
       addCustomNetwork,
       error,
+      errorSeverity,
+      errorHistory,
       clearError,
     }),
     [
@@ -236,6 +255,8 @@ export function SorokitProvider({ client, children }: SorokitProviderProps) {
       customNetworks,
       addCustomNetwork,
       error,
+      errorSeverity,
+      errorHistory,
       clearError,
     ],
   );

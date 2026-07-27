@@ -299,8 +299,8 @@ export function createMockClient(networkName?: string): SorokitClient | { data: 
         error: null,
         status: 'success',
       }),
-      getEvents: async (_contractId: string, _limit?: number) => ({
-        data: MOCK_EVENTS,
+      getEvents: async (_contractId: string, _limit?: number, fromLedger?: number) => ({
+        data: fromLedger !== undefined ? MOCK_EVENTS.filter((e) => e.ledger >= fromLedger) : MOCK_EVENTS,
         error: null,
       }),
     },

@@ -39,7 +39,7 @@
  * @see {@link SorokitProvider} for setup
  * @see GitHub issue #8 for QR code scanner limitation
  */
-import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { Copy01Icon, Refresh01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -101,6 +101,40 @@ function EventValue({
   );
 }
 
+function TopicTag({ topic }: { topic: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(topic);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* fallback */
+    }
+  }
+
+  return (
+    <span className="group inline-flex items-center gap-1 text-[10px] font-mono text-ink-3 bg-surface-2 rounded px-1.5 py-0.5 border border-line">
+      <span>{topic.length > 20 ? truncateAddress(topic, 8, 4) : topic}</span>
+      <button
+        type="button"
+        onClick={handleCopy}
+        title="Copy topic"
+        className="opacity-0 group-hover:opacity-100 hover:text-ink-1 transition-opacity cursor-pointer p-0.5"
+      >
+        <HugeiconsIcon
+          icon={copied ? Tick01Icon : Copy01Icon}
+          size={10}
+          color="currentColor"
+          strokeWidth={1.5}
+        />
+      </button>
+    </span>
+  );
+}
+
 function EventRow({
   event,
   maxValueLength,
@@ -133,12 +167,7 @@ function EventRow({
         {event.topics.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {event.topics.map((t, i) => (
-              <span
-                key={i}
-                className="text-[10px] font-mono text-ink-3 bg-surface-2 rounded px-1.5 py-0.5 border border-line"
-              >
-                {t.length > 20 ? truncateAddress(t, 8, 4) : t}
-              </span>
+              <TopicTag key={i} topic={t} />
             ))}
           </div>
         )}
@@ -161,6 +190,8 @@ export interface ContractEventFeedProps {
   filterTypes?: string[];
   /** Character length before an event value is truncated with a "Show more" toggle. */
   maxValueLength?: number;
+  /** Optional start ledger to fetch events from. */
+  fromLedger?: number;
 }
 
 export function ContractEventFeed({
@@ -169,6 +200,7 @@ export function ContractEventFeed({
   limit = 10,
   filterTypes,
   maxValueLength = DEFAULT_MAX_VALUE_LENGTH,
+  fromLedger,
 }: ContractEventFeedProps) {
   const [events, setEvents] = useState<ContractEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -188,6 +220,7 @@ export function ContractEventFeed({
       const { data, error: err } = await getClient().soroban.getEvents(
         contractId,
         limit,
+        fromLedger,
       );
       if (err) {
         setError(err);
@@ -199,7 +232,7 @@ export function ContractEventFeed({
     } finally {
       setLoading(false);
     }
-  }, [contractId, limit]);
+  }, [contractId, limit, fromLedger]);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -295,6 +328,24 @@ export function ContractEventFeed({
               {live ? "Live" : "Paused"}
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => {
+              const jsonStr = JSON.stringify(events, null, 2);
+              const blob = new Blob([jsonStr], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `contract-events-${contractId || "export"}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            disabled={events.length === 0}
+            title="Export JSON"
+            className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-surface-2 hover:bg-surface-3 text-ink-2 border border-line transition-colors disabled:opacity-40"
+          >
+            Export JSON
+          </button>
           <button
             onClick={() => void load()}
             disabled={loading}

@@ -108,6 +108,7 @@ export type SorokitClient = {
     getEvents: (
       contractId: string,
       limit?: number,
+      fromLedger?: number,
     ) => Promise<{ data: ContractEvent[] | null; error: string | null }>;
   };
   network: {
