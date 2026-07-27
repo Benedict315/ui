@@ -116,7 +116,7 @@ export type SorokitClient = {
       error: string | null;
     }>;
     switchNetwork: (
-      network: NetworkName,
+      network: NetworkName | NetworkInfo,
     ) => Promise<{ data: NetworkInfo | null; error: string | null }>;
     getGasPrice: () => Promise<{
       data: GasPriceData | null;
@@ -281,13 +281,14 @@ export type InvokeParams = {
   sourceAccount?: string;
 };
 
-export type NetworkName = "mainnet" | "testnet" | "futurenet" | "localnet";
+export type NetworkName = "mainnet" | "testnet" | "futurenet" | "localnet" | "custom" | (string & {});
 
 export type NetworkInfo = {
   name: NetworkName;
   passphrase: string;
   rpcUrl: string;
   horizonUrl: string;
+  status?: "online" | "degraded" | "offline" | string;
 };
 
 // ─── Allowance Types ───────────────────────────────────────────────────

@@ -40,12 +40,35 @@ const MOCK_NETWORK_INFO: Record<string, NetworkInfo> = {
     passphrase: 'Test SDF Network ; September 2015',
     rpcUrl: 'https://soroban-testnet.stellar.org',
     horizonUrl: 'https://horizon-testnet.stellar.org',
+    status: 'online',
   },
   public: {
     name: 'mainnet',
     passphrase: 'Public Global Stellar Network ; September 2015',
     rpcUrl: 'https://soroban.stellar.org',
     horizonUrl: 'https://horizon.stellar.org',
+    status: 'online',
+  },
+  mainnet: {
+    name: 'mainnet',
+    passphrase: 'Public Global Stellar Network ; September 2015',
+    rpcUrl: 'https://soroban.stellar.org',
+    horizonUrl: 'https://horizon.stellar.org',
+    status: 'online',
+  },
+  futurenet: {
+    name: 'futurenet',
+    passphrase: 'Test SDF Future Network ; October 2022',
+    rpcUrl: 'https://rpc-futurenet.stellar.org',
+    horizonUrl: 'https://horizon-futurenet.stellar.org',
+    status: 'online',
+  },
+  localnet: {
+    name: 'localnet',
+    passphrase: 'Standalone Network ; February 2017',
+    rpcUrl: 'http://localhost:8000/soroban/rpc',
+    horizonUrl: 'http://localhost:8000',
+    status: 'online',
   },
 };
 
@@ -156,6 +179,7 @@ export const MOCK_TIMELINE_GROUPS: TimelineGroup[] = [
 ];
 
 // ─── Allowances ────────────────────────────────────────────────
+const MOCK_ALLOWANCES: AllowanceEntry[] = [
   {
     asset: 'USDC',
     spender: 'CAIBNITKJZ2P2H3XJ2VW2YOX4X3JQBQ3F6VXZ4X3J2Q3X4X3J2Q3X4',
@@ -285,12 +309,15 @@ export function createMockClient(networkName?: string): SorokitClient | { data: 
         data: MOCK_NETWORK_INFO[activeNetwork],
         error: null,
       }),
-      switchNetwork: async (name: NetworkName) => {
-        const info = MOCK_NETWORK_INFO[name];
+      switchNetwork: async (param: NetworkName | NetworkInfo) => {
+        if (typeof param === "object" && param !== null) {
+          return { data: { status: "online", ...param }, error: null };
+        }
+        const info = MOCK_NETWORK_INFO[param];
         if (info) {
           return { data: info, error: null };
         }
-        return { data: null, error: `Invalid network: ${name}` };
+        return { data: null, error: `Invalid network: ${param}` };
       },
       getGasPrice: async () => ({
         data: { baseFee: '100', gasPrice: '100', ledgerCloseTime: 5, baseReserve: '0.5' } as GasPriceData,
@@ -353,9 +380,8 @@ export function createMockClient(networkName?: string): SorokitClient | { data: 
          const paged = filtered.slice(start, end);
          return { data: paged.length > 0 ? paged : null, error: null, total };
        },
-     },
-   } as SorokitClient;
-    allowance: {
+      },
+     allowance: {
       getAllowances: async (_address: string) => ({
         data: MOCK_ALLOWANCES,
         error: null,

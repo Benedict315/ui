@@ -75,6 +75,13 @@ export type {
 export { TransactionConfirmModal } from "./TransactionConfirmModal";
 export { TransactionHistory } from "./TransactionHistory";
 export { MultiSigTransactionBuilder } from "./MultiSigTransactionBuilder";
+export { TransactionHistoryTable } from "./TransactionHistoryTable";
+export type {
+  TransactionHistoryTableProps,
+  SortField,
+  SortDirection,
+  TransactionFilters,
+} from "./TransactionHistoryTable";
 export { TransactionPanel } from "./TransactionPanel";
 export { TransactionStatusTracker } from "./TransactionStatusTracker";
 
@@ -143,6 +150,7 @@ export {
   weightedAverageSlippage,
 } from "../lib/rebalancer";
 export { QRCode } from "./QRCode";
+export { SwapSimulator } from "./SwapSimulator";
 
 // Staking utilities
 export type {
@@ -181,6 +189,19 @@ export {
   validateDelegationAmount,
 } from "../lib/staking";
 
+// Wallet Status
+export { WalletStatusBadge } from "./WalletStatusBadge";
+
+// Transaction Fee Calculator
+export { TransactionFeeCalculator } from "./TransactionFeeCalculator";
+
+// Contract Interaction Builder
+export type { ContractSpec } from "./ContractInteractionBuilder";
+export { ContractInteractionBuilder } from "./ContractInteractionBuilder";
+
+// Account Balance Chart
+export { AccountBalanceChart } from "./AccountBalanceChart";
+
 // Providers and hooks
 export { SorokitProvider } from "../context/SorokitProvider";
 export { useSorokit } from "../context/useSorokit";
@@ -203,3 +224,6 @@ export type {
   TimelineGroup,
   Transaction,
 } from "../lib/client";
+export { ToastContainer } from "./ui/Toast";
+export { ToastProvider, useToast } from "../context/ToastContext";
+export type { Toast, ToastType } from "../context/ToastContext";

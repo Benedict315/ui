@@ -10,6 +10,7 @@ import type {
 
 export interface SorokitState {
   address: string | null;
+  walletName: string | null;
   isConnected: boolean;
   isConnecting: boolean;
   isLoading: boolean;
@@ -20,7 +21,9 @@ export interface SorokitState {
   isLoadingAccount: boolean;
   refreshAccount: () => Promise<void>;
   network: NetworkInfo | null;
-  switchNetwork: (name: NetworkName) => Promise<void>;
+  switchNetwork: (network: NetworkName | NetworkInfo) => Promise<void>;
+  customNetworks?: NetworkInfo[];
+  addCustomNetwork?: (config: NetworkInfo) => Promise<void>;
   error: string | null;
   clearError: () => void;
 }

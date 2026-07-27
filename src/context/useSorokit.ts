@@ -4,6 +4,7 @@ import { SorokitContext, type SorokitState } from "./SorokitContext";
 
 const safeDefaults: SorokitState = {
   address: null,
+  walletName: null,
   isConnected: false,
   isConnecting: false,
   isLoading: false,
