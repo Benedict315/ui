@@ -21,7 +21,8 @@ import "../styles.css";
 
 // UI primitives
 export { Badge } from "./ui/Badge";
-export { Button } from "./ui/Button";
+export type { ButtonGroupProps } from "./ui/Button";
+export { Button, ButtonGroup } from "./ui/Button";
 export {
   Card,
   CardContent,
