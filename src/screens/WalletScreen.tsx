@@ -1,5 +1,6 @@
 import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useRef, useState } from "react";
 
 import { AddressDisplay } from "@/components/AddressDisplay";
@@ -9,36 +10,44 @@ import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 import { cn, truncateAddress } from "@/lib/utils";
 
+/**
+ * Full-screen QR code for scanning. Built on Radix Dialog so it traps focus,
+ * closes on Escape or an overlay click, and is labelled for screen readers --
+ * on a narrow screen the inline QR code can be clipped or too small to scan.
+ */
 function QRModal({
   open,
-  onClose,
+  onOpenChange,
   address,
 }: {
   open: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   address: string;
 }) {
-  if (!open) return null;
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-surface rounded-xl border border-line p-6 flex flex-col items-center gap-4 max-w-xs w-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <QRCode value={address} size={240} ariaLabel="Full-size QR code" />
-        <p className="text-[11px] text-ink-3 break-all text-center font-mono">
-          {address}
-        </p>
-        <Button variant="secondary" size="sm" onClick={onClose}>
-          Close
-        </Button>
-      </div>
-    </div>
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xs -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface p-6 flex flex-col items-center gap-4 focus:outline-none">
+          <Dialog.Title className="text-[15px] font-semibold text-ink">
+            Receive Funds
+          </Dialog.Title>
+          <Dialog.Description className="sr-only">
+            Full-size QR code for your wallet address. Scan it to send funds to
+            this account.
+          </Dialog.Description>
+          <QRCode value={address} size={240} ariaLabel="Full-size QR code" />
+          <p className="text-[11px] text-ink-3 break-all text-center font-mono">
+            {address}
+          </p>
+          <Dialog.Close asChild>
+            <Button variant="secondary" size="sm">
+              Close
+            </Button>
+          </Dialog.Close>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -81,6 +90,16 @@ export function WalletScreen() {
     const id = window.setTimeout(() => setToastVisible(false), 3000);
     return () => window.clearTimeout(id);
   }, [toastVisible]);
+
+  // createdAt is inferred rather than authoritative, so an unparseable value is
+  // dropped instead of rendering "NaN".
+  const createdAtDate = account?.createdAt
+    ? new Date(account.createdAt)
+    : null;
+  const activeSinceYear =
+    createdAtDate && !Number.isNaN(createdAtDate.getTime())
+      ? createdAtDate.getFullYear().toString()
+      : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -128,12 +147,9 @@ export function WalletScreen() {
             <InfoCell label="Home Domain" value={account.homeDomain} />
           </div>
         )}
-        {account?.createdAt && (
+        {activeSinceYear && (
           <div className="border-t border-line">
-            <InfoCell
-              label="Active Since"
-              value={new Date(account.createdAt).getFullYear().toString()}
-            />
+            <InfoCell label="Active Since" value={activeSinceYear} />
           </div>
         )}
       </div>
@@ -188,7 +204,7 @@ export function WalletScreen() {
 
       <QRModal
         open={qrModalOpen}
-        onClose={() => setQrModalOpen(false)}
+        onOpenChange={setQrModalOpen}
         address={address || ""}
       />
     </div>
