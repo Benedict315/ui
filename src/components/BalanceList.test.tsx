@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent,render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -265,6 +265,116 @@ describe("BalanceList", () => {
       render(<BalanceList />);
       expect(screen.getAllByTestId("skeleton-row")).toHaveLength(3);
       expect(screen.queryByText(/fund with friendbot/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("search filter (#352)", () => {
+    beforeEach(() => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockXlmBalance, mockAbcBalance, mockUsdcBalance, mockUsdtZeroBalance],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+    });
+
+    it("filters asset rows by code as the user types", () => {
+      render(<BalanceList />);
+      const search = screen.getByPlaceholderText("Search assets…");
+
+      fireEvent.change(search, { target: { value: "usd" } });
+
+      const badges = screen.getAllByTestId("asset-badge");
+      expect(badges.map((b) => b.textContent)).toEqual(["USDC", "USDT"]);
+    });
+
+    it("filters case-insensitively", () => {
+      render(<BalanceList />);
+      const search = screen.getByPlaceholderText("Search assets…");
+
+      fireEvent.change(search, { target: { value: "ABC" } });
+
+      const badges = screen.getAllByTestId("asset-badge");
+      expect(badges).toHaveLength(1);
+      expect(badges[0]).toHaveTextContent("ABC");
+    });
+
+    it("shows 'No matching assets' when the search matches nothing", () => {
+      render(<BalanceList />);
+      const search = screen.getByPlaceholderText("Search assets…");
+
+      fireEvent.change(search, { target: { value: "zzz-nonexistent" } });
+
+      expect(screen.getByText("No matching assets")).toBeInTheDocument();
+      expect(screen.queryAllByTestId("asset-badge")).toHaveLength(0);
+    });
+
+    it("restores the full list when the search is cleared", () => {
+      render(<BalanceList />);
+      const search = screen.getByPlaceholderText("Search assets…");
+
+      fireEvent.change(search, { target: { value: "ABC" } });
+      expect(screen.getAllByTestId("asset-badge")).toHaveLength(1);
+
+      fireEvent.change(search, { target: { value: "" } });
+      expect(screen.getAllByTestId("asset-badge")).toHaveLength(4);
+    });
+  });
+
+  describe("sort toggle (#352)", () => {
+    beforeEach(() => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockUsdtZeroBalance, mockAbcBalance, mockXlmBalance, mockUsdcBalance],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+    });
+
+    function badgeOrder() {
+      return screen.getAllByTestId("asset-badge").map((b) => b.textContent);
+    }
+
+    it("starts in Default mode: XLM first, non-zero before zero, alphabetical within groups", () => {
+      render(<BalanceList />);
+      expect(screen.getByTitle("Sort: Default")).toBeInTheDocument();
+      expect(badgeOrder()).toEqual(["XLM", "ABC", "USDC", "USDT"]);
+    });
+
+    it("cycles to Balance (desc) mode on the first click", () => {
+      render(<BalanceList />);
+      fireEvent.click(screen.getByTitle("Sort: Default"));
+
+      expect(screen.getByTitle("Sort: Balance")).toBeInTheDocument();
+      // XLM=100, USDC=50, ABC=25, USDT=0 — highest balance first.
+      expect(badgeOrder()).toEqual(["XLM", "USDC", "ABC", "USDT"]);
+    });
+
+    it("cycles to A-Z (alpha) mode on the second click", () => {
+      render(<BalanceList />);
+      fireEvent.click(screen.getByTitle("Sort: Default"));
+      fireEvent.click(screen.getByTitle("Sort: Balance"));
+
+      expect(screen.getByTitle("Sort: A-Z")).toBeInTheDocument();
+      expect(badgeOrder()).toEqual(["ABC", "USDC", "USDT", "XLM"]);
+    });
+
+    it("cycles back to Default mode on the third click", () => {
+      render(<BalanceList />);
+      fireEvent.click(screen.getByTitle("Sort: Default"));
+      fireEvent.click(screen.getByTitle("Sort: Balance"));
+      fireEvent.click(screen.getByTitle("Sort: A-Z"));
+
+      expect(screen.getByTitle("Sort: Default")).toBeInTheDocument();
+      expect(badgeOrder()).toEqual(["XLM", "ABC", "USDC", "USDT"]);
+    });
+
+    it("applies the active sort mode on top of the search filter", () => {
+      render(<BalanceList />);
+      const search = screen.getByPlaceholderText("Search assets…");
+      fireEvent.change(search, { target: { value: "us" } });
+      fireEvent.click(screen.getByTitle("Sort: Default")); // -> balance-desc
+
+      // USDC=50, USDT=0 — highest balance first, filtered to only the two "us*" assets.
+      expect(badgeOrder()).toEqual(["USDC", "USDT"]);
     });
   });
 });
