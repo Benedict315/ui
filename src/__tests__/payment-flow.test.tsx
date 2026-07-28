@@ -36,6 +36,10 @@ describe("Payment Flow Integration", () => {
               ),
             ),
         ),
+        estimateFee: vi.fn().mockResolvedValue({
+          data: { baseFee: "100", recommended: "100" },
+          error: null,
+        }),
       }
     } as unknown as ReturnType<typeof getClient>;
     // TransactionPanel calls the module-level getClient(); wire it to the mock.
@@ -79,12 +83,15 @@ describe("Payment Flow Integration", () => {
     fireEvent.change(destInput, { target: { value: validDest } });
     fireEvent.change(amountInput, { target: { value: validAmount } });
 
-    await act(async () => {
-      fireEvent.click(submitBtn);
-    });
+    fireEvent.click(submitBtn);
 
-    // Verify loading state appears
-    expect(screen.getByRole("button", { name: /submitting/i })).toBeInTheDocument();
+    await waitFor(() => screen.getByRole("dialog", { name: /confirm transaction/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm & sign/i }));
+
+    // Verify the transient signing state appears on the confirm modal (the
+    // underlying page's own "Submitting…" button is aria-hidden by the
+    // modal while it's open, so this is what's actually reachable/visible).
+    expect(screen.getByRole("button", { name: /signing/i })).toBeInTheDocument();
 
     // Verify success state renders
     await waitFor(() => {

@@ -33,8 +33,6 @@ export default defineConfig({
         'react',
         'react-dom',
         'react/jsx-runtime',
-        // Tailwind CSS should be imported by consumer
-        'tailwindcss',
       ],
       output: {
         globals: {
@@ -43,11 +41,14 @@ export default defineConfig({
         },
       },
     },
-    minify: 'esbuild',
+    minify: false,
     sourcemap: true,
     // Preserve specific directory structure
     outDir: 'dist',
     emptyOutDir: true,
+  },
+  optimizeDeps: {
+    include: ["sorokit-core", "@creit.tech/stellar-wallets-kit"],
   },
   resolve: {
     alias: {

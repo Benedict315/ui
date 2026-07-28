@@ -15,8 +15,31 @@ import { getClient } from "@/lib/client";
 import { truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
+const MEMO_TRUNCATE_LENGTH = 20;
 
-export function TxRow({ tx }: { tx: Transaction }) {
+function truncateMemo(memo: string): string {
+  return memo.length > MEMO_TRUNCATE_LENGTH
+    ? `${memo.slice(0, MEMO_TRUNCATE_LENGTH)}…`
+    : memo;
+}
+
+function explorerTxUrl(
+  networkName: string | undefined,
+  hash: string,
+): string | null {
+  const segment =
+    networkName === "mainnet" ? "public" : networkName === "testnet" ? "testnet" : null;
+  if (!segment) return null;
+  return `https://stellar.expert/explorer/${segment}/tx/${hash}`;
+}
+
+export function TxRow({
+  tx,
+  networkName,
+}: {
+  tx: Transaction;
+  networkName?: string;
+}) {
   const date = new Date(tx.createdAt);
   const timeStr = date.toLocaleTimeString([], {
     hour: "2-digit",
@@ -27,8 +50,20 @@ export function TxRow({ tx }: { tx: Transaction }) {
     day: "numeric",
   });
 
+  const explorerUrl = explorerTxUrl(networkName, tx.hash);
+
+  const RowWrapper = explorerUrl ? "a" : "div";
+  const wrapperProps = explorerUrl
+    ? { href: explorerUrl, target: "_blank", rel: "noopener noreferrer" }
+    : {};
+
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-line last:border-0 gap-4">
+    <RowWrapper
+      {...(wrapperProps as Record<string, string>)}
+      role="article"
+      aria-label={`Transaction ${truncateAddress(tx.hash, 10, 6)} — ${tx.successful ? "Success" : "Failed"} — Fee: ${tx.feePaid} stroops`}
+      className="flex items-center justify-between px-5 py-3.5 border-b border-line last:border-0 gap-4 hover:bg-surface-2 transition-colors cursor-pointer"
+    >
       <div className="flex items-center gap-3 min-w-0">
         {/* Status icon */}
         <div
@@ -50,7 +85,9 @@ export function TxRow({ tx }: { tx: Transaction }) {
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-ink-3">Ledger {tx.ledger}</span>
             {tx.memo && (
-              <span className="text-[10px] text-ink-3">· {tx.memo}</span>
+              <span className="text-[10px] text-ink-3" title={tx.memo}>
+                · {truncateMemo(tx.memo)}
+              </span>
             )}
           </div>
         </div>
@@ -76,12 +113,20 @@ export function TxRow({ tx }: { tx: Transaction }) {
           </span>
         </div>
       </div>
-    </div>
+    </RowWrapper>
   );
 }
 
-export function TransactionHistory() {
-  const { address, isConnected } = useSorokit();
+type StatusFilter = "all" | "success" | "failed";
+
+export interface TransactionHistoryProps {
+  startDate?: string;
+  endDate?: string;
+}
+
+export function TransactionHistory({ startDate, endDate }: TransactionHistoryProps = {}) {
+  const { address, isConnected, network } = useSorokit();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -119,6 +164,20 @@ export function TransactionHistory() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  const filteredTxs = txs.filter((tx) => {
+    if (statusFilter === "success" && !tx.successful) return false;
+    if (statusFilter === "failed" && tx.successful) return false;
+    if (startDate && new Date(tx.createdAt) < new Date(startDate)) return false;
+    if (endDate && new Date(tx.createdAt) > new Date(endDate + "T23:59:59")) return false;
+    return true;
+  });
+
+  const STATUS_BUTTONS: { value: StatusFilter; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: "success", label: "Success" },
+    { value: "failed", label: "Failed" },
+  ];
+
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-line">
@@ -133,6 +192,21 @@ export function TransactionHistory() {
         {loading && (
           <span className="w-4 h-4 border border-ink-3 border-t-transparent rounded-full animate-spin" />
         )}
+      </div>
+      <div className="flex items-center gap-1 px-5 py-2 border-b border-line">
+        {STATUS_BUTTONS.map((btn) => (
+          <button
+            key={btn.value}
+            onClick={() => setStatusFilter(btn.value)}
+            className={`text-[11px] font-medium px-2.5 py-1 rounded-full transition-colors ${
+              statusFilter === btn.value
+                ? "bg-brand-dim text-brand"
+                : "text-ink-3 hover:text-ink-2"
+            }`}
+          >
+            {btn.label}
+          </button>
+        ))}
       </div>
 
       {!isConnected ? (
@@ -161,8 +235,8 @@ export function TransactionHistory() {
       ) : (
         <>
           <div>
-            {txs.map((tx) => (
-              <TxRow key={tx.hash} tx={tx} />
+            {filteredTxs.map((tx) => (
+              <TxRow key={tx.hash} tx={tx} networkName={network?.name} />
             ))}
           </div>
           {totalPages > 1 && (

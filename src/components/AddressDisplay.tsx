@@ -14,6 +14,8 @@ export interface AddressDisplayProps {
   label?: string;
   onCopy?: () => void;
   size?: "sm" | "md" | "lg";
+  masked?: boolean;
+  mono?: boolean;
 }
 
 const sizeConfig = {
@@ -31,6 +33,8 @@ export function AddressDisplay({
   label,
   onCopy,
   size = "md",
+  masked = false,
+  mono = false,
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
 
@@ -45,47 +49,62 @@ export function AddressDisplay({
     }
   }
 
-  const display = showFull ? address : truncateAddress(address, start, end);
+  const display = masked
+    ? `${address.slice(0, 4)}···${address.slice(-4)}`
+    : showFull
+      ? address
+      : truncateAddress(address, start, end);
   const { text, icon: iconSize } = sizeConfig[size];
+
+  const addressSpan = (
+    <div className="flex items-center gap-2 group">
+      <span
+        data-address
+        className={cn(
+          "break-all leading-relaxed",
+          text,
+          mono && "font-mono",
+          showFull && "select-all",
+        )}
+        title={address}
+      >
+        {display}
+      </span>
+      <button
+        onClick={copy}
+        aria-label={copied ? "Address copied" : "Copy address"}
+        className={cn(
+          "shrink-0 p-1 rounded-md transition-all",
+          copied
+            ? "text-green bg-success-dim"
+            : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
+        )}
+        title={copied ? "Copied!" : "Copy address"}
+      >
+        <HugeiconsIcon
+          icon={copied ? Tick01Icon : Copy01Icon}
+          size={iconSize}
+          color="currentColor"
+          strokeWidth={2}
+        />
+      </button>
+    </div>
+  );
+
+  if (label) {
+    return (
+      <dl className={cn("flex flex-col gap-1", className)}>
+        <dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
+          {label}
+        </dt>
+        <dd className="m-0">{addressSpan}</dd>
+      </dl>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      {label && (
-        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
-          {label}
-        </span>
-      )}
-      <div className="flex items-center gap-2 group">
-        <span
-          data-address
-          className={cn(
-            "break-all leading-relaxed",
-            showFull && text,
-            showFull && "select-all",
-          )}
-          title={address}
-        >
-          {display}
-        </span>
-        <button
-          onClick={copy}
-          aria-label={copied ? "Address copied" : "Copy address"}
-          className={cn(
-            "shrink-0 p-1 rounded-md transition-all",
-            copied
-              ? "text-green bg-success-dim"
-              : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
-          )}
-          title={copied ? "Copied!" : "Copy address"}
-        >
-          <HugeiconsIcon
-            icon={copied ? Tick01Icon : Copy01Icon}
-            size={iconSize}
-            color="currentColor"
-            strokeWidth={2}
-          />
-        </button>
-      </div>
+      {addressSpan}
     </div>
   );
 }

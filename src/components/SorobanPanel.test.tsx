@@ -112,7 +112,7 @@ describe("SorobanPanel", () => {
     expect(
       screen.queryByText(/Arguments must be a JSON array/i),
     ).not.toBeInTheDocument();
-    expect(await screen.findByText(/Result/i)).toBeInTheDocument();
+    expect(await screen.findByText("Result", { selector: "span" })).toBeInTheDocument();
   });
 
   it("should show error when invokeContract fails", async () => {
@@ -147,7 +147,7 @@ describe("SorobanPanel", () => {
     fireEvent.click(invokeBtn);
 
     // Verify result is displayed
-    const resultHeader = await screen.findByText("Result");
+    const resultHeader = await screen.findByText("Result", { selector: "span" });
     expect(resultHeader).toBeInTheDocument();
     expect(screen.getByText(/"balance": 1000/)).toBeInTheDocument();
 
@@ -165,5 +165,117 @@ describe("SorobanPanel", () => {
 
     expect(screen.queryByText("Result")).not.toBeInTheDocument();
     expect(screen.queryByText(/"balance": 1000/)).not.toBeInTheDocument();
+  });
+
+  // ── Contract ID history (#205) ──────────────────────────────────────────
+  describe("contract ID history", () => {
+    const HISTORY_KEY = "sorokit-soroban-contract-history";
+
+    it("renders no datalist when localStorage has no history", () => {
+      vi.stubGlobal("localStorage", {
+        getItem: vi.fn(() => null),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+      });
+
+      render(<SorobanPanel contractId="" onContractIdChange={() => {}} />);
+
+      const input = screen.getByLabelText("Contract ID");
+      expect(input).not.toHaveAttribute("list");
+
+      vi.unstubAllGlobals();
+    });
+
+    it("renders a <datalist> populated from a previously used contract ID in localStorage", () => {
+      const store: Record<string, string> = {
+        [HISTORY_KEY]: JSON.stringify(["CPREVIOUS123"]),
+      };
+      vi.stubGlobal("localStorage", {
+        getItem: vi.fn((key: string) => store[key] ?? null),
+        setItem: vi.fn((key: string, value: string) => {
+          store[key] = value;
+        }),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+      });
+
+      const { container } = render(
+        <SorobanPanel contractId="" onContractIdChange={() => {}} />,
+      );
+
+      const input = screen.getByLabelText("Contract ID");
+      expect(input).toHaveAttribute(
+        "list",
+        "sorokit-soroban-contract-history-list",
+      );
+      const option = container.querySelector(
+        "datalist#sorokit-soroban-contract-history-list option",
+      );
+      expect(option).toHaveAttribute("value", "CPREVIOUS123");
+
+      vi.unstubAllGlobals();
+    });
+
+    it("stores a successfully invoked contract ID in localStorage history", async () => {
+      const store: Record<string, string> = {};
+      const setItem = vi.fn((key: string, value: string) => {
+        store[key] = value;
+      });
+      vi.stubGlobal("localStorage", {
+        getItem: vi.fn((key: string) => store[key] ?? null),
+        setItem,
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+      });
+      mockInvokeContract.mockResolvedValueOnce({
+        data: { ok: true },
+        error: null,
+      });
+
+      render(<SorobanPanel contractId="CNEW456" onContractIdChange={() => {}} />);
+      fireEvent.change(screen.getByLabelText("Method"), {
+        target: { value: "balance" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: /invoke/i }));
+
+      await screen.findByText("Result");
+
+      expect(setItem).toHaveBeenCalledWith(
+        HISTORY_KEY,
+        JSON.stringify(["CNEW456"]),
+      );
+
+      vi.unstubAllGlobals();
+    });
+
+    it("does not render a suggestion after localStorage is cleared", () => {
+      const store: Record<string, string> = {
+        [HISTORY_KEY]: JSON.stringify(["COLD789"]),
+      };
+      vi.stubGlobal("localStorage", {
+        getItem: vi.fn((key: string) => store[key] ?? null),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(() => {
+          for (const key of Object.keys(store)) delete store[key];
+        }),
+      });
+
+      const { unmount } = render(
+        <SorobanPanel contractId="" onContractIdChange={() => {}} />,
+      );
+      expect(screen.getByLabelText("Contract ID")).toHaveAttribute("list");
+      unmount();
+
+      localStorage.clear();
+
+      render(<SorobanPanel contractId="" onContractIdChange={() => {}} />);
+      expect(screen.getByLabelText("Contract ID")).not.toHaveAttribute(
+        "list",
+      );
+
+      vi.unstubAllGlobals();
+    });
   });
 });

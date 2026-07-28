@@ -1,9 +1,9 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect,it } from "vitest";
+import { fireEvent,render, screen } from "@testing-library/react";
+import { describe, expect,it, vi } from "vitest";
 
 import type { Balance } from "@/lib/client";
 
-import { AssetBadge, AssetPill } from "./AssetBadge";
+import { AssetBadge, AssetPill, isKnownAsset } from "./AssetBadge";
 
 const nativeBalance: Balance = {
   assetType: "native",
@@ -27,6 +27,14 @@ const unknownBalance: Balance = {
   assetIssuer: "GBBB4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
   balance: "10",
   balanceFloat: 10,
+};
+
+const lpSharesBalance: Balance = {
+  assetType: "liquidity_pool_shares",
+  assetCode: undefined,
+  assetIssuer: undefined,
+  balance: "25",
+  balanceFloat: 25,
 };
 
 describe("AssetBadge", () => {
@@ -79,6 +87,109 @@ describe("AssetBadge", () => {
   it("renders the asset code for an unknown asset", () => {
     render(<AssetBadge balance={unknownBalance} />);
     expect(screen.getByText("WAVEX")).toBeInTheDocument();
+  });
+
+  it("renders 'LP' for liquidity_pool_shares without undefined display", () => {
+    const { container } = render(<AssetBadge balance={lpSharesBalance} />);
+    expect(screen.getAllByText("LP").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/undefined/i)).not.toBeInTheDocument();
+    const icon = container.querySelector(".bg-surface-2.text-ink-2");
+    expect(icon).toBeInTheDocument();
+    expect(icon?.textContent).toBe("LP");
+  });
+
+  it("renders 'Liquidity Pool Shares' sub-label for LP when showIssuer is true", () => {
+    render(<AssetBadge balance={lpSharesBalance} showIssuer />);
+    expect(screen.getByText("Liquidity Pool Shares")).toBeInTheDocument();
+  });
+
+  describe("showIssuerForUnknown", () => {
+    it("hides the issuer for a known asset (USDC)", () => {
+      render(<AssetBadge balance={usdcBalance} showIssuerForUnknown />);
+      expect(document.querySelector("[data-address]")).not.toBeInTheDocument();
+    });
+
+    it("hides the 'Stellar Lumens' sub-label for native XLM", () => {
+      render(<AssetBadge balance={nativeBalance} showIssuerForUnknown />);
+      expect(screen.queryByText("Stellar Lumens")).not.toBeInTheDocument();
+    });
+
+    it("shows the issuer for an unknown asset", () => {
+      render(<AssetBadge balance={unknownBalance} showIssuerForUnknown />);
+      expect(document.querySelector("[data-address]")).toBeInTheDocument();
+    });
+
+    it("takes precedence over showIssuer", () => {
+      render(
+        <AssetBadge balance={usdcBalance} showIssuer showIssuerForUnknown />,
+      );
+      expect(document.querySelector("[data-address]")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("onClick", () => {
+    it("renders a button with asset-selection semantics when onClick is given", () => {
+      render(<AssetBadge balance={usdcBalance} onClick={() => {}} />);
+      expect(
+        screen.getByRole("button", { name: "Select USDC" }),
+      ).toBeInTheDocument();
+    });
+
+    it("calls onClick when clicked", () => {
+      const onClick = vi.fn();
+      render(<AssetBadge balance={usdcBalance} onClick={onClick} />);
+      fireEvent.click(screen.getByRole("button", { name: "Select USDC" }));
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("stays a non-interactive div without onClick", () => {
+      render(<AssetBadge balance={usdcBalance} />);
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    });
+
+    it("merges a custom className onto the interactive wrapper", () => {
+      render(
+        <AssetBadge balance={usdcBalance} onClick={() => {}} className="my-badge" />,
+      );
+      expect(screen.getByRole("button")).toHaveClass("my-badge");
+    });
+  });
+
+  describe("icon character count", () => {
+    it("shows 2 characters at the default size", () => {
+      const { container } = render(<AssetBadge balance={unknownBalance} />);
+      expect(container.querySelector(".rounded-full")?.textContent).toBe("WA");
+    });
+
+    it("shows up to 4 characters at size lg", () => {
+      const { container } = render(
+        <AssetBadge balance={unknownBalance} size="lg" />,
+      );
+      expect(container.querySelector(".rounded-full")?.textContent).toBe("WAVE");
+    });
+
+    it("does not pad short codes at size lg", () => {
+      const { container } = render(
+        <AssetBadge balance={nativeBalance} size="lg" />,
+      );
+      expect(container.querySelector(".rounded-full")?.textContent).toBe("XLM");
+    });
+  });
+});
+
+describe("isKnownAsset", () => {
+  it("recognises the built-in registry", () => {
+    for (const code of ["XLM", "USDC", "USDT", "BTC", "ETH"]) {
+      expect(isKnownAsset(code)).toBe(true);
+    }
+  });
+
+  it("is case-insensitive", () => {
+    expect(isKnownAsset("usdc")).toBe(true);
+  });
+
+  it("returns false for an unlisted asset", () => {
+    expect(isKnownAsset("WAVEX")).toBe(false);
   });
 });
 

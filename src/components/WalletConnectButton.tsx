@@ -1,16 +1,31 @@
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 import { truncateAddress } from "@/lib/utils";
 
+import { WalletConnectModal } from "./WalletConnectModal";
+
 export function WalletConnectButton({
   onOpenModal,
 }: {
+  /** Called when clicking the button while already connected (e.g. to open an account sidebar). */
   onOpenModal?: () => void;
 }) {
-  const { isConnected, isConnecting, address, connectWallet, error, clearError } = useSorokit();
+  const { isConnected, isConnecting, address, error, clearError } = useSorokit();
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
+
+  // Once connected, this component stops rendering the connect modal at all
+  // (see the early return below) — reset the open flag so a later
+  // disconnect doesn't remount it already open.
+  useEffect(() => {
+    if (isConnected) {
+      const timerId = window.setTimeout(() => setConnectModalOpen(false), 0);
+      return () => window.clearTimeout(timerId);
+    }
+  }, [isConnected]);
 
   if (isConnected && address) {
     return (
@@ -30,14 +45,14 @@ export function WalletConnectButton({
       <Button
         size="md"
         loading={isConnecting}
-        onClick={connectWallet}
+        onClick={() => setConnectModalOpen(true)}
         className="px-2.5 sm:px-4"
         aria-label={isConnecting ? "Connecting…" : "Connect Wallet"}
       >
         <span className="hidden sm:inline">{isConnecting ? "Connecting…" : "Connect Wallet"}</span>
         <span className="sm:hidden">{isConnecting ? "…" : "Connect"}</span>
       </Button>
-      {!isConnected && error && (
+      {!isConnected && error && !connectModalOpen && (
         <div className="absolute top-[calc(100%+8px)] right-0 z-50 flex items-center gap-2 px-3 py-1.5 bg-surface border border-error-dim rounded-lg shadow-lg text-red text-[11px] whitespace-nowrap animate-in fade-in slide-in-from-top-1 duration-200">
           <span>{error}</span>
           <button
@@ -54,6 +69,10 @@ export function WalletConnectButton({
           </button>
         </div>
       )}
+      <WalletConnectModal
+        open={connectModalOpen}
+        onClose={() => setConnectModalOpen(false)}
+      />
     </div>
   );
 }
