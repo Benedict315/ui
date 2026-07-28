@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -19,7 +19,10 @@ const CONTRACT_HISTORY_KEY = "sorokit-soroban-contract-history";
 const CONTRACT_HISTORY_LIMIT = 10;
 const CONTRACT_HISTORY_DATALIST_ID = "sorokit-soroban-contract-history-list";
 
-function parseArgsInput(raw: string): { parsedArgs: unknown[]; errorMessage: string | null } {
+function parseArgsInput(raw: string): {
+  parsedArgs: unknown[];
+  errorMessage: string | null;
+} {
   if (!raw.trim()) return { parsedArgs: [], errorMessage: null };
 
   try {
@@ -86,6 +89,13 @@ export function SorobanPanel({
   );
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Clear result and error when contractId changes
+  useEffect(() => {
+    setResult(null);
+    setError(null);
+    setState("idle");
+  }, [contractId]);
+
   const canInvoke =
     Boolean(isConnected && contractId.trim() && method.trim()) &&
     state !== "loading";
@@ -124,7 +134,9 @@ export function SorobanPanel({
       setResult(data);
       setTxHash(extractTxHash(data));
       setState("success");
-      setContractHistory((prev) => addContractToHistory(contractId.trim(), prev));
+      setContractHistory((prev) =>
+        addContractToHistory(contractId.trim(), prev),
+      );
     } catch (e) {
       if (!signal.aborted) {
         const message = e instanceof Error ? e.message : "Unknown error";
@@ -183,13 +195,29 @@ export function SorobanPanel({
                 ))}
               </datalist>
             )}
-            <Input
-              label="Method"
-              placeholder="transfer, balance, mint…"
-              value={method}
-              onChange={(e) => setMethod(e.target.value)}
-              disabled={state === "loading"}
-            />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="soroban-method"
+                  className="text-[12px] font-medium text-ink-2"
+                >
+                  Method
+                </label>
+                <span className="text-[10px] text-ink-4">
+                  {method.length}/64
+                </span>
+              </div>
+              <input
+                id="soroban-method"
+                type="text"
+                placeholder="transfer, balance, mint…"
+                value={method}
+                onChange={(e) => setMethod(e.target.value.slice(0, 64))}
+                disabled={state === "loading"}
+                maxLength={64}
+                className="w-full rounded-lg border border-line bg-surface-2 px-4 py-2 text-[13px] text-ink placeholder:text-ink-4 outline-none focus:border-line-2 focus:ring-1 focus:ring-brand-dim transition-colors disabled:opacity-40"
+              />
+            </div>
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="soroban-args"
@@ -204,7 +232,10 @@ export function SorobanPanel({
                 onChange={(e) => setArgs(e.target.value)}
                 onInput={(e) => {
                   const textarea = e.currentTarget;
-                  textarea.rows = Math.max(3, textarea.value.split("\n").length);
+                  textarea.rows = Math.max(
+                    3,
+                    textarea.value.split("\n").length,
+                  );
                   textarea.style.height = "auto";
                   textarea.style.height = `${textarea.scrollHeight}px`;
                 }}

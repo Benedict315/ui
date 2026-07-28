@@ -39,7 +39,13 @@
  * @see {@link SorokitProvider} for setup
  * @see GitHub issue #8 for QR code scanner limitation
  */
-import { Copy01Icon, Refresh01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import {
+  Copy01Icon,
+  Refresh01Icon,
+  Tick01Icon,
+  AlertCircleIcon,
+  Activity01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -387,7 +393,23 @@ export function ContractEventFeed({
       )}
 
       {error ? (
-        <p className="text-[13px] text-red text-center py-10">{error}</p>
+        <div className="flex flex-col items-center gap-3 px-5 py-10">
+          <HugeiconsIcon
+            icon={AlertCircleIcon}
+            size={32}
+            color="currentColor"
+            className="text-red"
+            strokeWidth={1.5}
+          />
+          <p className="text-[13px] text-red text-center">{error}</p>
+          <button
+            onClick={() => void load()}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-red-dim text-red border border-red-dim-strong hover:bg-red-dim-strong transition-colors disabled:opacity-40"
+          >
+            Retry
+          </button>
+        </div>
       ) : loading && events.length === 0 ? (
         <div className="px-5 py-4 flex flex-col gap-3">
           {[1, 2, 3].map((i) => (
@@ -398,13 +420,29 @@ export function ContractEventFeed({
           ))}
         </div>
       ) : events.length === 0 ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          No events found
-        </p>
+        <div className="flex flex-col items-center gap-2 px-5 py-10">
+          <HugeiconsIcon
+            icon={Activity01Icon}
+            size={32}
+            color="currentColor"
+            className="text-ink-3"
+            strokeWidth={1.5}
+          />
+          <p className="text-[13px] text-ink-3 text-center">No events found</p>
+        </div>
       ) : filteredEvents.length === 0 ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          No events match the selected filters
-        </p>
+        <div className="flex flex-col items-center gap-2 px-5 py-10">
+          <HugeiconsIcon
+            icon={Activity01Icon}
+            size={32}
+            color="currentColor"
+            className="text-ink-3"
+            strokeWidth={1.5}
+          />
+          <p className="text-[13px] text-ink-3 text-center">
+            No events match the selected filters
+          </p>
+        </div>
       ) : (
         <div aria-live="polite">
           {filteredEvents.map((e) => (
