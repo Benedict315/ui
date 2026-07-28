@@ -5,6 +5,27 @@
  * No direct blockchain logic lives in the UI -- everything goes through sorokit-core.
  */
 
+/** Parameters accepted by the transaction submission endpoint. */
+export interface TransactionParams {
+  source: string;
+  destination: string;
+  amount: string;
+  asset: string;
+  memoType: "none" | "text" | "id";
+  memo?: string;
+}
+
+/** A Soroban XDR value produced by @stellar/stellar-sdk. */
+export type SorobanScVal = object;
+
+/** Values representable in JSON responses from the Soroban API. */
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 export type GasPriceData = {
   baseFee: string;
   gasPrice: string;
@@ -64,7 +85,7 @@ export type SorokitClient = {
   };
   transaction: {
     submit: (
-      tx: unknown,
+      tx: TransactionParams,
     ) => Promise<{
       data: TxResult | null;
       error: string | null;
@@ -275,13 +296,17 @@ export type ContractEvent = {
   ledger: number;
   createdAt: string;
   topics: string[];
-  value: unknown;
+  value: JsonValue;
 };
 
 export type InvokeParams = {
   contractId: string;
   method: string;
-  args?: unknown[];
+  /**
+   * Soroban arguments may be XDR ScVal values from @stellar/stellar-sdk.
+   * unknown[] is also supported for adapters that serialize arguments later.
+   */
+  args?: SorobanScVal[] | unknown[];
   sourceAccount?: string;
 };
 

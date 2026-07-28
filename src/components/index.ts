@@ -215,7 +215,9 @@ export type {
   ContractEvent,
   GroupedTransaction,
   InvokeParams,
+  JsonValue,
   NetworkInfo,
+  SorobanScVal,
   Nft,
   NftAttribute,
   NftCollection,
@@ -224,6 +226,7 @@ export type {
   TimelineFilter,
   TimelineGroup,
   Transaction,
+  TransactionParams,
 } from "../lib/client";
 export { ToastContainer } from "./ui/Toast";
 export { ToastProvider, useToast } from "../context/ToastContext";
