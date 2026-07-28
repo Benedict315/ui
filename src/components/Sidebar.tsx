@@ -21,6 +21,10 @@ export type NavSection =
   | "transactions"
   | "soroban"
   | "network"
+  | "recovery"
+  | "charts"
+  | "farming"
+  | "budget"
   | "nfts";
 
 const NAV: { id: NavSection; label: string; icon: IconSvgElement }[] = [
@@ -33,6 +37,10 @@ const NAV: { id: NavSection; label: string; icon: IconSvgElement }[] = [
   },
   { id: "soroban", label: "Soroban", icon: CodeIcon },
   { id: "network", label: "Network", icon: Globe02Icon },
+  { id: "recovery", label: "Recovery Assistant", icon: User02Icon },
+  { id: "charts", label: "Advanced Charting", icon: ArrowDataTransferHorizontalIcon },
+  { id: "farming", label: "Yield Farming", icon: CodeIcon },
+  { id: "budget", label: "Budget Manager", icon: Wallet01Icon },
   { id: "nfts", label: "NFTs", icon: Blockchain01Icon },
 ];
 

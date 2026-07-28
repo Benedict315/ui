@@ -9,6 +9,10 @@ import { NetworkScreen } from "@/screens/NetworkScreen";
 import { SorobanScreen } from "@/screens/SorobanScreen";
 import { TransactionsScreen } from "@/screens/TransactionsScreen";
 import { WalletScreen } from "@/screens/WalletScreen";
+import { RecoveryScreen } from "@/screens/RecoveryScreen";
+import { ChartingScreen } from "@/screens/ChartingScreen";
+import { YieldFarmingScreen } from "@/screens/YieldFarmingScreen";
+import { BudgetScreen } from "@/screens/BudgetScreen";
 
 const SCREENS: Record<NavSection, ComponentType> = {
   wallet: WalletScreen,
@@ -16,6 +20,10 @@ const SCREENS: Record<NavSection, ComponentType> = {
   transactions: TransactionsScreen,
   soroban: SorobanScreen,
   network: NetworkScreen,
+  recovery: RecoveryScreen,
+  charts: ChartingScreen,
+  farming: YieldFarmingScreen,
+  budget: BudgetScreen,
   nfts: NFTScreen,
 };
 
