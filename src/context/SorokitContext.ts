@@ -21,6 +21,12 @@ export interface SorokitState {
   isLoadingAccount: boolean;
   refreshAccount: () => Promise<void>;
   network: NetworkInfo | null;
+  /**
+   * The network the client was initialised with, captured on mount before any
+   * persisted preference is applied. Compare against `network` to detect a
+   * selection that the client's underlying config may not match.
+   */
+  initialNetwork?: NetworkInfo | null;
   switchNetwork: (network: NetworkName | NetworkInfo) => Promise<void>;
   customNetworks?: NetworkInfo[];
   addCustomNetwork?: (config: NetworkInfo) => Promise<void>;

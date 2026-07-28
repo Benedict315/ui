@@ -205,6 +205,98 @@ describe("SorokitProvider", () => {
     });
   });
 
+  describe("network persistence", () => {
+    const NetworkProbe = () => {
+      const { network, initialNetwork, switchNetwork } = useSorokit();
+      return (
+        <div>
+          <div data-testid="network">{network?.name ?? "none"}</div>
+          <div data-testid="initial-network">{initialNetwork?.name ?? "none"}</div>
+          <button onClick={() => switchNetwork("mainnet")}>Go Mainnet</button>
+        </div>
+      );
+    };
+
+    beforeEach(() => {
+      window.localStorage.clear();
+    });
+
+    it("persists the selected network across reloads", async () => {
+      renderWithProvider(<NetworkProbe />, { client: mockClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Go Mainnet"));
+      });
+
+      expect(window.localStorage.getItem("sorokit_network")).toBe("mainnet");
+    });
+
+    it("restores the persisted network on mount instead of the client default", async () => {
+      window.localStorage.setItem("sorokit_network", "testnet");
+      const client = {
+        ...mockClient,
+        network: {
+          getNetwork: vi.fn().mockResolvedValue({ data: { name: "mainnet" }, error: null }),
+          switchNetwork: vi.fn().mockResolvedValue({ data: { name: "testnet" }, error: null }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<NetworkProbe />, { client });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("network")).toHaveTextContent("testnet");
+      });
+      expect(client.network.switchNetwork).toHaveBeenCalledWith("testnet");
+    });
+
+    it("exposes the client's own network as initialNetwork even when a preference is restored", async () => {
+      window.localStorage.setItem("sorokit_network", "testnet");
+      const client = {
+        ...mockClient,
+        network: {
+          getNetwork: vi.fn().mockResolvedValue({ data: { name: "mainnet" }, error: null }),
+          switchNetwork: vi.fn().mockResolvedValue({ data: { name: "testnet" }, error: null }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<NetworkProbe />, { client });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("initial-network")).toHaveTextContent("mainnet");
+        expect(screen.getByTestId("network")).toHaveTextContent("testnet");
+      });
+    });
+
+    it("falls back to the client network when restoring the preference fails", async () => {
+      window.localStorage.setItem("sorokit_network", "futurenet");
+      const client = {
+        ...mockClient,
+        network: {
+          getNetwork: vi.fn().mockResolvedValue({ data: { name: "mainnet" }, error: null }),
+          switchNetwork: vi
+            .fn()
+            .mockResolvedValue({ data: null, error: "unreachable" }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<NetworkProbe />, { client });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("network")).toHaveTextContent("mainnet");
+      });
+    });
+
+    it("uses the client network when nothing is persisted", async () => {
+      renderWithProvider(<NetworkProbe />, { client: mockClient });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("network")).toHaveTextContent("mainnet");
+        expect(screen.getByTestId("initial-network")).toHaveTextContent("mainnet");
+      });
+      expect(mockClient.network.switchNetwork).not.toHaveBeenCalled();
+    });
+  });
+
   it("refreshAccount sets isLoadingAccount to true during refresh and false after", async () => {
     renderWithProvider(<TestComponent />, { client: mockClient });
 
