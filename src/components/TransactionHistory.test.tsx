@@ -38,6 +38,7 @@ function mockGetHistory(txs: Transaction[], total: number) {
 describe("TransactionHistory", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.mocked(useSorokit).mockReturnValue({
       address: ADDRESS,
@@ -62,14 +63,32 @@ describe("TransactionHistory", () => {
     expect(screen.getByText(/connect your wallet/i)).toBeInTheDocument();
   });
 
-  it("renders 'No transactions found' when the list is empty", async () => {
+  it("renders the empty state and Friendbot link on testnet", async () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      address: ADDRESS,
+      isConnected: true,
+      network: { name: "testnet" },
+    } as unknown as ReturnType<typeof useSorokit>);
     mockGetHistory([], 0);
     render(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
 
     await waitFor(() => {
-      expect(screen.getByText("No transactions found")).toBeInTheDocument();
+      expect(screen.getByText("No transactions yet")).toBeInTheDocument();
     });
+    expect(screen.getByRole("link", { name: /fund with friendbot/i })).toHaveAttribute(
+      "href",
+      "https://friendbot.stellar.org",
+    );
+  });
+
+  it("does not show Friendbot outside testnet", async () => {
+    mockGetHistory([], 0);
+    render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+
+    await screen.findByText("No transactions yet");
+    expect(screen.queryByRole("link", { name: /friendbot/i })).not.toBeInTheDocument();
   });
 
   it("does not render pagination when total ≤ PAGE_SIZE", async () => {
@@ -127,6 +146,35 @@ describe("TransactionHistory", () => {
     await waitFor(() => {
       expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE);
     });
+    expect(sessionStorage.getItem(`sorokit-transaction-history-page:${ADDRESS}`)).toBe("2");
+  });
+
+  it("restores the current page from sessionStorage for the connected address", async () => {
+    sessionStorage.setItem(`sorokit-transaction-history-page:${ADDRESS}`, "2");
+    const getHistory = vi.fn().mockResolvedValue({
+      data: Array.from({ length: PAGE_SIZE }, (_, i) => makeTx(i)),
+      error: null,
+      total: 25,
+    });
+    vi.mocked(getClient).mockReturnValue({
+      transaction: { getHistory },
+    } as unknown as SorokitClient);
+
+    render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+
+    await waitFor(() =>
+      expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE),
+    );
+  });
+
+  it("handles an invalid total without rendering invalid pagination", async () => {
+    mockGetHistory([], Number.NaN);
+    render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+
+    await screen.findByText("No transactions yet");
+    expect(screen.queryByText(/page .* of/i)).not.toBeInTheDocument();
   });
 
   it("disables Next button on the last page", async () => {
