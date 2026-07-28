@@ -124,4 +124,45 @@ describe("AddressDisplay", () => {
     const el = screen.getByText(address);
     expect(el.className).toContain("text-[13px]");
   });
+
+  it("renders the masked 4-prefix + middot + 4-suffix form when masked is true", () => {
+    const { container } = render(<AddressDisplay address={address} masked />);
+    const el = container.querySelector("[data-address]") as HTMLElement;
+    expect(el.textContent).toMatch(/^GBAM.+QQQQ$/);
+    expect(el.textContent?.length ?? 0).toBeLessThan(address.length);
+    // The truncated middle chunk should not appear when masked is on.
+    expect(el.textContent).not.toContain("QXTQ");
+  });
+
+  it("applies font-mono class when mono prop is true", () => {
+    render(<AddressDisplay address={address} mono />);
+    const el = screen.getByText(/GBAMQXTQ/);
+    expect(el.className).toContain("font-mono");
+  });
+
+  it("does not apply font-mono class by default", () => {
+    render(<AddressDisplay address={address} />);
+    const el = screen.getByText(/GBAMQXTQ/);
+    expect(el.className).not.toContain("font-mono");
+  });
+
+  it("renders <dl>/<dt>/<dd> structure when label is provided", () => {
+    const { container } = render(<AddressDisplay address={address} label="Source" />);
+    expect(container.querySelector("dl")).toBeInTheDocument();
+    const dt = container.querySelector("dt");
+    expect(dt).toHaveTextContent("Source");
+    expect(dt?.tagName).toBe("DT");
+    const dd = container.querySelector("dd");
+    expect(dd).toBeInTheDocument();
+    expect(dd?.tagName).toBe("DD");
+    // The <dd> wraps the address span, so the addressSpan ends up under it.
+    expect(dd?.querySelector("[data-address]")).not.toBeNull();
+  });
+
+  it("does not render <dl> when label is omitted", () => {
+    const { container } = render(<AddressDisplay address={address} />);
+    expect(container.querySelector("dl")).toBeNull();
+    expect(container.querySelector("dt")).toBeNull();
+    expect(container.querySelector("dd")).toBeNull();
+  });
 });

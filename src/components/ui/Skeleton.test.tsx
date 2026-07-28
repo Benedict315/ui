@@ -44,6 +44,14 @@ describe("SkeletonRow", () => {
     const { container } = render(<SkeletonRow />);
     expect(container.firstElementChild).toHaveAttribute("role", "presentation");
   });
+
+  it("renders the expected count of placeholders: 1 avatar circle + 2 text lines", () => {
+    const { container } = render(<SkeletonRow />);
+    const placeholders = container.querySelectorAll('[role="presentation"]');
+    // Outer wrapper counts as one + 1 avatar (circle) + 2 lines = 4 total.
+    // The component renders 3 placeholders inside the wrapper (circle + 2 lines).
+    expect(placeholders.length).toBe(4);
+  });
 });
 
 describe("SkeletonCard", () => {
@@ -72,6 +80,28 @@ describe("SkeletonCard", () => {
     // After decreasing rows there should be exactly 2 body skeletons, not 3
     expect(afterRows.length).toBe(2);
     void before; // suppress unused-var lint
+  });
+
+  it("renders the provided structure prop instead of the default header + rows layout", () => {
+    const { container } = render(
+      <SkeletonCard
+        structure={
+          <div data-testid="custom-header">Header content</div>
+        }
+      />,
+    );
+    expect(screen.getByTestId("custom-header")).toHaveTextContent("Header content");
+    // The default header is replaced wholesale — no default h-4/w-32 marker present.
+    expect(container.querySelector(".h-4.w-32")).toBeNull();
+  });
+
+  it("renders provided children instead of the default header + rows layout", () => {
+    render(
+      <SkeletonCard>
+        <div data-testid="custom-child">Child slot content</div>
+      </SkeletonCard>,
+    );
+    expect(screen.getByTestId("custom-child")).toHaveTextContent("Child slot content");
   });
 });
 
