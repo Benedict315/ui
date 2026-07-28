@@ -3,6 +3,8 @@ import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+
+import { ContractInteractionDebugger } from "./ContractInteractionDebugger";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
 
@@ -16,6 +18,31 @@ interface SorobanPanelProps {
 const CONTRACT_HISTORY_KEY = "sorokit-soroban-contract-history";
 const CONTRACT_HISTORY_LIMIT = 10;
 const CONTRACT_HISTORY_DATALIST_ID = "sorokit-soroban-contract-history-list";
+
+function parseArgsInput(raw: string): { parsedArgs: unknown[]; errorMessage: string | null } {
+  if (!raw.trim()) return { parsedArgs: [], errorMessage: null };
+
+  try {
+    const parsed = JSON.parse(raw.trim());
+    if (!Array.isArray(parsed)) {
+      return {
+        parsedArgs: [],
+        errorMessage: 'Arguments must be a JSON array (e.g. ["arg1", 42])',
+      };
+    }
+    return { parsedArgs: parsed, errorMessage: null };
+  } catch {
+    return { parsedArgs: [], errorMessage: "Invalid JSON in arguments" };
+  }
+}
+
+function extractTxHash(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const maybeHash = data as { hash?: unknown; txHash?: unknown };
+  if (typeof maybeHash.hash === "string") return maybeHash.hash;
+  if (typeof maybeHash.txHash === "string") return maybeHash.txHash;
+  return null;
+}
 
 function readContractHistory(): string[] {
   try {
@@ -52,6 +79,7 @@ export function SorobanPanel({
   const [args, setArgs] = useState("");
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<unknown>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [contractHistory, setContractHistory] = useState<string[]>(() =>
     readContractHistory(),
@@ -71,23 +99,13 @@ export function SorobanPanel({
     setState("loading");
     setError(null);
     setResult(null);
+    setTxHash(null);
     try {
-      let parsedArgs: unknown[] = [];
-      if (args.trim()) {
-        try {
-          const parsed = JSON.parse(args.trim());
-          if (!Array.isArray(parsed)) {
-            if (!signal.aborted)
-              setError('Arguments must be a JSON array (e.g. ["arg1", 42])');
-            if (!signal.aborted) setState("error");
-            return;
-          }
-          parsedArgs = parsed;
-        } catch {
-          if (!signal.aborted) setError("Invalid JSON in arguments");
-          if (!signal.aborted) setState("error");
-          return;
-        }
+      const { parsedArgs, errorMessage } = parseArgsInput(args);
+      if (errorMessage) {
+        if (!signal.aborted) setError(errorMessage);
+        if (!signal.aborted) setState("error");
+        return;
       }
       const { data, error: err } = await getClient().soroban.invokeContract({
         contractId: contractId.trim(),
@@ -102,6 +120,7 @@ export function SorobanPanel({
         return;
       }
       setResult(data);
+      setTxHash(extractTxHash(data));
       setState("success");
       setContractHistory((prev) => addContractToHistory(contractId.trim(), prev));
     } catch (e) {
@@ -197,6 +216,19 @@ export function SorobanPanel({
                 </pre>
               </div>
             )}
+
+            {(state === "success" || state === "error") && (
+              <ContractInteractionDebugger
+                contractId={contractId.trim()}
+                method={method.trim()}
+                args={parseArgsInput(args).parsedArgs}
+                state={state}
+                result={result}
+                txHash={txHash}
+                error={error}
+              />
+            )}
+
             {state === "error" && error && (
               <div className="rounded-lg bg-error-dim-muted border border-error-dim px-5 py-4">
                 <p className="text-[13px] text-red">{error}</p>

@@ -5,7 +5,7 @@ import type { Transaction } from "@/lib/client";
 import { TxRow } from "./TransactionHistory";
 
 describe("TxRow component", () => {
-  it("renders transaction hash, ledger, status badge, and date", () => {
+  it("renders transaction hash, ledger, status badge, fee, and date", () => {
     const tx: Transaction = {
       hash: "hash123",
       ledger: 1000,
@@ -18,6 +18,7 @@ describe("TxRow component", () => {
     expect(screen.getByText(/hash123/)).toBeInTheDocument();
     expect(screen.getByText(/Ledger 1000/)).toBeInTheDocument();
     expect(screen.getByText("Success")).toBeInTheDocument();
+    expect(screen.getByText(/100 stroops/)).toBeInTheDocument();
   });
 
   it("shows Failed badge for unsuccessful transactions", () => {
@@ -84,5 +85,32 @@ describe("TxRow component", () => {
     const memoEl = screen.getByText(`· ${shortMemo}`);
     expect(memoEl).toBeInTheDocument();
     expect(memoEl).toHaveAttribute("title", shortMemo);
+  });
+
+  // ── operationCount badge (#200) ──────────────────────────────────────────
+  it("shows an operation count badge when operationCount > 1", () => {
+    const tx: Transaction = {
+      hash: "hash-multi-ops",
+      ledger: 1006,
+      createdAt: new Date().toISOString(),
+      successful: true,
+      operationCount: 3,
+      feePaid: "300",
+    } as Transaction;
+    render(<TxRow tx={tx} />);
+    expect(screen.getByText("3 ops")).toBeInTheDocument();
+  });
+
+  it("does not show an operation count badge when operationCount is 1", () => {
+    const tx: Transaction = {
+      hash: "hash-single-op",
+      ledger: 1007,
+      createdAt: new Date().toISOString(),
+      successful: true,
+      operationCount: 1,
+      feePaid: "100",
+    } as Transaction;
+    render(<TxRow tx={tx} />);
+    expect(screen.queryByText(/^\d+ ops$/)).not.toBeInTheDocument();
   });
 });

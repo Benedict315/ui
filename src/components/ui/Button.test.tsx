@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { Button } from "./Button";
+import { Button, ButtonGroup } from "./Button";
 
 describe("Button", () => {
   it("renders children correctly", () => {
@@ -143,5 +143,150 @@ describe("Button", () => {
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/test");
     expect(link?.className).toContain("bg-brand"); // variant styles are transferred
+  });
+
+  it("renders leftIcon before the label", () => {
+    render(
+      <Button leftIcon={<svg data-testid="left" />}>Send</Button>
+    );
+    const button = screen.getByRole("button", { name: "Send" });
+    const icon = screen.getByTestId("left");
+    expect(button).toContainElement(icon);
+    // The icon precedes the label in document order.
+    expect(button.firstElementChild).toContainElement(icon);
+  });
+
+  it("renders rightIcon after the label", () => {
+    render(
+      <Button rightIcon={<svg data-testid="right" />}>Next</Button>
+    );
+    const button = screen.getByRole("button", { name: "Next" });
+    const icon = screen.getByTestId("right");
+    expect(button).toContainElement(icon);
+    expect(button.lastElementChild).toContainElement(icon);
+  });
+
+  it("sizes the icon slot to match the button size", () => {
+    const { container, rerender } = render(
+      <Button size="sm" leftIcon={<svg />}>Send</Button>
+    );
+    expect(container.querySelector("span.w-3\\.5")).toBeInTheDocument();
+
+    rerender(<Button size="lg" leftIcon={<svg />}>Send</Button>);
+    expect(container.querySelector('span[class*="w-[18px]"]')).toBeInTheDocument();
+  });
+
+  it("renders both icons alongside the label", () => {
+    render(
+      <Button leftIcon={<svg data-testid="left" />} rightIcon={<svg data-testid="right" />}>
+        Both
+      </Button>
+    );
+    expect(screen.getByTestId("left")).toBeInTheDocument();
+    expect(screen.getByTestId("right")).toBeInTheDocument();
+    expect(screen.getByRole("button")).toHaveTextContent("Both");
+  });
+
+  it("keeps the spinner in the leading slot instead of leftIcon while loading", () => {
+    const { container } = render(
+      <Button loading leftIcon={<svg data-testid="left" />}>Send</Button>
+    );
+    expect(container.querySelector(".animate-spin")).toBeInTheDocument();
+    expect(screen.queryByTestId("left")).not.toBeInTheDocument();
+  });
+
+  it("renders an anchor with safe rel attributes when href is provided", () => {
+    render(<Button href="https://stellar.expert">View on Stellar Expert</Button>);
+    const link = screen.getByRole("link", { name: "View on Stellar Expert" });
+    expect(link.tagName).toBe("A");
+    expect(link).toHaveAttribute("href", "https://stellar.expert");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link.className).toContain("bg-brand");
+  });
+
+  it("disables the href anchor when disabled is true", () => {
+    const onClick = vi.fn();
+    const { container } = render(
+      <Button href="https://stellar.expert" disabled onClick={onClick}>
+        View
+      </Button>
+    );
+    const link = container.querySelector("a")!;
+    expect(link).toHaveAttribute("aria-disabled", "true");
+    // href is dropped so the anchor is neither focusable nor navigable.
+    expect(link).not.toHaveAttribute("href");
+    fireEvent.click(link);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("fires onClick for an enabled href anchor", () => {
+    const onClick = vi.fn();
+    render(
+      <Button href="https://stellar.expert" onClick={onClick}>
+        View
+      </Button>
+    );
+    fireEvent.click(screen.getByRole("link", { name: "View" }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("prefers asChild over href when both are given", () => {
+    const { container } = render(
+      <Button asChild href="https://example.com">
+        <a href="/internal">Internal</a>
+      </Button>
+    );
+    expect(container.querySelector("a")).toHaveAttribute("href", "/internal");
+    expect(container.querySelector("a")).not.toHaveAttribute("target");
+  });
+});
+
+describe("ButtonGroup", () => {
+  it("renders its children inside a group role", () => {
+    render(
+      <ButtonGroup>
+        <Button>Prev</Button>
+        <Button>Next</Button>
+      </ButtonGroup>
+    );
+    const group = screen.getByRole("group");
+    expect(group).toContainElement(screen.getByRole("button", { name: "Prev" }));
+    expect(group).toContainElement(screen.getByRole("button", { name: "Next" }));
+  });
+
+  it("collapses the shared border radius horizontally by default", () => {
+    render(
+      <ButtonGroup>
+        <Button>Prev</Button>
+      </ButtonGroup>
+    );
+    const group = screen.getByRole("group");
+    expect(group).toHaveAttribute("data-orientation", "horizontal");
+    expect(group.className).toContain("flex-row");
+    expect(group.className).toContain("rounded-l-none");
+    expect(group.className).toContain("rounded-r-none");
+  });
+
+  it("collapses the shared border radius vertically", () => {
+    render(
+      <ButtonGroup orientation="vertical">
+        <Button>Top</Button>
+      </ButtonGroup>
+    );
+    const group = screen.getByRole("group");
+    expect(group).toHaveAttribute("data-orientation", "vertical");
+    expect(group.className).toContain("flex-col");
+    expect(group.className).toContain("rounded-t-none");
+    expect(group.className).toContain("rounded-b-none");
+  });
+
+  it("merges a custom className", () => {
+    render(
+      <ButtonGroup className="my-group">
+        <Button>Only</Button>
+      </ButtonGroup>
+    );
+    expect(screen.getByRole("group")).toHaveClass("my-group");
   });
 });

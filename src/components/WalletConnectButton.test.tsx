@@ -1,4 +1,4 @@
-import { fireEvent,render, screen } from "@testing-library/react";
+import { fireEvent,render, screen, waitFor } from "@testing-library/react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -46,7 +46,7 @@ describe("WalletConnectButton", () => {
     expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeInTheDocument();
   });
 
-  it("triggers connectWallet on click", () => {
+  it("opens the wallet connect modal on click", async () => {
     vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({
       connectWallet: mockConnect,
       clearError: mockClearError,
@@ -54,6 +54,23 @@ describe("WalletConnectButton", () => {
 
     render(<WalletConnectButton />);
     fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
+    await waitFor(() =>
+      screen.getByRole("dialog", { name: /connect a wallet/i }),
+    );
+  });
+
+  it("triggers connectWallet when a wallet is selected in the modal", async () => {
+    vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({
+      connectWallet: mockConnect,
+      clearError: mockClearError,
+    }));
+
+    render(<WalletConnectButton />);
+    fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
+    await waitFor(() =>
+      screen.getByRole("dialog", { name: /connect a wallet/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
     expect(mockConnect).toHaveBeenCalledTimes(1);
   });
 

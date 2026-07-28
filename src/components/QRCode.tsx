@@ -43,6 +43,7 @@ export function QRCode({
 }: QRCodeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [renderError, setRenderError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [prevProps, setPrevProps] = useState({ value, size, canvasBackground, canvasForeground });
 
   if (
@@ -53,6 +54,7 @@ export function QRCode({
   ) {
     setPrevProps({ value, size, canvasBackground, canvasForeground });
     setRenderError(false);
+    setIsLoading(true);
   }
   useEffect(() => {
     if (renderError || !value) return;
@@ -91,6 +93,7 @@ export function QRCode({
           console.error("Failed to render QR Code:", error);
           setRenderError(true);
         }
+        if (active) setIsLoading(false);
       }
     );
 
@@ -100,7 +103,7 @@ export function QRCode({
   }, [value, size, canvasBackground, canvasForeground, renderError]);
 
   return (
-    <div className={cn("flex flex-col items-center gap-3", className)}>
+    <figure className={cn("flex flex-col items-center gap-3", className)}>
       <div
         className="rounded-xl border border-line p-3 bg-[var(--color-qr-canvas-bg)] shadow-[0_4px_16px_rgba(0,0,0,0.3)] flex items-center justify-center"
         style={{ width: size + 24, height: size + 24 }}
@@ -118,19 +121,29 @@ export function QRCode({
             </span>
           </div>
         ) : (
-          <canvas
-            ref={canvasRef}
-            role="img"
-            aria-label={ariaLabel ?? label ?? `QR code for address ${value}`}
-            style={{ display: "block", borderRadius: "4px" }}
-          />
+          <>
+            {isLoading && (
+              <div
+                className="flex items-center justify-center"
+                style={{ width: size, height: size }}
+              >
+                <span className="w-6 h-6 border-2 border-ink-3 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            <canvas
+              ref={canvasRef}
+              role="img"
+              aria-label={ariaLabel ?? label ?? `QR code for address ${value}`}
+              style={{ display: isLoading ? "none" : "block", borderRadius: "4px" }}
+            />
+          </>
         )}
       </div>
       {label && (
-        <p className="text-[11px] text-ink-3 text-center max-w-[200px] break-all font-mono">
+        <figcaption className="text-[11px] text-ink-3 text-center max-w-[200px] break-all font-mono">
           {label}
-        </p>
+        </figcaption>
       )}
-    </div>
+    </figure>
   );
 }

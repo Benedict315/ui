@@ -1,6 +1,6 @@
 import { InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { Badge } from "@/components/ui/Badge";
@@ -8,13 +8,30 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useSorokit } from "@/context/useSorokit";
 import { truncateAddress } from "@/lib/utils";
 
+function getStellarExpertUrl(address: string, networkName?: string) {
+  const base =
+    networkName === "testnet"
+      ? "https://testnet.stellar.expert"
+      : "https://stellar.expert";
+  return `${base}/explorer/public/account/${address}`;
+}
+
 /** Stellar base reserve: each subentry (trustline, offer, signer, data entry…) locks up 0.5 XLM. */
 const BASE_RESERVE_XLM = 0.5;
 
 export function AccountCard() {
-  const { address, account, isLoadingAccount } = useSorokit();
+  const { address, account, isLoadingAccount, network } = useSorokit();
   const sequenceLabelId = useId();
   const [showSequenceTooltip, setShowSequenceTooltip] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [showThresholds, setShowThresholds] = useState(false);
+
+  useEffect(() => {
+    if (!toastVisible) return;
+    const id = window.setTimeout(() => setToastVisible(false), 3000);
+    return () => window.clearTimeout(id);
+  }, [toastVisible]);
+
   if (!address) return null;
 
   return (
@@ -45,7 +62,20 @@ export function AccountCard() {
           </div>
         ) : (
           <div className="flex flex-col gap-5">
-            <AddressDisplay address={address} showFull label="Address" />
+            <AddressDisplay
+              address={address}
+              showFull
+              label="Address"
+              onCopy={() => setToastVisible(true)}
+            />
+            <a
+              href={getStellarExpertUrl(address, network?.name)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-brand hover:underline"
+            >
+              View on Stellar Expert →
+            </a>
             {account && (
               <div className="grid grid-cols-2 gap-5">
                 <Field label="Sequence" labelId={sequenceLabelId}>
@@ -98,9 +128,44 @@ export function AccountCard() {
                 </div>
               </div>
             )}
+            {account?.thresholds && (
+              <div>
+                <button
+                  onClick={() => setShowThresholds((v) => !v)}
+                  className="text-[11px] text-ink-3 hover:text-ink-2 transition-colors"
+                >
+                  {showThresholds ? "▾ Hide thresholds" : "▸ Show thresholds"}
+                </button>
+                {showThresholds && (
+                  <div className="mt-2 grid grid-cols-4 gap-3">
+                    {(["low", "med", "high", "master"] as const).map((key) => (
+                      <div key={key} className="flex flex-col gap-0.5">
+                        <span className="text-[9px] uppercase tracking-wider text-ink-4">
+                          {key}
+                        </span>
+                        <span className="text-[12px] font-mono text-ink">
+                          {account.thresholds![key]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
+      {toastVisible && (
+        <div
+          role="status"
+          className="fixed bottom-6 right-6 z-50 bg-surface border border-line rounded-md px-4 py-3 shadow-lg animate-in fade-in slide-in-from-bottom-2"
+        >
+          <p className="text-[13px] font-semibold text-ink">Address Copied</p>
+          <p className="text-[12px] text-ink-3">
+            The address has been copied to your clipboard.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

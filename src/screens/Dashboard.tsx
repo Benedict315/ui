@@ -4,6 +4,7 @@ import { NetworkBanner } from "@/components/NetworkBanner";
 import { type NavSection,Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { AccountScreen } from "@/screens/AccountScreen";
+import { NFTScreen } from "@/screens/NFTScreen";
 import { NetworkScreen } from "@/screens/NetworkScreen";
 import { SorobanScreen } from "@/screens/SorobanScreen";
 import { TransactionsScreen } from "@/screens/TransactionsScreen";
@@ -15,6 +16,7 @@ const SCREENS: Record<NavSection, ComponentType> = {
   transactions: TransactionsScreen,
   soroban: SorobanScreen,
   network: NetworkScreen,
+  nfts: NFTScreen,
 };
 
 export function Dashboard() {

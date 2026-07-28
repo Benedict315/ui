@@ -5,7 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Truncate a Stellar address or tx hash for display */
+/**
+ * Truncate a Stellar address, Soroban contract ID (C…), or tx hash for display.
+ * Contract IDs are 56 characters like account addresses and truncate the same way.
+ */
 export function truncateAddress(address: string | null | undefined, start = 6, end = 4): string {
   if (!address) return "";
   const chars = Array.from(address);

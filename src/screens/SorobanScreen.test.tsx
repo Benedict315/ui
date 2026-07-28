@@ -84,4 +84,134 @@ describe("SorobanScreen", () => {
 
     expect(screen.queryByText("Contract Events")).not.toBeInTheDocument();
   });
+
+  describe("localStorage pre-fill and saved contracts (#350)", () => {
+    const CONTRACT_A = "CAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
+    const CONTRACT_B = "CBBZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNB";
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it("pre-fills contractId from the most recent entry in localStorage on mount", () => {
+      localStorage.setItem(
+        "sorokit-soroban-contract-history",
+        JSON.stringify([CONTRACT_A, CONTRACT_B]),
+      );
+
+      render(<SorobanScreen />);
+
+      const input = screen.getByPlaceholderText(/C\.\.\./i) as HTMLInputElement;
+      expect(input.value).toBe(CONTRACT_A);
+    });
+
+    it("does not render the saved-contracts dropdown when there is only one entry", () => {
+      localStorage.setItem("sorokit-soroban-contract-history", JSON.stringify([CONTRACT_A]));
+
+      render(<SorobanScreen />);
+
+      expect(screen.queryByText("Saved Contracts")).not.toBeInTheDocument();
+    });
+
+    it("lists saved contracts in a dropdown and applies one on click", () => {
+      localStorage.setItem(
+        "sorokit-soroban-contract-history",
+        JSON.stringify([CONTRACT_A, CONTRACT_B]),
+      );
+
+      render(<SorobanScreen />);
+
+      expect(screen.getByText("Saved Contracts")).toBeInTheDocument();
+      const labelA = `${CONTRACT_A.slice(0, 6)}…${CONTRACT_A.slice(-4)}`;
+      const labelB = `${CONTRACT_B.slice(0, 6)}…${CONTRACT_B.slice(-4)}`;
+      expect(screen.getByText(labelA)).toBeInTheDocument();
+      const buttonB = screen.getByText(labelB);
+      expect(buttonB).toBeInTheDocument();
+
+      fireEvent.click(buttonB);
+
+      const input = screen.getByPlaceholderText(/C\.\.\./i) as HTMLInputElement;
+      expect(input.value).toBe(CONTRACT_B);
+    });
+
+    it("ignores malformed JSON in localStorage and starts with an empty contractId", () => {
+      localStorage.setItem("sorokit-soroban-contract-history", "not-json{{{");
+
+      render(<SorobanScreen />);
+
+      const input = screen.getByPlaceholderText(/C\.\.\./i) as HTMLInputElement;
+      expect(input.value).toBe("");
+      expect(screen.queryByText("Saved Contracts")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Stellar Expert link (#350)", () => {
+    const CONTRACT_ID = "CAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it("links to the testnet Stellar Expert contract page", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        isConnected: true,
+        address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
+        network: { name: "testnet" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<SorobanScreen />);
+      const input = screen.getByPlaceholderText(/C\.\.\./i);
+      fireEvent.change(input, { target: { value: CONTRACT_ID } });
+
+      const link = screen.getByRole("link", { name: /Stellar Expert/i });
+      expect(link).toHaveAttribute(
+        "href",
+        `https://stellar.expert/explorer/testnet/contract/${CONTRACT_ID}`,
+      );
+    });
+
+    it("links to the public (mainnet) Stellar Expert contract page", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        isConnected: true,
+        address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
+        network: { name: "mainnet" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<SorobanScreen />);
+      const input = screen.getByPlaceholderText(/C\.\.\./i);
+      fireEvent.change(input, { target: { value: CONTRACT_ID } });
+
+      const link = screen.getByRole("link", { name: /Stellar Expert/i });
+      expect(link).toHaveAttribute(
+        "href",
+        `https://stellar.expert/explorer/public/contract/${CONTRACT_ID}`,
+      );
+    });
+
+    it("renders no Stellar Expert link for an unrecognized network", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        isConnected: true,
+        address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
+        network: { name: "futurenet" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<SorobanScreen />);
+      const input = screen.getByPlaceholderText(/C\.\.\./i);
+      fireEvent.change(input, { target: { value: CONTRACT_ID } });
+
+      expect(screen.queryByRole("link", { name: /Stellar Expert/i })).not.toBeInTheDocument();
+    });
+
+    it("renders no Stellar Expert link when contractId is empty", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        isConnected: true,
+        address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
+        network: { name: "testnet" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<SorobanScreen />);
+
+      expect(screen.queryByRole("link", { name: /Stellar Expert/i })).not.toBeInTheDocument();
+    });
+  });
 });
