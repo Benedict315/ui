@@ -1,4 +1,4 @@
-import { fireEvent,render, screen, waitFor } from "@testing-library/react";
+import { act,fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -34,7 +34,12 @@ function mockGetClient(
 async function reviewAndConfirm() {
   fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
   await screen.findByRole("dialog", { name: /confirm transaction/i });
-  fireEvent.click(screen.getByRole("button", { name: /confirm & sign/i }));
+  // act()-wrapped: submitTransaction's state updates can land before this
+  // call returns when the mocked API resolves immediately (no artificial
+  // delay), which otherwise trips React's "not wrapped in act(...)" warning.
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /confirm & sign/i }));
+  });
 }
 
 describe("TransactionPanel", () => {
@@ -409,6 +414,141 @@ describe("TransactionPanel", () => {
         "href",
         "https://stellar.expert/explorer/testnet/tx/txhash123",
       );
+    });
+  });
+
+  describe("default prop pre-fill (#351)", () => {
+    it("pre-fills the destination input from defaultDestination", () => {
+      const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      render(<TransactionPanel defaultDestination={validDest} />);
+      expect(screen.getByLabelText("Destination Address")).toHaveValue(validDest);
+    });
+
+    it("pre-fills the amount input from defaultAmount", () => {
+      render(<TransactionPanel defaultAmount="42.5" />);
+      expect(screen.getByLabelText("Amount (XLM)")).toHaveValue(42.5);
+    });
+
+    it("pre-fills the memo input from defaultMemo", () => {
+      render(<TransactionPanel defaultMemo="Invoice #1001" />);
+      expect(screen.getByLabelText("Memo (optional)")).toHaveValue("Invoice #1001");
+    });
+
+    it("leaves all fields empty when no defaults are provided", () => {
+      render(<TransactionPanel />);
+      expect(screen.getByLabelText("Destination Address")).toHaveValue("");
+      expect(screen.getByLabelText("Amount (XLM)")).toHaveValue(null);
+      expect(screen.getByLabelText("Memo (optional)")).toHaveValue("");
+    });
+  });
+
+  describe("onSuccess / onError callbacks (#351)", () => {
+    it("calls onSuccess with the transaction result after a successful submit", async () => {
+      const txResult = { hash: "txhash123", ledger: 100 };
+      const mockSubmit = vi.fn().mockResolvedValue({ data: txResult, error: null });
+      mockGetClient(mockSubmit);
+      const onSuccess = vi.fn();
+      const onError = vi.fn();
+
+      render(<TransactionPanel onSuccess={onSuccess} onError={onError} />);
+
+      const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      await screen.findByText("Transaction submitted");
+
+      expect(onSuccess).toHaveBeenCalledWith(txResult);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it("calls onError with the error message when the API returns an error", async () => {
+      const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Insufficient balance" });
+      mockGetClient(mockSubmit);
+      const onSuccess = vi.fn();
+      const onError = vi.fn();
+
+      render(<TransactionPanel onSuccess={onSuccess} onError={onError} />);
+
+      const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      await screen.findByText("Transaction failed");
+
+      expect(onError).toHaveBeenCalledWith("Insufficient balance");
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    it("calls onError with the thrown error's message when submit rejects", async () => {
+      const mockSubmit = vi.fn().mockRejectedValue(new Error("Network unreachable"));
+      mockGetClient(mockSubmit);
+      const onSuccess = vi.fn();
+      const onError = vi.fn();
+
+      render(<TransactionPanel onSuccess={onSuccess} onError={onError} />);
+
+      const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      await screen.findByText("Transaction failed");
+
+      expect(onError).toHaveBeenCalledWith("Network unreachable");
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    it("does not throw when onSuccess/onError are not provided", async () => {
+      const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null });
+      mockGetClient(mockSubmit);
+
+      render(<TransactionPanel />);
+
+      const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await reviewAndConfirm();
+      expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
+    });
+  });
+
+  describe("memo character counter (#351)", () => {
+    it("shows the counter in the default (non-red) color under 28 characters", () => {
+      render(<TransactionPanel />);
+      const memoInput = screen.getByLabelText("Memo (optional)");
+      fireEvent.change(memoInput, { target: { value: "a".repeat(27) } });
+
+      const counter = screen.getByText("27/28");
+      expect(counter.className).toContain("text-ink-3");
+      expect(counter.className).not.toContain("text-red");
+    });
+
+    it("turns the counter red at exactly 28 characters", () => {
+      render(<TransactionPanel />);
+      const memoInput = screen.getByLabelText("Memo (optional)");
+      fireEvent.change(memoInput, { target: { value: "a".repeat(28) } });
+
+      const counter = screen.getByText("28/28");
+      expect(counter.className).toContain("text-red");
+    });
+
+    it("stays red beyond 28 characters", () => {
+      render(<TransactionPanel />);
+      const memoInput = screen.getByLabelText("Memo (optional)");
+      fireEvent.change(memoInput, { target: { value: "a".repeat(35) } });
+
+      const counter = screen.getByText("35/28");
+      expect(counter.className).toContain("text-red");
+    });
+
+    it("does not render a counter for memo type ID or None", () => {
+      render(<TransactionPanel />);
+      fireEvent.change(screen.getByLabelText("Memo Type"), { target: { value: "none" } });
+      expect(screen.queryByText(/^\d+\/28$/)).not.toBeInTheDocument();
     });
   });
 });
