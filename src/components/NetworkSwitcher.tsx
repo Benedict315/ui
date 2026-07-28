@@ -64,7 +64,16 @@ export const STANDARD_NETWORKS: NetworkPreset[] = [
   },
 ];
 
-/** Keyboard shortcut that toggles the network picker from anywhere. */
+/**
+ * Keyboard shortcut that toggles the network picker from anywhere in the
+ * application. The shortcut is wired to a `keydown` listener in
+ * `NetworkSwitcher` and is also advertised via the trigger button's
+ * `aria-keyshortcuts` attribute for assistive technologies.
+ *
+ * The currently selected network is persisted to
+ * `localStorage["sorokit_network"]` by `SorokitProvider.switchNetwork` and
+ * restored on next mount, so the user\u2019s choice survives a page reload.
+ */
 export const NETWORK_SWITCHER_SHORTCUT = "Alt+N";
 
 export function NetworkSwitcher() {
