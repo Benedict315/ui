@@ -9,7 +9,7 @@ import { SorokitProvider } from "./SorokitProvider";
 import { useSorokit } from "./useSorokit";
 
 const TestComponent = () => {
-  const { address, account, balances, connectWallet, disconnectWallet, switchNetwork, refreshAccount, isLoadingAccount, error } = useSorokit();
+  const { address, account, balances, connectWallet, disconnectWallet, switchNetwork, refreshAccount, isLoadingAccount, error, errorHistory } = useSorokit();
 
   return (
     <div>
@@ -18,12 +18,28 @@ const TestComponent = () => {
       <div data-testid="balances">{balances.length}</div>
       <div data-testid="isLoadingAccount">{isLoadingAccount ? "true" : "false"}</div>
       <div data-testid="error">{error || "none"}</div>
+      <div data-testid="errorHistoryCount">{errorHistory.length}</div>
       <button onClick={() => connectWallet()}>Connect</button>
       <button onClick={() => disconnectWallet()}>Disconnect</button>
       <button onClick={() => switchNetwork("testnet")}>Switch</button>
       <button onClick={() => refreshAccount()}>Refresh</button>
     </div>
   );
+};
+
+const CallbackRefTestComponent = ({
+  onCapture,
+}: {
+  onCapture: (fns: {
+    connectWallet: unknown;
+    disconnectWallet: unknown;
+    switchNetwork: unknown;
+    refreshAccount: unknown;
+  }) => void;
+}) => {
+  const { connectWallet, disconnectWallet, switchNetwork, refreshAccount } = useSorokit();
+  onCapture({ connectWallet, disconnectWallet, switchNetwork, refreshAccount });
+  return null;
 };
 
 const MemoTestComponent = () => {
@@ -219,5 +235,193 @@ describe("SorokitProvider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("isLoadingAccount")).toHaveTextContent("false");
     }, { timeout: 1000 });
+  });
+
+  describe("stable callback refs across client prop changes (#353)", () => {
+    it("keeps connectWallet, disconnectWallet, switchNetwork, and refreshAccount referentially stable when client changes", async () => {
+      const captures: Array<{
+        connectWallet: unknown;
+        disconnectWallet: unknown;
+        switchNetwork: unknown;
+        refreshAccount: unknown;
+      }> = [];
+      const onCapture = (fns: (typeof captures)[number]) => {
+        captures.push(fns);
+      };
+
+      const { rerender } = render(
+        <SorokitProvider client={mockClient}>
+          <CallbackRefTestComponent onCapture={onCapture} />
+        </SorokitProvider>,
+      );
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      const before = captures[captures.length - 1]!;
+
+      // A parent re-render passing a brand-new client object reference
+      // (same shape, different identity) — this used to change every
+      // callback's identity since they closed over `client` directly.
+      const newClientSameShape = { ...mockClient };
+      rerender(
+        <SorokitProvider client={newClientSameShape as unknown as ReturnType<typeof getClient>}>
+          <CallbackRefTestComponent onCapture={onCapture} />
+        </SorokitProvider>,
+      );
+
+      const after = captures[captures.length - 1]!;
+
+      expect(after.connectWallet).toBe(before.connectWallet);
+      expect(after.disconnectWallet).toBe(before.disconnectWallet);
+      expect(after.switchNetwork).toBe(before.switchNetwork);
+      expect(after.refreshAccount).toBe(before.refreshAccount);
+    });
+
+    it("still uses the latest client for the actual API call after the client prop changes", async () => {
+      const captures: Array<{ connectWallet: () => Promise<void> }> = [];
+      const onCapture = (fns: { connectWallet: unknown }) => {
+        captures.push(fns as { connectWallet: () => Promise<void> });
+      };
+
+      const { rerender } = render(
+        <SorokitProvider client={mockClient}>
+          <CallbackRefTestComponent onCapture={onCapture} />
+        </SorokitProvider>,
+      );
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      const newConnect = vi.fn().mockResolvedValue({ data: { address: "GNEW" }, error: null });
+      const newClient = {
+        ...mockClient,
+        wallet: { ...mockClient.wallet, connect: newConnect },
+      } as unknown as ReturnType<typeof getClient>;
+
+      rerender(
+        <SorokitProvider client={newClient}>
+          <CallbackRefTestComponent onCapture={onCapture} />
+        </SorokitProvider>,
+      );
+
+      const { connectWallet } = captures[captures.length - 1]!;
+      await act(async () => {
+        await connectWallet();
+      });
+
+      expect(newConnect).toHaveBeenCalledTimes(1);
+      expect(mockClient.wallet.connect).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("errorHistory clears on disconnect (#353)", () => {
+    it("clears errorHistory when disconnectWallet is called", async () => {
+      const errorClient = {
+        ...mockClient,
+        account: {
+          getAccount: vi.fn().mockResolvedValue({ data: null, error: "getAccount failed" }),
+          getBalances: vi.fn().mockResolvedValue({ data: null, error: "getBalances failed" }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<TestComponent />, { client: errorClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("errorHistoryCount")).not.toHaveTextContent("0");
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Disconnect"));
+      });
+
+      expect(screen.getByTestId("errorHistoryCount")).toHaveTextContent("0");
+    });
+  });
+
+  describe("refreshAccount guard for concurrent calls (#353)", () => {
+    it("ignores a second refreshAccount call while the first is still in flight", async () => {
+      renderWithProvider(<TestComponent />, { client: mockClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("isLoadingAccount")).toHaveTextContent("false");
+      });
+
+      let resolveGetAccount: (v: { data: { sequence: string }; error: null }) => void;
+      mockClient.account.getAccount = vi.fn().mockImplementation(
+        () => new Promise((resolve) => { resolveGetAccount = resolve; }),
+      );
+      const getAccountSpy = mockClient.account.getAccount as ReturnType<typeof vi.fn>;
+
+      // First refresh — starts and hangs (getAccount not yet resolved).
+      act(() => {
+        fireEvent.click(screen.getByText("Refresh"));
+      });
+      expect(screen.getByTestId("isLoadingAccount")).toHaveTextContent("true");
+      expect(getAccountSpy).toHaveBeenCalledTimes(1);
+
+      // Second refresh while the first is still pending — must be a no-op.
+      act(() => {
+        fireEvent.click(screen.getByText("Refresh"));
+      });
+      expect(getAccountSpy).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolveGetAccount!({ data: { sequence: "999" }, error: null });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("isLoadingAccount")).toHaveTextContent("false");
+      });
+
+      // A refresh after the first one settles is allowed through normally.
+      act(() => {
+        fireEvent.click(screen.getByText("Refresh"));
+      });
+      expect(getAccountSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("connect() with no data and no error (#353)", () => {
+    it("shows a user-facing error when connect resolves with data: null, error: null", async () => {
+      const cancelledClient = {
+        ...mockClient,
+        wallet: {
+          ...mockClient.wallet,
+          connect: vi.fn().mockResolvedValue({ data: null, error: null }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<TestComponent />, { client: cancelledClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      expect(screen.getByTestId("address")).toHaveTextContent("none");
+      expect(screen.getByTestId("error")).toHaveTextContent(
+        "Connection was cancelled or no wallet was selected.",
+      );
+    });
+
+    it("does not show an error when connect resolves with a valid address", async () => {
+      renderWithProvider(<TestComponent />, { client: mockClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      expect(screen.getByTestId("address")).toHaveTextContent("GABC");
+      expect(screen.getByTestId("error")).toHaveTextContent("none");
+    });
   });
 });

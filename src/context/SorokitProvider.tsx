@@ -37,6 +37,20 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
     onErrorRef.current = onError;
   }, [onError]);
 
+  // #353 — connectWallet/disconnectWallet/switchNetwork/refreshAccount read
+  // the client through this ref instead of closing over the `client` prop
+  // directly, so their identities stay stable even when a parent passes a
+  // new `client` object reference on every render.
+  const clientRef = useRef(client);
+  useEffect(() => {
+    clientRef.current = client;
+  }, [client]);
+
+  // #353 — guards refreshAccount against overlapping calls (e.g. a user
+  // clicking "Refresh" again before the previous request settles), so a
+  // slower earlier response can't land after a newer one and show stale data.
+  const isRefreshingRef = useRef(false);
+
   const reportError = useCallback(
     (err: string, source: string, severity: "info" | "error" = "error") => {
       setError(err);
@@ -135,28 +149,42 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
     try {
       const name = detectWalletName();
       setWalletName(name);
-      const { data, error } = await client.wallet.connect();
+      const { data, error } = await clientRef.current.wallet.connect();
       if (error) {
         reportError(error, "wallet", "error");
         return;
       }
-      if (data?.address) setAddress(data.address);
+      if (data?.address) {
+        setAddress(data.address);
+      } else {
+        // #353 — data and error both empty (e.g. the user dismissed the
+        // wallet dialog without picking one) previously left the UI stuck:
+        // loading ends, but nothing tells the user why nothing happened.
+        reportError(
+          "Connection was cancelled or no wallet was selected.",
+          "wallet",
+          "info",
+        );
+      }
     } finally {
       setIsConnecting(false);
     }
-  }, [client, reportError]);
+  }, [reportError]);
 
   const disconnectWallet = useCallback(async () => {
-    await client.wallet.disconnect();
+    await clientRef.current.wallet.disconnect();
     setAddress(null);
     setWalletName(null);
     setAccount(null);
     setBalances([]);
-  }, [client]);
+    // #353 — a fresh session shouldn't carry over error history from
+    // whatever the previous wallet connection ran into.
+    setErrorHistory([]);
+  }, []);
 
   const switchNetwork = useCallback(
     async (param: NetworkName | NetworkInfo) => {
-      const { data, error } = await client.network.switchNetwork(param);
+      const { data, error } = await clientRef.current.network.switchNetwork(param);
       if (error) {
         reportError(error, "network", "error");
         return;
@@ -177,7 +205,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
         setBalances([]);
       }
     },
-    [client, reportError],
+    [reportError],
   );
 
   const addCustomNetwork = useCallback(
@@ -202,12 +230,13 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
   const clearError = useCallback(() => setError(null), []);
 
   const refreshAccount = useCallback(async () => {
-    if (!address) return;
+    if (!address || isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
     setIsLoadingAccount(true);
     try {
       const [accountRes, balancesRes] = await Promise.all([
-        client.account.getAccount(address),
-        client.account.getBalances(address),
+        clientRef.current.account.getAccount(address),
+        clientRef.current.account.getBalances(address),
       ]);
       if (accountRes.data) setAccount(accountRes.data);
       if (balancesRes.data) setBalances(balancesRes.data);
@@ -215,8 +244,9 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
       else if (balancesRes.error) reportError(balancesRes.error, "account", "error");
     } finally {
       setIsLoadingAccount(false);
+      isRefreshingRef.current = false;
     }
-  }, [address, client, reportError]);
+  }, [address, reportError]);
 
   const value = useMemo(
     () => ({

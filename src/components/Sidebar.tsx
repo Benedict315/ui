@@ -13,6 +13,8 @@ import { AccountCardCompact } from "@/components/AccountCard";
 import { useSorokit } from "@/context/useSorokit";
 import { cn } from "@/lib/utils";
 
+import packageJson from "../../package.json";
+
 export type NavSection =
   | "wallet"
   | "account"
@@ -136,7 +138,11 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
         )}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 h-[60px] border-b border-line shrink-0">
+        <button
+          type="button"
+          onClick={() => onNavigate("wallet")}
+          className="flex items-center gap-3 px-5 h-[60px] border-b border-line shrink-0 text-left cursor-pointer"
+        >
           <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center shrink-0">
             <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
               <path
@@ -160,7 +166,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
             </p>
             <p className="text-[11px] text-ink-4 mt-0.5">Stellar Dashboard</p>
           </div>
-        </div>
+        </button>
 
         {/* Nav */}
         <nav
@@ -210,6 +216,11 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
             <AccountCardCompact />
           </div>
         )}
+
+        {/* Version footer */}
+        <div className="px-5 py-2 border-t border-line shrink-0">
+          <p className="text-[10px] text-ink-4">v{packageJson.version}</p>
+        </div>
       </aside>
     </>
   );

@@ -29,6 +29,11 @@ function mockGetEvents(result: { data: ContractEvent[] | null; error: string | n
   } as unknown as SorokitClient);
 }
 
+const mockCreateObjectURL = vi.fn(() => "blob:mock");
+const mockRevokeObjectURL = vi.fn();
+URL.createObjectURL = mockCreateObjectURL;
+URL.revokeObjectURL = mockRevokeObjectURL;
+
 describe("ContractEventFeed", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -140,7 +145,7 @@ describe("ContractEventFeed", () => {
 
     await waitFor(() => {
       expect(getEvents).toHaveBeenCalledTimes(2);
-      expect(getEvents).toHaveBeenLastCalledWith(NEW_ID, 10);
+      expect(getEvents).toHaveBeenLastCalledWith(NEW_ID, 10, undefined);
     });
   });
 
@@ -385,6 +390,156 @@ describe("ContractEventFeed", () => {
 
       act(() => { vi.advanceTimersByTime(30_000); });
       expect(screen.queryByText(/updated/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("JSON export (#352)", () => {
+    it("is disabled when there are no events", async () => {
+      mockGetEvents({ data: [], error: null });
+      render(<ContractEventFeed contractId={CONTRACT_ID} />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /export json/i })).toBeDisabled();
+      });
+    });
+
+    it("exports a blob containing the exact events JSON", async () => {
+      mockGetEvents({ data: [MOCK_EVENT], error: null });
+      render(<ContractEventFeed contractId={CONTRACT_ID} />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getByText("transfer"));
+
+      fireEvent.click(screen.getByRole("button", { name: /export json/i }));
+
+      expect(mockCreateObjectURL).toHaveBeenCalledTimes(1);
+      const blob = mockCreateObjectURL.mock.calls[0]![0] as Blob;
+      expect(blob.type).toBe("application/json");
+      const text = await blob.text();
+      expect(JSON.parse(text)).toEqual([MOCK_EVENT]);
+      expect(mockRevokeObjectURL).toHaveBeenCalledWith("blob:mock");
+    });
+
+    it("names the downloaded file after the contract ID", async () => {
+      mockGetEvents({ data: [MOCK_EVENT], error: null });
+      render(<ContractEventFeed contractId={CONTRACT_ID} />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getByText("transfer"));
+
+      let downloadName: string | null = null;
+      const clickSpy = vi
+        .spyOn(HTMLAnchorElement.prototype, "click")
+        .mockImplementation(function (this: HTMLAnchorElement) {
+          downloadName = this.download;
+        });
+
+      fireEvent.click(screen.getByRole("button", { name: /export json/i }));
+
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+      expect(downloadName).toBe(`contract-events-${CONTRACT_ID}.json`);
+      clickSpy.mockRestore();
+    });
+  });
+
+  describe("topic copy (#352)", () => {
+    beforeEach(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      });
+    });
+
+    it("copies the exact topic value to the clipboard when its copy button is clicked", async () => {
+      mockGetEvents({ data: [MOCK_EVENT], error: null });
+      render(<ContractEventFeed contractId={CONTRACT_ID} />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getByText("GA...from"));
+
+      const copyButtons = screen.getAllByTitle("Copy topic");
+      await act(async () => {
+        fireEvent.click(copyButtons[0]!);
+      });
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("GA...from");
+    });
+
+    it("copies each topic independently by its own button", async () => {
+      mockGetEvents({ data: [MOCK_EVENT], error: null });
+      render(<ContractEventFeed contractId={CONTRACT_ID} />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getByText("GB...to"));
+
+      const copyButtons = screen.getAllByTitle("Copy topic");
+      expect(copyButtons).toHaveLength(2);
+
+      await act(async () => {
+        fireEvent.click(copyButtons[1]!);
+      });
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("GB...to");
+      expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith("GA...from");
+    });
+
+    it("does not toggle event-row interactions when the copy button is clicked", async () => {
+      mockGetEvents({ data: [MOCK_EVENT], error: null });
+      render(<ContractEventFeed contractId={CONTRACT_ID} />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getByText("GA...from"));
+
+      // handleCopy calls stopPropagation(); clicking it must not throw or
+      // bubble into unrelated row-level click handlers.
+      await act(async () => {
+        fireEvent.click(screen.getAllByTitle("Copy topic")[0]!);
+      });
+    });
+  });
+
+  describe("fromLedger prop (#352)", () => {
+    it("passes fromLedger through to getEvents", async () => {
+      const getEvents = vi.fn().mockResolvedValue({ data: [], error: null });
+      vi.mocked(getClient).mockReturnValue({
+        soroban: { getEvents },
+      } as unknown as SorokitClient);
+
+      render(<ContractEventFeed contractId={CONTRACT_ID} fromLedger={987654} />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => {
+        expect(getEvents).toHaveBeenCalledWith(CONTRACT_ID, 10, 987654);
+      });
+    });
+
+    it("passes undefined for fromLedger when not provided", async () => {
+      const getEvents = vi.fn().mockResolvedValue({ data: [], error: null });
+      vi.mocked(getClient).mockReturnValue({
+        soroban: { getEvents },
+      } as unknown as SorokitClient);
+
+      render(<ContractEventFeed contractId={CONTRACT_ID} />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => {
+        expect(getEvents).toHaveBeenCalledWith(CONTRACT_ID, 10, undefined);
+      });
+    });
+
+    it("re-fetches when fromLedger changes", async () => {
+      const getEvents = vi.fn().mockResolvedValue({ data: [], error: null });
+      vi.mocked(getClient).mockReturnValue({
+        soroban: { getEvents },
+      } as unknown as SorokitClient);
+
+      const { rerender } = render(
+        <ContractEventFeed contractId={CONTRACT_ID} fromLedger={100} />,
+      );
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => expect(getEvents).toHaveBeenCalledWith(CONTRACT_ID, 10, 100));
+
+      rerender(<ContractEventFeed contractId={CONTRACT_ID} fromLedger={200} />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => {
+        expect(getEvents).toHaveBeenCalledWith(CONTRACT_ID, 10, 200);
+      });
     });
   });
 });
