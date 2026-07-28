@@ -45,6 +45,8 @@ describe("FeeEstimator", () => {
     });
     expect(screen.getByText("Base Fee")).toBeInTheDocument();
     expect(screen.getByText("Recommended")).toBeInTheDocument();
+    expect(screen.getByText("(≈ 0.00001 XLM)")).toBeInTheDocument();
+    expect(screen.getByText("(≈ 0.00005 XLM)")).toBeInTheDocument();
   });
 
   it("renders the error message when the client returns an error", async () => {
@@ -95,8 +97,32 @@ describe("FeeEstimator", () => {
     expect(screen.getByText("Network Fee")).toBeInTheDocument();
   });
 
+  it("shows a high-fee warning when recommended fee exceeds twice the base fee", async () => {
+    mockEstimateFee({ data: { baseFee: "100", recommended: "201" }, error: null });
+    render(<FeeEstimator />);
+
+    expect(await screen.findByText("High fee")).toBeInTheDocument();
+  });
+
+  it("does not show a high-fee warning when recommended fee is at most twice the base fee", async () => {
+    mockEstimateFee({ data: { baseFee: "100", recommended: "200" }, error: null });
+    render(<FeeEstimator />);
+
+    await waitFor(() => expect(screen.getByText("200")).toBeInTheDocument());
+    expect(screen.queryByText("High fee")).not.toBeInTheDocument();
+  });
+
   // ── Accessibility (#120) ──────────────────────────────────────────────────
   describe("accessibility", () => {
+    it("exposes the fee estimate as a named landmark region", () => {
+      mockEstimateFee({ data: { baseFee: "100", recommended: "200" }, error: null });
+      render(<FeeEstimator />);
+
+      expect(
+        screen.getByRole("region", { name: "Network fee estimate" }),
+      ).toBeInTheDocument();
+    });
+
     it("labels the refresh button for screen readers", () => {
       mockEstimateFee({ data: { baseFee: "100", recommended: "200" }, error: null });
       render(<FeeEstimator />);
