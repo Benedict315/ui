@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { getClient } from "@/lib/client";
 import { cn } from "@/lib/utils";
 
-interface FeeData {
+export interface FeeData {
   baseFee: string;
   recommended: string;
 }
@@ -15,11 +15,15 @@ interface FeeEstimatorProps {
   className?: string;
   /** Auto-refresh interval in ms. 0 = no refresh. */
   refreshInterval?: number;
+  variant?: "default" | "compact";
+  onFeeLoad?: (fee: FeeData) => void;
 }
 
 export function FeeEstimator({
   className,
   refreshInterval = 0,
+  variant = "default",
+  onFeeLoad,
 }: FeeEstimatorProps) {
   const [fee, setFee] = useState<FeeData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,10 +39,13 @@ export function FeeEstimator({
       }
       setFee(data);
       setError(null);
+      if (data) {
+        onFeeLoad?.(data);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [onFeeLoad]);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -93,33 +100,41 @@ export function FeeEstimator({
 
       <div className="px-5 py-4" aria-live="polite" aria-atomic="true">
         {loading && !fee ? (
-          <div className="flex gap-4">
-            <div className="h-8 w-24 rounded-lg bg-surface-2 animate-pulse" />
-            <div className="h-8 w-24 rounded-lg bg-surface-2 animate-pulse" />
-          </div>
+          variant === "compact" ? (
+            <div className="h-6 w-28 rounded-lg bg-surface-2 animate-pulse" />
+          ) : (
+            <div className="flex gap-4">
+              <div className="h-8 w-24 rounded-lg bg-surface-2 animate-pulse" />
+              <div className="h-8 w-24 rounded-lg bg-surface-2 animate-pulse" />
+            </div>
+          )
         ) : error ? (
           <p className="text-[12px] text-red">{error}</p>
         ) : fee ? (
-          <div className="flex items-center gap-4">
-            <FeeCell label="Base Fee" value={fee.baseFee} unit="stroops" />
-            <div className="w-px h-8 bg-line" />
-            <FeeCell
-              label="Recommended"
-              value={fee.recommended}
-              unit="stroops"
-              highlight
-              highFee={
-                parseInt(fee.recommended, 10) > parseInt(fee.baseFee, 10) * 2
-              }
-            />
-          </div>
+          variant === "compact" ? (
+            <p className="text-[13px] text-ink">Fee: ~{fee.recommended} stroops</p>
+          ) : (
+            <div className="flex items-center gap-4">
+              <FeeCell label="Base Fee" value={fee.baseFee} unit="stroops" />
+              <div className="w-px h-8 bg-line" />
+              <FeeCell
+                label="Recommended"
+                value={fee.recommended}
+                unit="stroops"
+                highlight
+                highFee={
+                  parseInt(fee.recommended, 10) > parseInt(fee.baseFee, 10) * 2
+                }
+              />
+            </div>
+          )
         ) : null}
       </div>
     </div>
   );
 }
 
-function FeeCell({
+export function FeeCell({
   label,
   value,
   unit,
