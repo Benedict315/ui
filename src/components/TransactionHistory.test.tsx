@@ -38,6 +38,7 @@ function mockGetHistory(txs: Transaction[], total: number) {
 describe("TransactionHistory", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.mocked(useSorokit).mockReturnValue({
       address: ADDRESS,
@@ -62,14 +63,32 @@ describe("TransactionHistory", () => {
     expect(screen.getByText(/connect your wallet/i)).toBeInTheDocument();
   });
 
-  it("renders 'No transactions found' when the list is empty", async () => {
+  it("renders the empty state and Friendbot link on testnet", async () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      address: ADDRESS,
+      isConnected: true,
+      network: { name: "testnet" },
+    } as unknown as ReturnType<typeof useSorokit>);
     mockGetHistory([], 0);
     render(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
 
     await waitFor(() => {
-      expect(screen.getByText("No transactions found")).toBeInTheDocument();
+      expect(screen.getByText("No transactions yet")).toBeInTheDocument();
     });
+    expect(screen.getByRole("link", { name: /fund with friendbot/i })).toHaveAttribute(
+      "href",
+      "https://friendbot.stellar.org",
+    );
+  });
+
+  it("does not show Friendbot outside testnet", async () => {
+    mockGetHistory([], 0);
+    render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+
+    await screen.findByText("No transactions yet");
+    expect(screen.queryByRole("link", { name: /friendbot/i })).not.toBeInTheDocument();
   });
 
   it("does not render pagination when total ≤ PAGE_SIZE", async () => {
@@ -127,6 +146,35 @@ describe("TransactionHistory", () => {
     await waitFor(() => {
       expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE);
     });
+    expect(sessionStorage.getItem(`sorokit-transaction-history-page:${ADDRESS}`)).toBe("2");
+  });
+
+  it("restores the current page from sessionStorage for the connected address", async () => {
+    sessionStorage.setItem(`sorokit-transaction-history-page:${ADDRESS}`, "2");
+    const getHistory = vi.fn().mockResolvedValue({
+      data: Array.from({ length: PAGE_SIZE }, (_, i) => makeTx(i)),
+      error: null,
+      total: 25,
+    });
+    vi.mocked(getClient).mockReturnValue({
+      transaction: { getHistory },
+    } as unknown as SorokitClient);
+
+    render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+
+    await waitFor(() =>
+      expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE),
+    );
+  });
+
+  it("handles an invalid total without rendering invalid pagination", async () => {
+    mockGetHistory([], Number.NaN);
+    render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+
+    await screen.findByText("No transactions yet");
+    expect(screen.queryByText(/page .* of/i)).not.toBeInTheDocument();
   });
 
   it("disables Next button on the last page", async () => {
@@ -183,5 +231,188 @@ describe("TransactionHistory", () => {
     expect(getHistory).toHaveBeenLastCalledWith(ADDRESS, 1, PAGE_SIZE);
     // Prev is disabled again on the first page.
     expect(screen.getByRole("button", { name: /prev/i })).toBeDisabled();
+  });
+
+  describe("row links to Stellar Expert (#350)", () => {
+    it("links each row to its Stellar Expert transaction page on testnet", async () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: ADDRESS,
+        isConnected: true,
+        network: { name: "testnet" },
+      } as unknown as ReturnType<typeof useSorokit>);
+      const tx = makeTx(0);
+      mockGetHistory([tx], 1);
+
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      // The row carries an explicit role="article" (ARIA: an explicit role
+      // overrides the <a> tag's implicit "link" role), so query by article
+      // and assert on its href directly rather than by role="link".
+      await waitFor(() => screen.getByRole("article"));
+      expect(screen.getByRole("article")).toHaveAttribute(
+        "href",
+        `https://stellar.expert/explorer/testnet/tx/${tx.hash}`,
+      );
+    });
+
+    it("links each row to its Stellar Expert transaction page on mainnet", async () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: ADDRESS,
+        isConnected: true,
+        network: { name: "mainnet" },
+      } as unknown as ReturnType<typeof useSorokit>);
+      const tx = makeTx(0);
+      mockGetHistory([tx], 1);
+
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => screen.getByRole("article"));
+      expect(screen.getByRole("article")).toHaveAttribute(
+        "href",
+        `https://stellar.expert/explorer/public/tx/${tx.hash}`,
+      );
+    });
+
+    it("renders a plain (non-link) row when the network is unrecognized", async () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: ADDRESS,
+        isConnected: true,
+        network: { name: "futurenet" },
+      } as unknown as ReturnType<typeof useSorokit>);
+      const tx = makeTx(0);
+      mockGetHistory([tx], 1);
+
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => screen.getByRole("article"));
+      const row = screen.getByRole("article");
+      expect(row.tagName).toBe("DIV");
+      expect(row).not.toHaveAttribute("href");
+    });
+  });
+
+  describe("status and date range filtering (#350, #352)", () => {
+    function makeTxAt(hashSuffix: string, iso: string, successful: boolean): Transaction {
+      return {
+        hash: `hash${hashSuffix.padStart(56, "0")}`,
+        ledger: 2000,
+        successful,
+        createdAt: new Date(iso).toISOString(),
+        memo: null,
+      };
+    }
+
+    it("the status filter shows only successful transactions when 'Success' is selected", async () => {
+      const ok = makeTxAt("1", "2024-02-01", true);
+      const failed = makeTxAt("2", "2024-02-02", false);
+      mockGetHistory([ok, failed], 2);
+
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getAllByRole("article"));
+      expect(screen.getAllByRole("article")).toHaveLength(2);
+
+      fireEvent.click(screen.getByRole("button", { name: /^success$/i }));
+
+      const rows = screen.getAllByRole("article");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveTextContent(ok.hash.slice(0, 10));
+    });
+
+    it("the status filter shows only failed transactions when 'Failed' is selected", async () => {
+      const ok = makeTxAt("1", "2024-02-01", true);
+      const failed = makeTxAt("2", "2024-02-02", false);
+      mockGetHistory([ok, failed], 2);
+
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getAllByRole("article"));
+
+      fireEvent.click(screen.getByRole("button", { name: /^failed$/i }));
+
+      const rows = screen.getAllByRole("article");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveTextContent(failed.hash.slice(0, 10));
+    });
+
+    it("'All' shows every transaction regardless of status", async () => {
+      const ok = makeTxAt("1", "2024-02-01", true);
+      const failed = makeTxAt("2", "2024-02-02", false);
+      mockGetHistory([ok, failed], 2);
+
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getAllByRole("article"));
+
+      fireEvent.click(screen.getByRole("button", { name: /^failed$/i }));
+      expect(screen.getAllByRole("article")).toHaveLength(1);
+
+      fireEvent.click(screen.getByRole("button", { name: /^all$/i }));
+      expect(screen.getAllByRole("article")).toHaveLength(2);
+    });
+
+    it("startDate excludes transactions before the given date", async () => {
+      const early = makeTxAt("1", "2024-01-01", true);
+      const late = makeTxAt("2", "2024-03-01", true);
+      mockGetHistory([early, late], 2);
+
+      render(<TransactionHistory startDate="2024-02-01" />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => screen.getAllByRole("article"));
+      const rows = screen.getAllByRole("article");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveTextContent(late.hash.slice(0, 10));
+    });
+
+    it("endDate excludes transactions after the given date", async () => {
+      const early = makeTxAt("1", "2024-01-01", true);
+      const late = makeTxAt("2", "2024-03-01", true);
+      mockGetHistory([early, late], 2);
+
+      render(<TransactionHistory endDate="2024-02-01" />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => screen.getAllByRole("article"));
+      const rows = screen.getAllByRole("article");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveTextContent(early.hash.slice(0, 10));
+    });
+
+    it("startDate and endDate together narrow to the transactions within range", async () => {
+      const before = makeTxAt("1", "2024-01-01", true);
+      const within = makeTxAt("2", "2024-02-15", true);
+      const after = makeTxAt("3", "2024-03-01", true);
+      mockGetHistory([before, within, after], 3);
+
+      render(<TransactionHistory startDate="2024-02-01" endDate="2024-02-28" />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => screen.getAllByRole("article"));
+      const rows = screen.getAllByRole("article");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveTextContent(within.hash.slice(0, 10));
+    });
+
+    it("combines the status filter and date range together", async () => {
+      const withinOk = makeTxAt("1", "2024-02-10", true);
+      const withinFailed = makeTxAt("2", "2024-02-11", false);
+      const outsideOk = makeTxAt("3", "2024-05-01", true);
+      mockGetHistory([withinOk, withinFailed, outsideOk], 3);
+
+      render(<TransactionHistory startDate="2024-02-01" endDate="2024-02-28" />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getAllByRole("article"));
+      expect(screen.getAllByRole("article")).toHaveLength(2);
+
+      fireEvent.click(screen.getByRole("button", { name: /^success$/i }));
+
+      const rows = screen.getAllByRole("article");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveTextContent(withinOk.hash.slice(0, 10));
+    });
   });
 });

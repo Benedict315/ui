@@ -16,6 +16,29 @@ import { truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 const MEMO_TRUNCATE_LENGTH = 20;
+const PAGE_STORAGE_PREFIX = "sorokit-transaction-history-page:";
+
+function readStoredPage(address: string | null): number {
+  if (!address) return 1;
+  try {
+    const storedPage = Number.parseInt(
+      sessionStorage.getItem(`${PAGE_STORAGE_PREFIX}${address}`) ?? "",
+      10,
+    );
+    return Number.isInteger(storedPage) && storedPage > 0 ? storedPage : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function storePage(address: string | null, page: number): void {
+  if (!address) return;
+  try {
+    sessionStorage.setItem(`${PAGE_STORAGE_PREFIX}${address}`, String(page));
+  } catch {
+    // sessionStorage may be unavailable; pagination still works for this render.
+  }
+}
 
 function truncateMemo(memo: string): string {
   return memo.length > MEMO_TRUNCATE_LENGTH
@@ -23,7 +46,23 @@ function truncateMemo(memo: string): string {
     : memo;
 }
 
-export function TxRow({ tx }: { tx: Transaction }) {
+function explorerTxUrl(
+  networkName: string | undefined,
+  hash: string,
+): string | null {
+  const segment =
+    networkName === "mainnet" ? "public" : networkName === "testnet" ? "testnet" : null;
+  if (!segment) return null;
+  return `https://stellar.expert/explorer/${segment}/tx/${hash}`;
+}
+
+export function TxRow({
+  tx,
+  networkName,
+}: {
+  tx: Transaction;
+  networkName?: string;
+}) {
   const date = new Date(tx.createdAt);
   const timeStr = date.toLocaleTimeString([], {
     hour: "2-digit",
@@ -34,12 +73,19 @@ export function TxRow({ tx }: { tx: Transaction }) {
     day: "numeric",
   });
 
+  const explorerUrl = explorerTxUrl(networkName, tx.hash);
+
+  const RowWrapper = explorerUrl ? "a" : "div";
+  const wrapperProps = explorerUrl
+    ? { href: explorerUrl, target: "_blank", rel: "noopener noreferrer" }
+    : {};
 
   return (
-    <div
+    <RowWrapper
+      {...(wrapperProps as Record<string, string>)}
       role="article"
       aria-label={`Transaction ${truncateAddress(tx.hash, 10, 6)} — ${tx.successful ? "Success" : "Failed"} — Fee: ${tx.feePaid} stroops`}
-      className="flex items-center justify-between px-5 py-3.5 border-b border-line last:border-0 gap-4"
+      className="flex items-center justify-between px-5 py-3.5 border-b border-line last:border-0 gap-4 hover:bg-surface-2 transition-colors cursor-pointer"
     >
       <div className="flex items-center gap-3 min-w-0">
         {/* Status icon */}
@@ -90,17 +136,29 @@ export function TxRow({ tx }: { tx: Transaction }) {
           </span>
         </div>
       </div>
-    </div>
+    </RowWrapper>
   );
 }
 
-export function TransactionHistory() {
-  const { address, isConnected } = useSorokit();
+type StatusFilter = "all" | "success" | "failed";
+
+export interface TransactionHistoryProps {
+  startDate?: string;
+  endDate?: string;
+}
+
+export function TransactionHistory({ startDate, endDate }: TransactionHistoryProps = {}) {
+  const { address, isConnected, network } = useSorokit();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [txs, setTxs] = useState<Transaction[]>([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => readStoredPage(address));
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPage(readStoredPage(address));
+  }, [address]);
 
   useEffect(() => {
     if (!address) return;
@@ -117,7 +175,7 @@ export function TransactionHistory() {
             return;
           }
           setTxs(data ?? []);
-          setTotal(t);
+          setTotal(Number.isFinite(t) && t > 0 ? t : 0);
           setError(null);
         })
         .finally(() => {
@@ -131,7 +189,26 @@ export function TransactionHistory() {
     };
   }, [address, page]);
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const totalPages = total > 0 ? Math.ceil(total / PAGE_SIZE) : 0;
+
+  function changePage(nextPage: number) {
+    setPage(nextPage);
+    storePage(address, nextPage);
+  }
+
+  const filteredTxs = txs.filter((tx) => {
+    if (statusFilter === "success" && !tx.successful) return false;
+    if (statusFilter === "failed" && tx.successful) return false;
+    if (startDate && new Date(tx.createdAt) < new Date(startDate)) return false;
+    if (endDate && new Date(tx.createdAt) > new Date(endDate + "T23:59:59")) return false;
+    return true;
+  });
+
+  const STATUS_BUTTONS: { value: StatusFilter; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: "success", label: "Success" },
+    { value: "failed", label: "Failed" },
+  ];
 
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
@@ -147,6 +224,21 @@ export function TransactionHistory() {
         {loading && (
           <span className="w-4 h-4 border border-ink-3 border-t-transparent rounded-full animate-spin" />
         )}
+      </div>
+      <div className="flex items-center gap-1 px-5 py-2 border-b border-line">
+        {STATUS_BUTTONS.map((btn) => (
+          <button
+            key={btn.value}
+            onClick={() => setStatusFilter(btn.value)}
+            className={`text-[11px] font-medium px-2.5 py-1 rounded-full transition-colors ${
+              statusFilter === btn.value
+                ? "bg-brand-dim text-brand"
+                : "text-ink-3 hover:text-ink-2"
+            }`}
+          >
+            {btn.label}
+          </button>
+        ))}
       </div>
 
       {!isConnected ? (
@@ -169,14 +261,41 @@ export function TransactionHistory() {
           ))}
         </div>
       ) : txs.length === 0 ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          No transactions found
-        </p>
+        <div className="flex flex-col items-center px-5 py-10 text-center">
+          <div
+            aria-hidden="true"
+            className="mb-3 flex h-12 w-12 items-center justify-center gap-0.5 rounded-full bg-surface-2 text-ink-3"
+          >
+            <HugeiconsIcon
+              icon={ArrowLeft01Icon}
+              size={16}
+              color="currentColor"
+              strokeWidth={1.5}
+            />
+            <HugeiconsIcon
+              icon={ArrowRight01Icon}
+              size={16}
+              color="currentColor"
+              strokeWidth={1.5}
+            />
+          </div>
+          <p className="text-[13px] font-medium text-ink">No transactions yet</p>
+          {network?.name === "testnet" && (
+            <a
+              href="https://friendbot.stellar.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 text-[12px] font-medium text-brand hover:underline"
+            >
+              Fund with Friendbot →
+            </a>
+          )}
+        </div>
       ) : (
         <>
           <div>
-            {txs.map((tx) => (
-              <TxRow key={tx.hash} tx={tx} />
+            {filteredTxs.map((tx) => (
+              <TxRow key={tx.hash} tx={tx} networkName={network?.name} />
             ))}
           </div>
           {totalPages > 1 && (
@@ -190,7 +309,7 @@ export function TransactionHistory() {
                   size="sm"
                   className="min-h-[44px] sm:min-h-0"
                   disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
+                  onClick={() => changePage(page - 1)}
                 >
                   <HugeiconsIcon
                     icon={ArrowLeft01Icon}
@@ -205,7 +324,7 @@ export function TransactionHistory() {
                   size="sm"
                   className="min-h-[44px] sm:min-h-0"
                   disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
+                  onClick={() => changePage(page + 1)}
                 >
                   Next
                   <HugeiconsIcon

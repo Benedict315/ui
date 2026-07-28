@@ -86,4 +86,31 @@ describe("TxRow component", () => {
     expect(memoEl).toBeInTheDocument();
     expect(memoEl).toHaveAttribute("title", shortMemo);
   });
+
+  // ── operationCount badge (#200) ──────────────────────────────────────────
+  it("shows an operation count badge when operationCount > 1", () => {
+    const tx: Transaction = {
+      hash: "hash-multi-ops",
+      ledger: 1006,
+      createdAt: new Date().toISOString(),
+      successful: true,
+      operationCount: 3,
+      feePaid: "300",
+    } as Transaction;
+    render(<TxRow tx={tx} />);
+    expect(screen.getByText("3 ops")).toBeInTheDocument();
+  });
+
+  it("does not show an operation count badge when operationCount is 1", () => {
+    const tx: Transaction = {
+      hash: "hash-single-op",
+      ledger: 1007,
+      createdAt: new Date().toISOString(),
+      successful: true,
+      operationCount: 1,
+      feePaid: "100",
+    } as Transaction;
+    render(<TxRow tx={tx} />);
+    expect(screen.queryByText(/^\d+ ops$/)).not.toBeInTheDocument();
+  });
 });

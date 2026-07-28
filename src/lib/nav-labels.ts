@@ -7,4 +7,5 @@ export const SCREEN_LABELS: Record<NavSection, { title: string; sub: string }> =
     transactions: { title: "Transactions", sub: "Send payments on Stellar" },
     soroban: { title: "Soroban", sub: "Invoke smart contracts" },
     network: { title: "Network", sub: "Switch between networks" },
+    nfts: { title: "NFT Gallery", sub: "Browse and manage your NFT collection" },
   };

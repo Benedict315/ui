@@ -3,6 +3,8 @@ import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+
+import { ContractInteractionDebugger } from "./ContractInteractionDebugger";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
 
@@ -16,6 +18,31 @@ interface SorobanPanelProps {
 const CONTRACT_HISTORY_KEY = "sorokit-soroban-contract-history";
 const CONTRACT_HISTORY_LIMIT = 10;
 const CONTRACT_HISTORY_DATALIST_ID = "sorokit-soroban-contract-history-list";
+
+function parseArgsInput(raw: string): { parsedArgs: unknown[]; errorMessage: string | null } {
+  if (!raw.trim()) return { parsedArgs: [], errorMessage: null };
+
+  try {
+    const parsed = JSON.parse(raw.trim());
+    if (!Array.isArray(parsed)) {
+      return {
+        parsedArgs: [],
+        errorMessage: 'Arguments must be a JSON array (e.g. ["arg1", 42])',
+      };
+    }
+    return { parsedArgs: parsed, errorMessage: null };
+  } catch {
+    return { parsedArgs: [], errorMessage: "Invalid JSON in arguments" };
+  }
+}
+
+function extractTxHash(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const maybeHash = data as { hash?: unknown; txHash?: unknown };
+  if (typeof maybeHash.hash === "string") return maybeHash.hash;
+  if (typeof maybeHash.txHash === "string") return maybeHash.txHash;
+  return null;
+}
 
 function readContractHistory(): string[] {
   try {
@@ -52,13 +79,16 @@ export function SorobanPanel({
   const [args, setArgs] = useState("");
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<unknown>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [contractHistory, setContractHistory] = useState<string[]>(() =>
     readContractHistory(),
   );
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const canInvoke = isConnected && contractId.trim() && method.trim();
+  const canInvoke =
+    Boolean(isConnected && contractId.trim() && method.trim()) &&
+    state !== "loading";
 
   async function doInvoke() {
     if (!canInvoke) return;
@@ -71,23 +101,13 @@ export function SorobanPanel({
     setState("loading");
     setError(null);
     setResult(null);
+    setTxHash(null);
     try {
-      let parsedArgs: unknown[] = [];
-      if (args.trim()) {
-        try {
-          const parsed = JSON.parse(args.trim());
-          if (!Array.isArray(parsed)) {
-            if (!signal.aborted)
-              setError('Arguments must be a JSON array (e.g. ["arg1", 42])');
-            if (!signal.aborted) setState("error");
-            return;
-          }
-          parsedArgs = parsed;
-        } catch {
-          if (!signal.aborted) setError("Invalid JSON in arguments");
-          if (!signal.aborted) setState("error");
-          return;
-        }
+      const { parsedArgs, errorMessage } = parseArgsInput(args);
+      if (errorMessage) {
+        if (!signal.aborted) setError(errorMessage);
+        if (!signal.aborted) setState("error");
+        return;
       }
       const { data, error: err } = await getClient().soroban.invokeContract({
         contractId: contractId.trim(),
@@ -102,6 +122,7 @@ export function SorobanPanel({
         return;
       }
       setResult(data);
+      setTxHash(extractTxHash(data));
       setState("success");
       setContractHistory((prev) => addContractToHistory(contractId.trim(), prev));
     } catch (e) {
@@ -181,25 +202,68 @@ export function SorobanPanel({
                 placeholder='["arg1", 42]'
                 value={args}
                 onChange={(e) => setArgs(e.target.value)}
+                onInput={(e) => {
+                  const textarea = e.currentTarget;
+                  textarea.rows = Math.max(3, textarea.value.split("\n").length);
+                  textarea.style.height = "auto";
+                  textarea.style.height = `${textarea.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    void doInvoke();
+                  }
+                }}
                 disabled={state === "loading"}
                 rows={3}
-                className="w-full rounded-lg border border-line bg-surface-2 px-4 py-3 text-[13px] font-mono text-ink placeholder:text-ink-4 outline-none focus:border-line-2 focus:ring-1 focus:ring-brand-dim transition-colors resize-none disabled:opacity-40"
+                className="w-full resize-y rounded-lg border border-line bg-surface-2 px-4 py-3 text-[13px] font-mono text-ink placeholder:text-ink-4 outline-none focus:border-line-2 focus:ring-1 focus:ring-brand-dim transition-colors disabled:opacity-40"
               />
             </div>
 
-            {state === "success" && result !== null && (
-              <div className="rounded-lg bg-success-dim-subtle border border-success-dim px-5 py-4 flex flex-col gap-3">
-                <Badge variant="success" dot>
-                  Result
-                </Badge>
-                <pre className="text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">
-                  {JSON.stringify(result, null, 2)}
-                </pre>
-              </div>
-            )}
-            {state === "error" && error && (
-              <div className="rounded-lg bg-error-dim-muted border border-error-dim px-5 py-4">
-                <p className="text-[13px] text-red">{error}</p>
+            {state !== "idle" && (
+              <div className="relative min-h-32" aria-live="polite">
+                {state === "loading" && (
+                  <div
+                    role="status"
+                    aria-label="Invoking contract"
+                    className="absolute inset-0 flex h-full min-h-32 flex-col gap-3 rounded-lg border border-line bg-surface-2 p-5"
+                  >
+                    <span className="sr-only">Invoking contract</span>
+                    <div className="h-4 w-24 animate-pulse rounded bg-line" />
+                    <div className="h-3 w-full animate-pulse rounded bg-line" />
+                    <div className="h-3 w-4/5 animate-pulse rounded bg-line" />
+                    <div className="h-3 w-2/3 animate-pulse rounded bg-line" />
+                  </div>
+                )}
+
+                {state === "success" && result !== null && (
+                  <div className="flex flex-col gap-3 rounded-lg border border-success-dim bg-success-dim-subtle px-5 py-4">
+                    <Badge variant="success" dot>
+                      Result
+                    </Badge>
+                    <pre className="text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">
+                      {JSON.stringify(result, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {(state === "success" || state === "error") && (
+                  <ContractInteractionDebugger
+                    contractId={contractId.trim()}
+                    method={method.trim()}
+                    args={parseArgsInput(args).parsedArgs}
+                    state={state}
+                    result={result}
+                    txHash={txHash}
+                    error={error}
+                  />
+                )}
+
+                {state === "error" && error && (
+                  <div className="rounded-lg bg-error-dim-muted border border-error-dim px-5 py-4">
+                    <p className="text-[13px] text-red">{error}</p>
+                  </div>
+                )}
               </div>
             )}
           </form>
@@ -223,7 +287,7 @@ export function SorobanPanel({
         <Button
           size="md"
           loading={state === "loading"}
-          disabled={!canInvoke}
+          disabled={!canInvoke || state === "loading"}
           onClick={handleClick}
         >
           {state === "loading" ? "Invoking…" : "Invoke Contract"}

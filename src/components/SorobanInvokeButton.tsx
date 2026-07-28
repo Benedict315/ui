@@ -14,6 +14,10 @@ interface SorobanInvokeButtonProps {
   params: InvokeParams;
   /** Button label */
   label?: string;
+  /** Tooltip text when connected */
+  tooltip?: string;
+  /** Maximum height in pixels for result container before scroll (default: 200) */
+  maxResultHeight?: number;
   /** Show result inline below the button */
   showResult?: boolean;
   /** Called on success with the result data */
@@ -28,6 +32,8 @@ interface SorobanInvokeButtonProps {
 export function SorobanInvokeButton({
   params,
   label,
+  tooltip,
+  maxResultHeight = 200,
   showResult = true,
   onSuccess,
   onError,
@@ -83,6 +89,7 @@ export function SorobanInvokeButton({
   }
 
   const buttonLabel = label ?? `${params.method}()`;
+  const loadingLabel = !label ? `Invoking ${params.method}…` : "Invoking…";
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -93,9 +100,9 @@ export function SorobanInvokeButton({
           loading={state === "loading"}
           disabled={!isConnected || state === "loading"}
           onClick={invoke}
-          title={!isConnected ? "Connect wallet to invoke" : undefined}
+          title={!isConnected ? "Connect wallet to invoke" : tooltip}
         >
-          {state === "loading" ? "Invoking…" : buttonLabel}
+          {state === "loading" ? loadingLabel : buttonLabel}
         </Button>
 
         {state === "success" && (
@@ -125,9 +132,14 @@ export function SorobanInvokeButton({
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4 mb-1.5">
             Result
           </p>
-          <pre className="text-[11px] font-mono text-ink-2 whitespace-pre-wrap break-all">
-            {JSON.stringify(result, null, 2)}
-          </pre>
+          <div
+            className="overflow-y-auto"
+            style={{ maxHeight: `${maxResultHeight}px` }}
+          >
+            <pre className="text-[11px] font-mono text-ink-2 whitespace-pre-wrap break-all">
+              {JSON.stringify(result, null, 2)}
+            </pre>
+          </div>
         </div>
       )}
 

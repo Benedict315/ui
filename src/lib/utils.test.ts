@@ -44,6 +44,13 @@ describe("truncateAddress", () => {
     expect(result.length).toBeLessThan(address.length);
   });
 
+  it("truncates a 56-char Soroban contract ID the same way as addresses", () => {
+    const contractId = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M";
+    expect(contractId).toHaveLength(56);
+    expect(contractId.startsWith("C")).toBe(true);
+    expect(truncateAddress(contractId, 10, 6)).toBe("CAAAAAAAAA...AAHK3M");
+  });
+
   it("uses the provided start and end parameters", () => {
     const address = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
     expect(truncateAddress(address, 8, 6)).toBe("GAAZI4TC...OCCWNA");
