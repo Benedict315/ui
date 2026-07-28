@@ -56,9 +56,27 @@ describe("ContractInteractionDebugger", () => {
 
     expect(screen.getByText(/state diff/i)).toBeInTheDocument();
     expect(screen.getByText(/user\.balance/i)).toBeInTheDocument();
-    expect(screen.getByText(/100/i)).toBeInTheDocument();
-    expect(screen.getByText(/150/i)).toBeInTheDocument();
-    expect(screen.getByText(/tokens\[2\]/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/100/)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/150/)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/tokens\[2\]/i)[0]).toBeInTheDocument();
+  });
+
+  it("handles array and map changes with indices and types", () => {
+    render(
+      <ContractInteractionDebugger
+        contractId="C123"
+        method="updateMap"
+        args={[]}
+        state="success"
+        stateBefore={{ items: [1, 2], config: { key1: "val1" } }}
+        stateAfter={{ items: [1, 3], config: { key1: "val2", key2: "new" } }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /show debugger/i }));
+    expect(screen.getByText(/items\[1\]/i)).toBeInTheDocument();
+    expect(screen.getByText(/config\.key1/i)).toBeInTheDocument();
+    expect(screen.getByText(/config\.key2/i)).toBeInTheDocument();
   });
 
   it("copies values and stores recent invocations in session storage", async () => {
