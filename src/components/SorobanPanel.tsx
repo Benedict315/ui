@@ -86,7 +86,9 @@ export function SorobanPanel({
   );
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const canInvoke = isConnected && contractId.trim() && method.trim();
+  const canInvoke =
+    Boolean(isConnected && contractId.trim() && method.trim()) &&
+    state !== "loading";
 
   async function doInvoke() {
     if (!canInvoke) return;
@@ -200,38 +202,68 @@ export function SorobanPanel({
                 placeholder='["arg1", 42]'
                 value={args}
                 onChange={(e) => setArgs(e.target.value)}
+                onInput={(e) => {
+                  const textarea = e.currentTarget;
+                  textarea.rows = Math.max(3, textarea.value.split("\n").length);
+                  textarea.style.height = "auto";
+                  textarea.style.height = `${textarea.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    void doInvoke();
+                  }
+                }}
                 disabled={state === "loading"}
                 rows={3}
-                className="w-full rounded-lg border border-line bg-surface-2 px-4 py-3 text-[13px] font-mono text-ink placeholder:text-ink-4 outline-none focus:border-line-2 focus:ring-1 focus:ring-brand-dim transition-colors resize-none disabled:opacity-40"
+                className="w-full resize-y rounded-lg border border-line bg-surface-2 px-4 py-3 text-[13px] font-mono text-ink placeholder:text-ink-4 outline-none focus:border-line-2 focus:ring-1 focus:ring-brand-dim transition-colors disabled:opacity-40"
               />
             </div>
 
-            {state === "success" && result !== null && (
-              <div className="rounded-lg bg-success-dim-subtle border border-success-dim px-5 py-4 flex flex-col gap-3">
-                <Badge variant="success" dot>
-                  Result
-                </Badge>
-                <pre className="text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">
-                  {JSON.stringify(result, null, 2)}
-                </pre>
-              </div>
-            )}
+            {state !== "idle" && (
+              <div className="relative min-h-32" aria-live="polite">
+                {state === "loading" && (
+                  <div
+                    role="status"
+                    aria-label="Invoking contract"
+                    className="absolute inset-0 flex h-full min-h-32 flex-col gap-3 rounded-lg border border-line bg-surface-2 p-5"
+                  >
+                    <span className="sr-only">Invoking contract</span>
+                    <div className="h-4 w-24 animate-pulse rounded bg-line" />
+                    <div className="h-3 w-full animate-pulse rounded bg-line" />
+                    <div className="h-3 w-4/5 animate-pulse rounded bg-line" />
+                    <div className="h-3 w-2/3 animate-pulse rounded bg-line" />
+                  </div>
+                )}
 
-            {(state === "success" || state === "error") && (
-              <ContractInteractionDebugger
-                contractId={contractId.trim()}
-                method={method.trim()}
-                args={parseArgsInput(args).parsedArgs}
-                state={state}
-                result={result}
-                txHash={txHash}
-                error={error}
-              />
-            )}
+                {state === "success" && result !== null && (
+                  <div className="flex flex-col gap-3 rounded-lg border border-success-dim bg-success-dim-subtle px-5 py-4">
+                    <Badge variant="success" dot>
+                      Result
+                    </Badge>
+                    <pre className="text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">
+                      {JSON.stringify(result, null, 2)}
+                    </pre>
+                  </div>
+                )}
 
-            {state === "error" && error && (
-              <div className="rounded-lg bg-error-dim-muted border border-error-dim px-5 py-4">
-                <p className="text-[13px] text-red">{error}</p>
+                {(state === "success" || state === "error") && (
+                  <ContractInteractionDebugger
+                    contractId={contractId.trim()}
+                    method={method.trim()}
+                    args={parseArgsInput(args).parsedArgs}
+                    state={state}
+                    result={result}
+                    txHash={txHash}
+                    error={error}
+                  />
+                )}
+
+                {state === "error" && error && (
+                  <div className="rounded-lg bg-error-dim-muted border border-error-dim px-5 py-4">
+                    <p className="text-[13px] text-red">{error}</p>
+                  </div>
+                )}
               </div>
             )}
           </form>
@@ -255,7 +287,7 @@ export function SorobanPanel({
         <Button
           size="md"
           loading={state === "loading"}
-          disabled={!canInvoke}
+          disabled={!canInvoke || state === "loading"}
           onClick={handleClick}
         >
           {state === "loading" ? "Invoking…" : "Invoke Contract"}
