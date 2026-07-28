@@ -213,7 +213,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
         {/* Bottom wallet */}
         {isConnected && (
           <div className="px-3 py-3 border-t border-line shrink-0">
-            <AccountCardCompact />
+            <AccountCardCompact onNavigate={() => handleNav("account")} />
           </div>
         )}
 

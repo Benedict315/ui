@@ -1,6 +1,10 @@
-import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import {
+  Copy01Icon,
+  Tick01Icon,
+  Loader01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { useSorokit } from "@/context/useSorokit";
@@ -46,6 +50,25 @@ const NETWORKS: {
 
 export function NetworkScreen() {
   const { network, switchNetwork } = useSorokit();
+  const [switching, setSwitching] = useState<string | null>(null);
+  const activeCardRef = useRef<HTMLButtonElement | null>(null);
+
+  // Scroll active card into view on mount
+  useEffect(() => {
+    if (activeCardRef.current) {
+      activeCardRef.current.scrollIntoView({ block: "nearest" });
+    }
+  }, [network?.name]);
+
+  async function handleSwitchNetwork(networkName: string) {
+    if (network?.name === networkName) return;
+    setSwitching(networkName);
+    try {
+      await switchNetwork(networkName);
+    } finally {
+      setSwitching(null);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -58,10 +81,31 @@ export function NetworkScreen() {
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 divide-line">
-            <InfoCell label="Name" value={network.name} className="sm:border-r sm:border-line" />
-            <InfoCell label="Passphrase" value={network.passphrase} mono copyable />
-            <InfoCell label="RPC URL" value={network.rpcUrl} mono copyable className="sm:border-t sm:border-r sm:border-line" />
-            <InfoCell label="Horizon URL" value={network.horizonUrl} mono copyable className="sm:border-t sm:border-line" />
+            <InfoCell
+              label="Name"
+              value={network.name}
+              className="sm:border-r sm:border-line"
+            />
+            <InfoCell
+              label="Passphrase"
+              value={network.passphrase}
+              mono
+              copyable
+            />
+            <InfoCell
+              label="RPC URL"
+              value={network.rpcUrl}
+              mono
+              copyable
+              className="sm:border-t sm:border-r sm:border-line"
+            />
+            <InfoCell
+              label="Horizon URL"
+              value={network.horizonUrl}
+              mono
+              copyable
+              className="sm:border-t sm:border-line"
+            />
           </div>
         </div>
       )}
@@ -70,16 +114,20 @@ export function NetworkScreen() {
       <div className="flex flex-col gap-3">
         {NETWORKS.map((net) => {
           const isActive = network?.name === net.name;
+          const isSwitching = switching === net.name;
           return (
             <button
               key={net.name}
-              onClick={() => { if (!isActive) switchNetwork(net.name); }}
-              disabled={isActive}
+              ref={isActive ? activeCardRef : null}
+              onClick={() => {
+                if (!isActive) handleSwitchNetwork(net.name);
+              }}
+              disabled={isActive || isSwitching}
               className={cn(
-                "w-full text-left rounded-xl border px-6 py-5 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand",
+                "w-full text-left rounded-xl border px-6 py-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand active:bg-surface-3",
                 isActive
                   ? "border-[rgba(86,69,212,0.35)] bg-brand-dim cursor-default"
-                  : "border-line bg-surface hover:bg-surface-2 hover:border-line-2 cursor-pointer",
+                  : "border-line bg-surface hover:bg-surface-2 hover:border-line-2 cursor-pointer active:border-line-2",
               )}
             >
               <div className="flex items-center justify-between gap-4">
@@ -96,10 +144,20 @@ export function NetworkScreen() {
                     </p>
                   </div>
                 </div>
-                {isActive && (
-                  <Badge variant={net.badge} dot>
-                    Active
-                  </Badge>
+                {isSwitching ? (
+                  <HugeiconsIcon
+                    icon={Loader01Icon}
+                    size={20}
+                    color="currentColor"
+                    className="text-brand animate-spin"
+                    strokeWidth={1.5}
+                  />
+                ) : (
+                  isActive && (
+                    <Badge variant={net.badge} dot>
+                      Active
+                    </Badge>
+                  )
                 )}
               </div>
             </button>

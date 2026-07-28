@@ -106,8 +106,8 @@ export function AccountCard() {
                           aria-labelledby={sequenceLabelId}
                           className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 rounded-lg border border-line bg-surface-2 px-3 py-2 text-[11px] leading-relaxed text-ink-2 shadow-lg z-10"
                         >
-                          Increments with every transaction from this account
-                          to prevent replay attacks.
+                          Increments with every transaction from this account to
+                          prevent replay attacks.
                         </span>
                       )}
                     </span>
@@ -192,22 +192,45 @@ function Field({
   );
 }
 
-export function AccountCardCompact() {
+export function AccountCardCompact({
+  onNavigate,
+}: {
+  onNavigate?: (screen: "account") => void;
+}) {
   const { address } = useSorokit();
   if (!address) return null;
+
+  // Derive 2-char abbreviation from last 4 chars of address
+  const lastFourChars = address.slice(-4);
+  const charCode1 = lastFourChars.charCodeAt(0);
+  const charCode2 = lastFourChars.charCodeAt(1);
+  const charCode3 = lastFourChars.charCodeAt(2);
+  const charCode4 = lastFourChars.charCodeAt(3);
+  const total = charCode1 + charCode2 + charCode3 + charCode4;
+
+  // Use total to pick 2 chars deterministically
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const char1 = alphabet[total % 26];
+  const char2 = alphabet[(total + charCode1) % 26];
+  const initials = `${char1}${char2}`;
+
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-surface-2 border border-line">
+    <button
+      onClick={() => onNavigate?.("account")}
+      title={address}
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-surface-2 border border-line hover:bg-surface-3 hover:border-line-2 transition-colors cursor-pointer"
+    >
       <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-[11px] font-bold text-white shrink-0">
-        {address.slice(0, 2).toUpperCase()}
+        {initials}
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
         <span className="text-[9px] text-ink-4 uppercase tracking-widest">
           Connected
         </span>
-        <span data-address className="truncate">
+        <span data-address className="truncate text-[12px] text-ink-2">
           {truncateAddress(address)}
         </span>
       </div>
-    </div>
+    </button>
   );
 }
