@@ -37,6 +37,48 @@ describe("ContractInteractionDebugger", () => {
     expect(screen.queryByText(/prepared contract call/i)).not.toBeInTheDocument();
   });
 
+  it("renders a nested state diff with before and after snapshots", () => {
+    render(
+      <ContractInteractionDebugger
+        contractId="C123"
+        method="transfer"
+        args={["GA123", "100"]}
+        state="success"
+        result={{ txHash: "abc123", status: "submitted" }}
+        txHash="abc123"
+        error={null}
+        stateBefore={{ user: { balance: 100, name: "Ada" }, tokens: ["USDC", "XLM"] }}
+        stateAfter={{ user: { balance: 150, name: "Ada" }, tokens: ["USDC", "XLM", "BTC"] }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /show debugger/i }));
+
+    expect(screen.getByText(/state diff/i)).toBeInTheDocument();
+    expect(screen.getByText(/user\.balance/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/100/)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/150/)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/tokens\[2\]/i)[0]).toBeInTheDocument();
+  });
+
+  it("handles array and map changes with indices and types", () => {
+    render(
+      <ContractInteractionDebugger
+        contractId="C123"
+        method="updateMap"
+        args={[]}
+        state="success"
+        stateBefore={{ items: [1, 2], config: { key1: "val1" } }}
+        stateAfter={{ items: [1, 3], config: { key1: "val2", key2: "new" } }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /show debugger/i }));
+    expect(screen.getByText(/items\[1\]/i)).toBeInTheDocument();
+    expect(screen.getByText(/config\.key1/i)).toBeInTheDocument();
+    expect(screen.getByText(/config\.key2/i)).toBeInTheDocument();
+  });
+
   it("copies values and stores recent invocations in session storage", async () => {
     render(
       <ContractInteractionDebugger
