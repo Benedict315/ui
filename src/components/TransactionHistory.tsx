@@ -16,6 +16,29 @@ import { truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 const MEMO_TRUNCATE_LENGTH = 20;
+const PAGE_STORAGE_PREFIX = "sorokit-transaction-history-page:";
+
+function readStoredPage(address: string | null): number {
+  if (!address) return 1;
+  try {
+    const storedPage = Number.parseInt(
+      sessionStorage.getItem(`${PAGE_STORAGE_PREFIX}${address}`) ?? "",
+      10,
+    );
+    return Number.isInteger(storedPage) && storedPage > 0 ? storedPage : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function storePage(address: string | null, page: number): void {
+  if (!address) return;
+  try {
+    sessionStorage.setItem(`${PAGE_STORAGE_PREFIX}${address}`, String(page));
+  } catch {
+    // sessionStorage may be unavailable; pagination still works for this render.
+  }
+}
 
 function truncateMemo(memo: string): string {
   return memo.length > MEMO_TRUNCATE_LENGTH
@@ -128,10 +151,14 @@ export function TransactionHistory({ startDate, endDate }: TransactionHistoryPro
   const { address, isConnected, network } = useSorokit();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [txs, setTxs] = useState<Transaction[]>([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => readStoredPage(address));
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPage(readStoredPage(address));
+  }, [address]);
 
   useEffect(() => {
     if (!address) return;
@@ -148,7 +175,7 @@ export function TransactionHistory({ startDate, endDate }: TransactionHistoryPro
             return;
           }
           setTxs(data ?? []);
-          setTotal(t);
+          setTotal(Number.isFinite(t) && t > 0 ? t : 0);
           setError(null);
         })
         .finally(() => {
@@ -162,7 +189,12 @@ export function TransactionHistory({ startDate, endDate }: TransactionHistoryPro
     };
   }, [address, page]);
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const totalPages = total > 0 ? Math.ceil(total / PAGE_SIZE) : 0;
+
+  function changePage(nextPage: number) {
+    setPage(nextPage);
+    storePage(address, nextPage);
+  }
 
   const filteredTxs = txs.filter((tx) => {
     if (statusFilter === "success" && !tx.successful) return false;
@@ -229,9 +261,36 @@ export function TransactionHistory({ startDate, endDate }: TransactionHistoryPro
           ))}
         </div>
       ) : txs.length === 0 ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          No transactions found
-        </p>
+        <div className="flex flex-col items-center px-5 py-10 text-center">
+          <div
+            aria-hidden="true"
+            className="mb-3 flex h-12 w-12 items-center justify-center gap-0.5 rounded-full bg-surface-2 text-ink-3"
+          >
+            <HugeiconsIcon
+              icon={ArrowLeft01Icon}
+              size={16}
+              color="currentColor"
+              strokeWidth={1.5}
+            />
+            <HugeiconsIcon
+              icon={ArrowRight01Icon}
+              size={16}
+              color="currentColor"
+              strokeWidth={1.5}
+            />
+          </div>
+          <p className="text-[13px] font-medium text-ink">No transactions yet</p>
+          {network?.name === "testnet" && (
+            <a
+              href="https://friendbot.stellar.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 text-[12px] font-medium text-brand hover:underline"
+            >
+              Fund with Friendbot →
+            </a>
+          )}
+        </div>
       ) : (
         <>
           <div>
@@ -250,7 +309,7 @@ export function TransactionHistory({ startDate, endDate }: TransactionHistoryPro
                   size="sm"
                   className="min-h-[44px] sm:min-h-0"
                   disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
+                  onClick={() => changePage(page - 1)}
                 >
                   <HugeiconsIcon
                     icon={ArrowLeft01Icon}
@@ -265,7 +324,7 @@ export function TransactionHistory({ startDate, endDate }: TransactionHistoryPro
                   size="sm"
                   className="min-h-[44px] sm:min-h-0"
                   disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
+                  onClick={() => changePage(page + 1)}
                 >
                   Next
                   <HugeiconsIcon
