@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
-import type { Transaction } from "@/lib/client";
+import type { NetworkInfo, Transaction } from "@/lib/client";
 import { getClient } from "@/lib/client";
 import { cn, truncateAddress } from "@/lib/utils";
 
@@ -80,6 +80,26 @@ function compareValues(a: Transaction, b: Transaction, field: SortField, dir: So
   const aNum = Number(aVal);
   const bNum = Number(bVal);
   return dir === "asc" ? aNum - bNum : bNum - aNum;
+}
+
+/**
+ * Maps a Stellar network to its Stellar Expert explorer URL segment.
+ * Returns `null` for networks Stellar Expert does not index (futurenet,
+ * localnet), in which case the hash stays as plain text.
+ */
+function explorerTxUrl(
+  network: NetworkInfo | null,
+  hash: string,
+): string | null {
+  if (!network) return null;
+  const segment =
+    network.name === "mainnet"
+      ? "public"
+      : network.name === "testnet"
+        ? "testnet"
+        : null;
+  if (!segment) return null;
+  return `https://stellar.expert/explorer/${segment}/tx/${hash}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -266,7 +286,7 @@ function SortHeader({ label, field, currentField, direction, onChange, className
 /* ------------------------------------------------------------------ */
 
 export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: TransactionHistoryTableProps) {
-  const { address, isConnected } = useSorokit();
+  const { address, isConnected, network } = useSorokit();
   const [allTxs, setAllTxs] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -410,9 +430,25 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
                         <StatusIcon successful={tx.successful} />
                       </td>
                       <td className="px-4 py-3">
-                        <span data-txhash className="text-[13px] text-ink font-mono">
-                          {truncateAddress(tx.hash, 8, 6)}
-                        </span>
+                        {(() => {
+                          const url = explorerTxUrl(network, tx.hash);
+                          return url ? (
+                            <a
+                              data-txhash
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[13px] text-ink font-mono hover:underline hover:text-brand inline-flex items-center gap-1"
+                            >
+                              {truncateAddress(tx.hash, 8, 6)}
+                              <span aria-hidden="true" className="opacity-60">↗</span>
+                            </a>
+                          ) : (
+                            <span data-txhash className="text-[13px] text-ink font-mono">
+                              {truncateAddress(tx.hash, 8, 6)}
+                            </span>
+                          );
+                        })()}
                         {tx.memo && (
                           <span className="block text-[10px] text-ink-3 mt-0.5" title={tx.memo}>
                             {truncateMemo(tx.memo)}
@@ -453,9 +489,24 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
                   <StatusIcon successful={tx.successful} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span data-txhash className="text-[13px] text-ink font-mono truncate">
-                        {truncateAddress(tx.hash, 8, 6)}
-                      </span>
+                      {(() => {
+                        const url = explorerTxUrl(network, tx.hash);
+                        return url ? (
+                          <a
+                            data-txhash
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[13px] text-ink font-mono truncate hover:underline hover:text-brand"
+                          >
+                            {truncateAddress(tx.hash, 8, 6)}
+                          </a>
+                        ) : (
+                          <span data-txhash className="text-[13px] text-ink font-mono truncate">
+                            {truncateAddress(tx.hash, 8, 6)}
+                          </span>
+                        );
+                      })()}
                       <Badge variant={tx.successful ? "success" : "error"} live className="shrink-0">
                         {tx.successful ? "Success" : "Failed"}
                       </Badge>
