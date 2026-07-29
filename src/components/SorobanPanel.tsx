@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
+import { cn } from "@/lib/utils";
+
 import { ContractInteractionDebugger } from "./ContractInteractionDebugger";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
@@ -13,6 +15,7 @@ type State = "idle" | "loading" | "success" | "error";
 interface SorobanPanelProps {
   contractId: string;
   onContractIdChange: (contractId: string) => void;
+  mode?: "invoke" | "simulate";
 }
 
 const CONTRACT_HISTORY_KEY = "sorokit-soroban-contract-history";
@@ -73,9 +76,15 @@ function addContractToHistory(contractId: string, current: string[]): string[] {
   return next;
 }
 
+function buildCurlCommand(contractId: string, method: string, args: unknown[]): string {
+  const body = JSON.stringify({ contractId, method, args }, null, 2);
+  return `curl -X POST https://soroban-rpc.example.com/invoke \\\n  -H "Content-Type: application/json" \\\n  -d '${body}'`;
+}
+
 export function SorobanPanel({
   contractId,
   onContractIdChange,
+  mode = "invoke",
 }: SorobanPanelProps) {
   const { isConnected, address } = useSorokit();
   const [method, setMethod] = useState("");
@@ -84,6 +93,7 @@ export function SorobanPanel({
   const [result, setResult] = useState<unknown>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [curlCopied, setCurlCopied] = useState(false);
   const [contractHistory, setContractHistory] = useState<string[]>(() =>
     readContractHistory(),
   );
@@ -119,7 +129,10 @@ export function SorobanPanel({
         if (!signal.aborted) setState("error");
         return;
       }
-      const { data, error: err } = await getClient().soroban.invokeContract({
+      const invoke = mode === "simulate"
+        ? getClient().soroban.simulateContract
+        : getClient().soroban.invokeContract;
+      const { data, error: err } = await invoke({
         contractId: contractId.trim(),
         method: method.trim(),
         args: parsedArgs,
@@ -163,10 +176,14 @@ export function SorobanPanel({
             Contract Invoke
           </h3>
           <p className="text-[12px] text-ink-3 mt-0.5">
-            Call a Soroban smart contract method
+            {mode === "simulate"
+              ? "Simulate a Soroban smart contract call (read-only)"
+              : "Call a Soroban smart contract method"}
           </p>
         </div>
-        <Badge variant="teal">Soroban</Badge>
+        <Badge variant={mode === "simulate" ? "warning" : "teal"}>
+          {mode === "simulate" ? "Simulate" : "Soroban"}
+        </Badge>
       </div>
 
       <div className="px-6 py-6">
@@ -256,10 +273,10 @@ export function SorobanPanel({
                 {state === "loading" && (
                   <div
                     role="status"
-                    aria-label="Invoking contract"
+                    aria-label={mode === "simulate" ? "Simulating contract" : "Invoking contract"}
                     className="absolute inset-0 flex h-full min-h-32 flex-col gap-3 rounded-lg border border-line bg-surface-2 p-5"
                   >
-                    <span className="sr-only">Invoking contract</span>
+                    <span className="sr-only">{mode === "simulate" ? "Simulating contract" : "Invoking contract"}</span>
                     <div className="h-4 w-24 animate-pulse rounded bg-line" />
                     <div className="h-3 w-full animate-pulse rounded bg-line" />
                     <div className="h-3 w-4/5 animate-pulse rounded bg-line" />
@@ -269,9 +286,23 @@ export function SorobanPanel({
 
                 {state === "success" && result !== null && (
                   <div className="flex flex-col gap-3 rounded-lg border border-success-dim bg-success-dim-subtle px-5 py-4">
-                    <Badge variant="success" dot>
-                      Result
-                    </Badge>
+                    <div className="flex items-center justify-between">
+                      <Badge variant="success" dot>
+                        {mode === "simulate" ? "Simulation Result" : "Result"}
+                      </Badge>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          const curl = buildCurlCommand(contractId.trim(), method.trim(), parseArgsInput(args).parsedArgs);
+                          navigator.clipboard.writeText(curl);
+                          setCurlCopied(true);
+                          setTimeout(() => setCurlCopied(false), 1600);
+                        }}
+                      >
+                        {curlCopied ? "Copied" : "Copy as cURL"}
+                      </Button>
+                    </div>
                     <pre className="text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">
                       {JSON.stringify(result, null, 2)}
                     </pre>
@@ -315,13 +346,33 @@ export function SorobanPanel({
             Clear
           </Button>
         )}
+        {state === "success" && mode === "invoke" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const curl = buildCurlCommand(contractId.trim(), method.trim(), parseArgsInput(args).parsedArgs);
+              navigator.clipboard.writeText(curl);
+              setCurlCopied(true);
+              setTimeout(() => setCurlCopied(false), 1600);
+            }}
+          >
+            {curlCopied ? "Copied" : "Copy as cURL"}
+          </Button>
+        )}
         <Button
           size="md"
           loading={state === "loading"}
           disabled={!canInvoke || state === "loading"}
           onClick={handleClick}
         >
-          {state === "loading" ? "Invoking…" : "Invoke Contract"}
+          {state === "loading"
+            ? mode === "simulate"
+              ? "Simulating…"
+              : "Invoking…"
+            : mode === "simulate"
+              ? "Simulate"
+              : "Invoke Contract"}
         </Button>
       </div>
     </div>

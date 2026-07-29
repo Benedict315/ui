@@ -126,6 +126,9 @@ export type SorokitClient = {
     invokeContract: (
       params: InvokeParams,
     ) => Promise<{ data: unknown; error: string | null; status: string }>;
+    simulateContract: (
+      params: InvokeParams,
+    ) => Promise<{ data: unknown; error: string | null; status: string }>;
     getEvents: (
       contractId: string,
       limit?: number,
