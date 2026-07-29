@@ -299,6 +299,11 @@ export function createMockClient(networkName?: string): SorokitClient | { data: 
         error: null,
         status: 'success',
       }),
+      simulateContract: async (_params: InvokeParams) => ({
+        data: { simulated: true, result: 'simulated-output' },
+        error: null,
+        status: 'success',
+      }),
       getEvents: async (_contractId: string, _limit?: number, fromLedger?: number) => ({
         data: fromLedger !== undefined ? MOCK_EVENTS.filter((e) => e.ledger >= fromLedger) : MOCK_EVENTS,
         error: null,
