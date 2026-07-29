@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { ContractEventFeed } from "@/components/ContractEventFeed";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SorobanPanel } from "@/components/SorobanPanel";
 import { useSorokit } from "@/context/useSorokit";
 import { SCREEN_LABELS } from "@/lib/nav-labels";
@@ -94,9 +95,13 @@ export function SorobanScreen() {
           </div>
         </div>
       )}
-      <SorobanPanel contractId={contractId} onContractIdChange={setContractId} />
+      <ErrorBoundary isolate>
+        <SorobanPanel contractId={contractId} onContractIdChange={setContractId} />
+      </ErrorBoundary>
       {contractId.trim() !== "" && (
-        <ContractEventFeed contractId={contractId} />
+        <ErrorBoundary isolate>
+          <ContractEventFeed contractId={contractId} />
+        </ErrorBoundary>
       )}
     </div>
   );
