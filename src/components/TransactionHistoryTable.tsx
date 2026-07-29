@@ -5,8 +5,8 @@ import {
   CheckmarkCircle01Icon,
   Download01Icon,
   FilterIcon,
-  SortZAIcon,
-  SortAscending01Icon,
+  SortByDown01Icon,
+  SortByUp01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -250,7 +250,7 @@ function SortHeader({ label, field, currentField, direction, onChange, className
       <div className="flex items-center gap-1">
         {label}
         <HugeiconsIcon
-          icon={isActive ? SortAscending01Icon : SortZAIcon}
+          icon={isActive ? SortByUp01Icon : SortByDown01Icon}
           size={10}
           color="currentColor"
           strokeWidth={1.5}
