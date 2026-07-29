@@ -77,6 +77,54 @@ describe("QRCode", () => {
     expect(document.querySelector("canvas")).toBeInTheDocument();
   });
 
+  describe("size validation", () => {
+    it("warns and skips drawing when size is 0", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const getContext = vi.spyOn(HTMLCanvasElement.prototype, "getContext");
+
+      render(<QRCode value={value} size={0} />);
+
+      expect(warn).toHaveBeenCalledWith("[QRCode] size must be > 0");
+      expect(getContext).not.toHaveBeenCalled();
+
+      warn.mockRestore();
+      getContext.mockRestore();
+    });
+
+    it("warns and skips drawing when size is negative", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const getContext = vi.spyOn(HTMLCanvasElement.prototype, "getContext");
+
+      render(<QRCode value={value} size={-10} />);
+
+      expect(warn).toHaveBeenCalledWith("[QRCode] size must be > 0");
+      expect(getContext).not.toHaveBeenCalled();
+
+      warn.mockRestore();
+      getContext.mockRestore();
+    });
+
+    it("does not leave a loading spinner running for an invalid size", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const { container } = render(<QRCode value={value} size={0} />);
+
+      expect(container.querySelector(".animate-spin")).not.toBeInTheDocument();
+
+      warn.mockRestore();
+    });
+
+    it("does not warn for a valid size", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      render(<QRCode value={value} size={120} />);
+
+      expect(warn).not.toHaveBeenCalledWith("[QRCode] size must be > 0");
+
+      warn.mockRestore();
+    });
+  });
+
   it("accepts a className on the outer wrapper", () => {
     const { container } = render(<QRCode value={value} className="my-qr" />);
     const wrapper = container.firstElementChild;
