@@ -39,15 +39,16 @@
  * @see {@link SorokitProvider} for setup
  * @see GitHub issue #8 for QR code scanner limitation
  */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import {
+  Activity01Icon,
+  AlertCircleIcon,
   Copy01Icon,
   Refresh01Icon,
   Tick01Icon,
-  AlertCircleIcon,
-  Activity01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import type { ContractEvent } from "@/lib/client";
@@ -235,6 +236,7 @@ export function ContractEventFeed({
       );
       if (err) {
         setError(err);
+        setLoading(false);
         return;
       }
       setEvents(data ?? []);
@@ -244,6 +246,11 @@ export function ContractEventFeed({
       setLoading(false);
     }
   }, [contractId, limit, fromLedger]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEvents([]);
+  }, [contractId]);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -256,7 +263,7 @@ export function ContractEventFeed({
   }, [load]);
 
   useEffect(() => {
-    if (live && pollInterval > 0) {
+    if (live && pollInterval > 0 && contractId.trim() !== "") {
       intervalRef.current = setInterval(() => {
         void load();
       }, pollInterval);
@@ -266,7 +273,7 @@ export function ContractEventFeed({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [live, pollInterval, load]);
+  }, [live, pollInterval, load, contractId]);
 
   // Tick the relative "Last updated" label once a second while polling is active.
   useEffect(() => {
