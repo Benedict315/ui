@@ -220,10 +220,12 @@ export function SorobanPanel({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (state === "loading") return;
     doInvoke();
   }
 
   function handleClick() {
+    if (state === "loading") return;
     doInvoke();
   }
 

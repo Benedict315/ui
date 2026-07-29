@@ -103,6 +103,7 @@ export function TransactionPanel({
 
   /** The actual submission — only ever called from the confirm modal. */
   async function submitTransaction() {
+    if (state === "loading") return;
     if (!address) {
       setError("Wallet not connected");
       setState("error");
@@ -156,7 +157,8 @@ export function TransactionPanel({
 
   /** Builds a preview of the transaction and opens the confirmation modal. */
   async function handleReview(e?: React.FormEvent) {
-    e?.preventDefault();
+    if (e) e.preventDefault();
+    if (state === "loading") return;
     if (!address || !canSubmit) return;
 
     setIsBuildingPreview(true);
