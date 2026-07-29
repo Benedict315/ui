@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { TransactionHistoryTable } from "../TransactionHistoryTable";
+import { TransactionHistoryTable } from "./TransactionHistoryTable";
+import { getClient } from "@/lib/client";
 import type { Transaction } from "@/lib/client";
 
 // Mock context
@@ -20,11 +21,11 @@ const mockTransactions: Transaction[] = Array.from({ length: 25 }, (_, i) => ({
 }));
 
 vi.mock("@/lib/client", () => ({
-  getClient: () => ({
+  getClient: vi.fn(() => ({
     transaction: {
       getHistory: vi.fn().mockResolvedValue({ data: mockTransactions, error: null, total: 25 }),
     },
-  }),
+  })),
 }));
 
 // Mock URL.createObjectURL and download
@@ -35,6 +36,13 @@ URL.revokeObjectURL = mockRevokeObjectURL;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // clearAllMocks() only clears call history, not return-value overrides set
+  // via mockReturnValue in individual tests, so restore the default here.
+  vi.mocked(getClient).mockReturnValue({
+    transaction: {
+      getHistory: vi.fn().mockResolvedValue({ data: mockTransactions, error: null, total: 25 }),
+    },
+  } as unknown as ReturnType<typeof getClient>);
 });
 
 describe("TransactionHistoryTable", () => {
@@ -142,7 +150,7 @@ describe("TransactionHistoryTable", () => {
   });
 
   it("shows empty state when no data", async () => {
-    vi.mocked(require("@/lib/client").getClient).mockReturnValue({
+    vi.mocked(getClient).mockReturnValue({
       transaction: {
         getHistory: vi.fn().mockResolvedValue({ data: [], error: null, total: 0 }),
       },
@@ -154,7 +162,7 @@ describe("TransactionHistoryTable", () => {
   });
 
   it("shows error state", async () => {
-    vi.mocked(require("@/lib/client").getClient).mockReturnValue({
+    vi.mocked(getClient).mockReturnValue({
       transaction: {
         getHistory: vi.fn().mockResolvedValue({ data: null, error: "Failed to fetch", total: 0 }),
       },
