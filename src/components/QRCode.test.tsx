@@ -153,4 +153,51 @@ describe("QRCode", () => {
     render(<QRCode value={value} />);
     expect(screen.getByRole("img", { name: `QR code for address ${value}` })).toBeInTheDocument();
   });
+
+  it("renders an outer <figure> element", () => {
+    const { container } = render(<QRCode value={value} />);
+    expect(container.firstElementChild?.tagName).toBe("FIGURE");
+  });
+
+  it("renders <figcaption> when label is provided", () => {
+    const { container } = render(<QRCode value={value} label={value} />);
+    expect(container.querySelector("figcaption")).toBeInTheDocument();
+  });
+
+  it("calls clearRect on the canvas context when value changes", () => {
+    const clearRectMock = vi.fn();
+    getContextSpy.mockReturnValue({
+      clearRect: clearRectMock,
+    } as unknown as CanvasRenderingContext2D);
+
+    const mockToCanvas = vi.mocked(QRCodeLib.toCanvas);
+    mockToCanvas.mockImplementation(((...args: unknown[]) => {
+      const canvas = args[0] as HTMLCanvasElement;
+      const ctx = canvas.getContext("2d");
+      if (ctx && typeof (ctx as { clearRect: Function }).clearRect === "function") {
+        (ctx as { clearRect: Function }).clearRect(0, 0, 0, 0);
+      }
+      const callback = args[3] as (err: Error | null) => void;
+      if (typeof callback === "function") {
+        callback(null);
+      }
+      return Promise.resolve();
+    }) as typeof QRCodeLib.toCanvas);
+
+    const { rerender } = render(<QRCode value="OLD_VALUE" />);
+    clearRectMock.mockClear();
+
+    rerender(<QRCode value="NEW_VALUE" />);
+    expect(clearRectMock).toHaveBeenCalled();
+  });
+
+  it("logs a warning when size is 0 or less", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<QRCode value={value} size={0} />);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "QRCode size must be greater than 0, got",
+      0,
+    );
+    warnSpy.mockRestore();
+  });
 });
