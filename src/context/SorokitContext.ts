@@ -16,6 +16,7 @@ export interface SorokitState {
   isLoading: boolean;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => Promise<void>;
+  isDisconnecting: boolean;
   account: AccountData | null;
   balances: Balance[];
   isLoadingAccount: boolean;

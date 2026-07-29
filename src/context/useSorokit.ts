@@ -10,6 +10,7 @@ const safeDefaults: SorokitState = {
   isLoading: false,
   connectWallet: async () => {},
   disconnectWallet: async () => {},
+  isDisconnecting: false,
   account: null,
   balances: [],
   isLoadingAccount: false,

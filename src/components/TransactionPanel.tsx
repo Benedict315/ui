@@ -413,7 +413,7 @@ export function TransactionPanel({
               ? "Submitting…"
               : isBuildingPreview
                 ? "Preparing…"
-                : "Send Payment"}
+                : `Send ${selectedAsset}`}
           </Button>
         )}
       </div>

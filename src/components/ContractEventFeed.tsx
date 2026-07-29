@@ -196,7 +196,12 @@ export interface ContractEventFeedProps {
   filterTypes?: string[];
   /** Character length before an event value is truncated with a "Show more" toggle. */
   maxValueLength?: number;
-  /** Optional start ledger to fetch events from. */
+  /**
+   * Optional start ledger to fetch events from. When omitted, the feed
+   * requests the latest events from the network's current ledger. When set,
+   * `getEvents(...)` is called with this value as the third argument so
+   * consumers can page through historical event windows.
+   */
   fromLedger?: number;
 }
 
@@ -348,6 +353,7 @@ export function ContractEventFeed({
             }}
             disabled={events.length === 0}
             title="Export JSON"
+            aria-label={`Export ${events.length} event${events.length === 1 ? "" : "s"} as JSON`}
             className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-surface-2 hover:bg-surface-3 text-ink-2 border border-line transition-colors disabled:opacity-40"
           >
             Export JSON

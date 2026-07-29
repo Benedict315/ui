@@ -257,6 +257,21 @@ describe("NetworkSwitcher", () => {
       fireEvent.keyDown(document, { key: "n", code: "KeyN", altKey: true });
       expect(screen.queryByText("Select Network")).not.toBeInTheDocument();
     });
+
+    it("advertises the Alt+N shortcut in the trigger's tooltip text", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        network: { name: "mainnet" },
+        initialNetwork: { name: "mainnet" },
+        switchNetwork: switchNetwork,
+        customNetworks: [],
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<NetworkSwitcher />);
+
+      expect(
+        screen.getByText(/Press Alt\+N to switch networks/i),
+      ).toBeInTheDocument();
+    });
   });
 
   describe("client/network mismatch warning", () => {

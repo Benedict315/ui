@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
+import { cn } from "@/lib/utils";
+
 import { ContractInteractionDebugger } from "./ContractInteractionDebugger";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
@@ -95,6 +97,9 @@ function buildCurlCommand(
   -H "Content-Type: application/json" \\
   -d '${rpcBody}' \\
   https://soroban-testnet.stellar.org`;
+function buildCurlCommand(contractId: string, method: string, args: unknown[]): string {
+  const body = JSON.stringify({ contractId, method, args }, null, 2);
+  return `curl -X POST https://soroban-rpc.example.com/invoke \\\n  -H "Content-Type: application/json" \\\n  -d '${body}'`;
 }
 
 export function SorobanPanel({
@@ -109,6 +114,7 @@ export function SorobanPanel({
   const [result, setResult] = useState<unknown>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [curlCopied, setCurlCopied] = useState(false);
   const [contractHistory, setContractHistory] = useState<string[]>(() =>
     readContractHistory(),
   );
@@ -188,6 +194,20 @@ export function SorobanPanel({
         setContractHistory((prev) =>
           addContractToHistory(contractId.trim(), prev),
         );
+      const invoke = mode === "simulate"
+        ? getClient().soroban.simulateContract
+        : getClient().soroban.invokeContract;
+      const { data, error: err } = await invoke({
+        contractId: contractId.trim(),
+        method: method.trim(),
+        args: parsedArgs,
+        sourceAccount: address ?? undefined,
+      });
+      if (signal.aborted) return;
+      if (err) {
+        setError(err);
+        setState("error");
+        return;
       }
     } catch (e) {
       if (!signal.aborted) {
@@ -255,7 +275,9 @@ export function SorobanPanel({
               : "Call a Soroban smart contract method"}
           </p>
         </div>
-        <Badge variant="teal">Soroban</Badge>
+        <Badge variant={mode === "simulate" ? "warning" : "teal"}>
+          {mode === "simulate" ? "Simulate" : "Soroban"}
+        </Badge>
       </div>
 
       <div className="px-6 py-6">
@@ -366,9 +388,23 @@ export function SorobanPanel({
 
                 {state === "success" && result !== null && (
                   <div className="flex flex-col gap-3 rounded-lg border border-success-dim bg-success-dim-subtle px-5 py-4">
-                    <Badge variant="success" dot>
-                      Result
-                    </Badge>
+                    <div className="flex items-center justify-between">
+                      <Badge variant="success" dot>
+                        {mode === "simulate" ? "Simulation Result" : "Result"}
+                      </Badge>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          const curl = buildCurlCommand(contractId.trim(), method.trim(), parseArgsInput(args).parsedArgs);
+                          navigator.clipboard.writeText(curl);
+                          setCurlCopied(true);
+                          setTimeout(() => setCurlCopied(false), 1600);
+                        }}
+                      >
+                        {curlCopied ? "Copied" : "Copy as cURL"}
+                      </Button>
+                    </div>
                     <pre className="text-[12px] font-mono text-ink-2 whitespace-pre-wrap break-all">
                       {JSON.stringify(result, null, 2)}
                     </pre>
@@ -424,6 +460,20 @@ export function SorobanPanel({
             Clear
           </Button>
         )}
+        {state === "success" && mode === "invoke" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const curl = buildCurlCommand(contractId.trim(), method.trim(), parseArgsInput(args).parsedArgs);
+              navigator.clipboard.writeText(curl);
+              setCurlCopied(true);
+              setTimeout(() => setCurlCopied(false), 1600);
+            }}
+          >
+            {curlCopied ? "Copied" : "Copy as cURL"}
+          </Button>
+        )}
         <Button
           size="md"
           loading={state === "loading"}
@@ -436,6 +486,7 @@ export function SorobanPanel({
               : "Invoking…"
             : mode === "simulate"
               ? "Simulate Contract"
+              ? "Simulate"
               : "Invoke Contract"}
         </Button>
       </div>

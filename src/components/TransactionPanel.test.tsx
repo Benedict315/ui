@@ -30,9 +30,9 @@ function mockGetClient(
   } as unknown as ReturnType<typeof getClient>);
 }
 
-/** Clicks "Send Payment", waits for the confirmation modal, then confirms. */
+/** Clicks the Send button (label varies by selected asset), waits for the confirmation modal, then confirms. */
 async function reviewAndConfirm() {
-  fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
   await screen.findByRole("dialog", { name: /confirm transaction/i });
   // act()-wrapped: submitTransaction's state updates can land before this
   // call returns when the mocked API resolves immediately (no artificial
@@ -58,7 +58,7 @@ describe("TransactionPanel", () => {
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
     fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
 
     const dialog = await screen.findByRole("dialog", { name: /confirm transaction/i });
     expect(dialog).toHaveTextContent("Payment — 1 operation");
@@ -75,7 +75,7 @@ describe("TransactionPanel", () => {
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
     fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
 
     await screen.findByRole("dialog", { name: /confirm transaction/i });
     expect(mockSubmit).not.toHaveBeenCalled();
@@ -89,7 +89,7 @@ describe("TransactionPanel", () => {
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
     fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
 
     await screen.findByRole("dialog", { name: /confirm transaction/i });
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -152,7 +152,7 @@ describe("TransactionPanel", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
     // Initially no error should be visible
     expect(screen.queryByText("Invalid Stellar address")).not.toBeInTheDocument();
@@ -183,7 +183,7 @@ describe("TransactionPanel", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(destInput, { target: { value: validDest } });
@@ -209,7 +209,7 @@ describe("TransactionPanel", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
     fireEvent.change(destInput, {
       target: { value: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" },
@@ -227,7 +227,7 @@ describe("TransactionPanel", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(destInput, { target: { value: validDest } });
@@ -549,6 +549,57 @@ describe("TransactionPanel", () => {
       render(<TransactionPanel />);
       fireEvent.change(screen.getByLabelText("Memo Type"), { target: { value: "none" } });
       expect(screen.queryByText(/^\d+\/28$/)).not.toBeInTheDocument();
+    });
+  });
+
+  // ── Asset-specific Send button label (#343) ────────────────────────────────
+  describe("send button label is asset-specific (#343)", () => {
+    const balances = [
+      { asset: "XLM", balance: "100.0000000", assetType: "native" as const },
+      {
+        asset: "USDC",
+        balance: "50.0000000",
+        assetType: "credit_alphanum4" as const,
+        assetCode: "USDC",
+        assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+      },
+    ];
+
+    it("renders 'Send XLM' when only XLM is available", () => {
+      render(<TransactionPanel />);
+      expect(
+        screen.getByRole("button", { name: "Send XLM" }),
+      ).toBeInTheDocument();
+    });
+
+    it("renders 'Send XLM' while XLM is the selected asset (multi-balance wallet)", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        balances,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+      expect(
+        screen.getByRole("button", { name: "Send XLM" }),
+      ).toBeInTheDocument();
+    });
+
+    it("renders 'Send USDC' once the user switches the asset select to USDC", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        address: "GABC",
+        isConnected: true,
+        balances,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<TransactionPanel />);
+      fireEvent.change(screen.getByLabelText("Asset"), {
+        target: { value: "USDC" },
+      });
+
+      expect(
+        screen.getByRole("button", { name: "Send USDC" }),
+      ).toBeInTheDocument();
     });
   });
 });

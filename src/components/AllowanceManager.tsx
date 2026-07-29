@@ -1,8 +1,8 @@
 import {
   ChevronDownIcon,
-  Decrease01Icon,
+  ArrowDown01Icon,
   CheckmarkCircle01Icon,
-  Trash01Icon,
+  Delete01Icon,
   ClockIcon,
   Refresh01Icon,
   ArrowLeft01Icon,
@@ -359,7 +359,7 @@ function IncreaseButton({
       title="Increase allowance"
     >
       <HugeiconsIcon
-        icon={Decrease01Icon}
+        icon={ArrowDown01Icon}
         size={14}
         color="currentColor"
         strokeWidth={1.5}
@@ -403,7 +403,7 @@ function DecreaseDialog({
         title="Decrease allowance"
       >
         <HugeiconsIcon
-          icon={Decrease01Icon}
+          icon={ArrowDown01Icon}
           size={14}
           color="currentColor"
           strokeWidth={1.5}
@@ -502,7 +502,7 @@ function RevokeButton({
           <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-1" />
         ) : (
           <HugeiconsIcon
-            icon={Trash01Icon}
+            icon={Delete01Icon}
             size={14}
             color="currentColor"
             strokeWidth={1.5}
