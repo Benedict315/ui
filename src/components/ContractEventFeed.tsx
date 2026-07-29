@@ -141,13 +141,18 @@ function TopicTag({ topic }: { topic: string }) {
   );
 }
 
+const TOPIC_DISPLAY_LIMIT = 3;
+
 function EventRow({
   event,
   maxValueLength,
+  highlighted = false,
 }: {
   event: ContractEvent;
   maxValueLength: number;
+  highlighted?: boolean;
 }) {
+  const [topicsExpanded, setTopicsExpanded] = useState(false);
   const variant = EVENT_TYPE_VARIANT[event.type] ?? "default";
   const time = new Date(event.createdAt).toLocaleTimeString([], {
     hour: "2-digit",
@@ -155,8 +160,19 @@ function EventRow({
     second: "2-digit",
   });
 
+  const hasHiddenTopics = event.topics.length > TOPIC_DISPLAY_LIMIT;
+  const visibleTopics =
+    hasHiddenTopics && !topicsExpanded
+      ? event.topics.slice(0, TOPIC_DISPLAY_LIMIT)
+      : event.topics;
+
   return (
-    <div className="flex items-start gap-3 px-5 py-3.5 border-b border-line last:border-0">
+    <div
+      className={cn(
+        "flex items-start gap-3 px-5 py-3.5 border-b border-line last:border-0",
+        highlighted && "bg-brand-dim/40 transition-colors",
+      )}
+    >
       <div className="flex flex-col items-center gap-1 shrink-0 mt-0.5">
         <Badge variant={variant}>{event.type}</Badge>
         <span className="text-[10px] text-ink-4 font-mono">{time}</span>
@@ -171,10 +187,21 @@ function EventRow({
           </span>
         </div>
         {event.topics.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {event.topics.map((t, i) => (
+          <div className="flex flex-wrap items-center gap-1">
+            {visibleTopics.map((t, i) => (
               <TopicTag key={i} topic={t} />
             ))}
+            {hasHiddenTopics && (
+              <button
+                type="button"
+                onClick={() => setTopicsExpanded((e) => !e)}
+                className="self-start text-[10px] font-semibold text-brand hover:underline"
+              >
+                {topicsExpanded
+                  ? "Show less"
+                  : `+${event.topics.length - TOPIC_DISPLAY_LIMIT} more`}
+              </button>
+            )}
           </div>
         )}
         {event.value !== null && event.value !== undefined && (
@@ -222,7 +249,13 @@ export function ContractEventFeed({
   const [activeTypes, setActiveTypes] = useState<Set<string> | null>(
     filterTypes ? new Set(filterTypes) : null,
   );
+  const [highlightedIds, setHighlightedIds] = useState<Set<string>>(
+    new Set(),
+  );
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // `null` means no successful load has completed yet, so the very first
+  // fetch never highlights anything as "new".
+  const previousIdsRef = useRef<Set<string> | null>(null);
 
   const load = useCallback(async () => {
     if (!contractId.trim()) return;
@@ -237,7 +270,31 @@ export function ContractEventFeed({
         setError(err);
         return;
       }
-      setEvents(data ?? []);
+      const nextEvents = data ?? [];
+      const previousIds = previousIdsRef.current;
+      const newIds = previousIds
+        ? nextEvents
+            .filter((e) => !previousIds.has(e.id))
+            .map((e) => e.id)
+        : [];
+
+      if (newIds.length > 0) {
+        setHighlightedIds((prev) => {
+          const next = new Set(prev);
+          for (const id of newIds) next.add(id);
+          return next;
+        });
+        setTimeout(() => {
+          setHighlightedIds((prev) => {
+            const next = new Set(prev);
+            for (const id of newIds) next.delete(id);
+            return next;
+          });
+        }, 1500);
+      }
+
+      previousIdsRef.current = new Set(nextEvents.map((e) => e.id));
+      setEvents(nextEvents);
       setError(null);
       setLastUpdatedAt(Date.now());
     } finally {
@@ -359,6 +416,15 @@ export function ContractEventFeed({
             Export JSON
           </button>
           <button
+            type="button"
+            onClick={() => setEvents([])}
+            disabled={events.length === 0}
+            title="Clear events"
+            className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-surface-2 hover:bg-surface-3 text-ink-2 border border-line transition-colors disabled:opacity-40"
+          >
+            Clear
+          </button>
+          <button
             onClick={() => void load()}
             disabled={loading}
             className="p-1.5 rounded-lg hover:bg-surface-2 text-ink-3 hover:text-ink-2 transition-colors disabled:opacity-40"
@@ -452,7 +518,12 @@ export function ContractEventFeed({
       ) : (
         <div aria-live="polite">
           {filteredEvents.map((e) => (
-            <EventRow key={e.id} event={e} maxValueLength={maxValueLength} />
+            <EventRow
+              key={e.id}
+              event={e}
+              maxValueLength={maxValueLength}
+              highlighted={highlightedIds.has(e.id)}
+            />
           ))}
         </div>
       )}
