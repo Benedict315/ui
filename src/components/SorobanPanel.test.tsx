@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, act } from "@testing-library/react";
+import { act,fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -123,7 +123,20 @@ describe("SorobanPanel", () => {
 
   it("grows the argument textarea as lines are added and remains user-resizable", () => {
     render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
-    const textarea = screen.getByLabelText("Arguments (JSON array)");
+    const textarea = screen.getByLabelText(
+      "Arguments (JSON array)",
+    ) as HTMLTextAreaElement;
+
+    expect(textarea.rows).toBe(3);
+    expect(textarea.className).toContain("resize-y");
+
+    fireEvent.input(textarea, {
+      target: { value: "[\n1,\n2,\n3,\n4\n]" },
+    });
+
+    expect(textarea.rows).toBe(6);
+  });
+
   describe("simulate mode", () => {
     it("renders Simulate badge and subtitle", () => {
       render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} mode="simulate" />);
@@ -149,6 +162,7 @@ describe("SorobanPanel", () => {
       fireEvent.click(screen.getByRole("button", { name: /simulate/i }));
       expect(await screen.findByText("Simulation Result", { selector: "span" })).toBeInTheDocument();
     });
+  });
 
   it("updates the textarea height style dynamically on input", () => {
     render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
@@ -162,7 +176,6 @@ describe("SorobanPanel", () => {
 
   // ── Contract ID history (#205) ──────────────────────────────────────────
   describe("contract ID history", () => {
-    const HISTORY_KEY = "sorokit-soroban-contract-history";
     it("shows Simulating… label while loading", async () => {
       let resolveSimulate: (v: { data: unknown; error: null }) => void = () => {};
       mockSimulateContract.mockReturnValueOnce(new Promise((resolve) => { resolveSimulate = resolve; }));
