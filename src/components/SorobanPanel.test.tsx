@@ -105,6 +105,25 @@ describe("SorobanPanel", () => {
     });
   });
 
+  it("invokes with Cmd+Enter from the arguments field", async () => {
+    mockInvokeContract.mockResolvedValueOnce({ data: { ok: true }, error: null });
+    render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+    fireEvent.change(screen.getByLabelText("Method"), {
+      target: { value: "balance" },
+    });
+
+    fireEvent.keyDown(screen.getByLabelText("Arguments (JSON array)"), {
+      key: "Enter",
+      metaKey: true,
+    });
+
+    expect(await screen.findByText("Result")).toBeInTheDocument();
+    expect(mockInvokeContract).toHaveBeenCalledOnce();
+  });
+
+  it("grows the argument textarea as lines are added and remains user-resizable", () => {
+    render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+    const textarea = screen.getByLabelText("Arguments (JSON array)");
   describe("simulate mode", () => {
     it("renders Simulate badge and subtitle", () => {
       render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} mode="simulate" />);
@@ -131,6 +150,19 @@ describe("SorobanPanel", () => {
       expect(await screen.findByText("Simulation Result", { selector: "span" })).toBeInTheDocument();
     });
 
+  it("updates the textarea height style dynamically on input", () => {
+    render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+    const textarea = screen.getByLabelText("Arguments (JSON array)") as HTMLTextAreaElement;
+
+    Object.defineProperty(textarea, "scrollHeight", { value: 120, configurable: true });
+    fireEvent.input(textarea, { target: { value: "[\nline1\nline2\n]" } });
+
+    expect(textarea.style.height).toBe("120px");
+  });
+
+  // ── Contract ID history (#205) ──────────────────────────────────────────
+  describe("contract ID history", () => {
+    const HISTORY_KEY = "sorokit-soroban-contract-history";
     it("shows Simulating… label while loading", async () => {
       let resolveSimulate: (v: { data: unknown; error: null }) => void = () => {};
       mockSimulateContract.mockReturnValueOnce(new Promise((resolve) => { resolveSimulate = resolve; }));

@@ -11,6 +11,7 @@ type BadgeVariant =
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
+  size?: "sm" | "md";
   dot?: boolean;
   live?: boolean;
 }
@@ -39,8 +40,14 @@ const dots: Record<BadgeVariant, string> = {
   purple: "bg-purple",
 };
 
+const sizes: Record<string, string> = {
+  sm: "px-1.5 py-0.5 text-[10px]",
+  md: "px-2 py-1 text-[11px]",
+};
+
 export function Badge({
   variant = "default",
+  size = "md",
   dot,
   live,
   className,
@@ -50,7 +57,8 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold tracking-wide",
+        "inline-flex items-center gap-1 rounded-full font-semibold tracking-wide",
+        sizes[size],
         variants[variant],
         className,
       )}

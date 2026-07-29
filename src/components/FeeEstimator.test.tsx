@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
-import { FeeEstimator } from "./FeeEstimator";
+import { FeeEstimator, FeeCell } from "./FeeEstimator";
 
 vi.mock("@/lib/client", () => ({
   getClient: vi.fn(),
@@ -139,6 +139,65 @@ describe("FeeEstimator", () => {
       expect(liveRegion).toBeInTheDocument();
       expect(liveRegion).toHaveAttribute("aria-atomic", "true");
       await waitFor(() => expect(liveRegion).toHaveTextContent(/100/));
+    });
+  });
+
+  describe("compact variant", () => {
+    it("renders a single-line concise string when compact is true", async () => {
+      mockEstimateFee({ data: { baseFee: "100", recommended: "500" }, error: null });
+      render(<FeeEstimator compact />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Base: 100 stroops · Recommended: 500 stroops/),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("shows loading text while data is loading in compact mode", () => {
+      vi.mocked(getClient).mockReturnValue({
+        transaction: {
+          estimateFee: vi.fn().mockReturnValue(new Promise(() => {})),
+        },
+      } as unknown as SorokitClient);
+
+      render(<FeeEstimator compact />);
+      expect(screen.getByText("Loading…")).toBeInTheDocument();
+    });
+  });
+
+  describe("onFeeLoad callback", () => {
+    it("fires onFeeLoad with expected fee data after loading", async () => {
+      const onFeeLoad = vi.fn();
+      mockEstimateFee({ data: { baseFee: "100", recommended: "500" }, error: null });
+      render(<FeeEstimator onFeeLoad={onFeeLoad} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("100")).toBeInTheDocument();
+      });
+      expect(onFeeLoad).toHaveBeenCalledTimes(1);
+      expect(onFeeLoad).toHaveBeenCalledWith({
+        baseFee: "100",
+        recommended: "500",
+      });
+    });
+
+    it("does not call onFeeLoad when fee data has an error", async () => {
+      const onFeeLoad = vi.fn();
+      mockEstimateFee({ data: null, error: "Network error" });
+      render(<FeeEstimator onFeeLoad={onFeeLoad} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Network error")).toBeInTheDocument();
+      });
+      expect(onFeeLoad).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("FeeCell export", () => {
+    it("can be imported directly from sorokit-ui (FeeEstimator module)", () => {
+      expect(FeeCell).toBeDefined();
+      expect(typeof FeeCell).toBe("function");
     });
   });
 });
