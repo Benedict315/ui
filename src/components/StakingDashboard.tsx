@@ -13,7 +13,7 @@
 
 import {
   Award01Icon,
-  Reload01Icon,
+  Refresh01Icon,
   Task01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -301,7 +301,7 @@ export function StakingDashboard({
               aria-label="Refresh staking data"
             >
               <HugeiconsIcon
-                icon={Reload01Icon}
+                icon={Refresh01Icon}
                 size={14}
                 color="currentColor"
                 strokeWidth={1.5}

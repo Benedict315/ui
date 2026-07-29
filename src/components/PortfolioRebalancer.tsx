@@ -14,7 +14,7 @@
 import {
   AlertCircleIcon,
   CheckmarkCircle01Icon,
-  Reload01Icon,
+  Refresh01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -316,7 +316,7 @@ export function PortfolioRebalancer({ className }: PortfolioRebalancerProps) {
               aria-label="Refresh portfolio"
             >
               <HugeiconsIcon
-                icon={Reload01Icon}
+                icon={Refresh01Icon}
                 size={14}
                 color="currentColor"
                 strokeWidth={1.5}
