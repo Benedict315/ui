@@ -1,5 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useRef,useState } from "react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";import { StrictMode, useRef, useState } from "react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
 import { renderWithProvider } from "@/__tests__/utils";
@@ -514,6 +513,33 @@ describe("SorokitProvider", () => {
 
       expect(screen.getByTestId("address")).toHaveTextContent("GABC");
       expect(screen.getByTestId("error")).toHaveTextContent("none");
+    });
+
+    it("works when wrapped in React.StrictMode (#343)", async () => {
+      render(
+        <StrictMode>
+          <SorokitProvider client={mockClient}>
+            <TestComponent />
+          </SorokitProvider>
+        </StrictMode>,
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("address")).toHaveTextContent("GABC");
+        expect(screen.getByTestId("account")).toHaveTextContent("100");
+        expect(screen.getByTestId("balances")).toHaveTextContent("1");
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Disconnect"));
+      });
+
+      expect(screen.getByTestId("address")).toHaveTextContent("none");
+      expect(screen.getByTestId("errorHistoryCount")).toHaveTextContent("0");
     });
   });
 });
