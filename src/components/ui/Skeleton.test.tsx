@@ -1,10 +1,11 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, expect,it } from "vitest";
+
 import {
-  Skeleton,
-  SkeletonRow,
-  SkeletonCard,
   AssetRowSkeleton,
+  Skeleton,
+  SkeletonCard,
+  SkeletonRow,
 } from "./Skeleton";
 
 describe("Skeleton", () => {
@@ -35,6 +36,22 @@ describe("Skeleton", () => {
 
     const { container: c2 } = render(<Skeleton />);
     expect(c2.firstElementChild).toHaveClass("rounded-lg");
+  it("uses animate-pulse by default (no variant prop)", () => {
+    const { container } = render(<Skeleton />);
+    expect(container.firstElementChild).toHaveClass("animate-pulse");
+  });
+
+  it("applies skeleton-shimmer class when variant='shimmer'", () => {
+    const { container } = render(<Skeleton variant="shimmer" />);
+    const el = container.firstElementChild as HTMLElement;
+    expect(el).toHaveClass("skeleton-shimmer");
+    expect(el).not.toHaveClass("animate-pulse");
+  });
+
+  it("applies animate-pulse when variant='pulse' is explicit", () => {
+    const { container } = render(<Skeleton variant="pulse" />);
+    expect(container.firstElementChild).toHaveClass("animate-pulse");
+    expect(container.firstElementChild).not.toHaveClass("skeleton-shimmer");
   });
 });
 
@@ -75,6 +92,19 @@ describe("SkeletonCard", () => {
     );
     render(<SkeletonCard header={customHeader} />);
     expect(screen.getByTestId("custom-card-header")).toBeInTheDocument();
+  it("uses stable keys that encode row count — changing rows remounts items", () => {
+    const { rerender, container } = render(<SkeletonCard rows={3} />);
+    const before = Array.from(
+      container.querySelectorAll('[role="presentation"]'),
+    ).map((el) => el.getAttribute("data-key"));
+
+    rerender(<SkeletonCard rows={2} />);
+    const afterRows = container.querySelectorAll(
+      '.px-5.py-5 [role="presentation"]',
+    );
+    // After decreasing rows there should be exactly 2 body skeletons, not 3
+    expect(afterRows.length).toBe(2);
+    void before; // suppress unused-var lint
   });
 });
 

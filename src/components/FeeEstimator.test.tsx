@@ -1,13 +1,14 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { FeeEstimator } from "./FeeEstimator";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
+import { FeeEstimator, FeeCell } from "./FeeEstimator";
 
 vi.mock("@/lib/client", () => ({
   getClient: vi.fn(),
 }));
 
-import { getClient } from "@/lib/client";
 import type { SorokitClient } from "@/lib/client";
+import { getClient } from "@/lib/client";
 
 function mockEstimateFee(result: { data: { baseFee: string; recommended: string } | null; error: string | null }) {
   vi.mocked(getClient).mockReturnValue({
@@ -44,6 +45,8 @@ describe("FeeEstimator", () => {
     });
     expect(screen.getByText("Base Fee")).toBeInTheDocument();
     expect(screen.getByText("Recommended")).toBeInTheDocument();
+    expect(screen.getByText("(≈ 0.00001 XLM)")).toBeInTheDocument();
+    expect(screen.getByText("(≈ 0.00005 XLM)")).toBeInTheDocument();
   });
 
   it("renders the error message when the client returns an error", async () => {
@@ -94,8 +97,32 @@ describe("FeeEstimator", () => {
     expect(screen.getByText("Network Fee")).toBeInTheDocument();
   });
 
+  it("shows a high-fee warning when recommended fee exceeds twice the base fee", async () => {
+    mockEstimateFee({ data: { baseFee: "100", recommended: "201" }, error: null });
+    render(<FeeEstimator />);
+
+    expect(await screen.findByText("High fee")).toBeInTheDocument();
+  });
+
+  it("does not show a high-fee warning when recommended fee is at most twice the base fee", async () => {
+    mockEstimateFee({ data: { baseFee: "100", recommended: "200" }, error: null });
+    render(<FeeEstimator />);
+
+    await waitFor(() => expect(screen.getByText("200")).toBeInTheDocument());
+    expect(screen.queryByText("High fee")).not.toBeInTheDocument();
+  });
+
   // ── Accessibility (#120) ──────────────────────────────────────────────────
   describe("accessibility", () => {
+    it("exposes the fee estimate as a named landmark region", () => {
+      mockEstimateFee({ data: { baseFee: "100", recommended: "200" }, error: null });
+      render(<FeeEstimator />);
+
+      expect(
+        screen.getByRole("region", { name: "Network fee estimate" }),
+      ).toBeInTheDocument();
+    });
+
     it("labels the refresh button for screen readers", () => {
       mockEstimateFee({ data: { baseFee: "100", recommended: "200" }, error: null });
       render(<FeeEstimator />);
@@ -112,6 +139,65 @@ describe("FeeEstimator", () => {
       expect(liveRegion).toBeInTheDocument();
       expect(liveRegion).toHaveAttribute("aria-atomic", "true");
       await waitFor(() => expect(liveRegion).toHaveTextContent(/100/));
+    });
+  });
+
+  describe("compact variant", () => {
+    it("renders a single-line concise string when compact is true", async () => {
+      mockEstimateFee({ data: { baseFee: "100", recommended: "500" }, error: null });
+      render(<FeeEstimator compact />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Base: 100 stroops · Recommended: 500 stroops/),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("shows loading text while data is loading in compact mode", () => {
+      vi.mocked(getClient).mockReturnValue({
+        transaction: {
+          estimateFee: vi.fn().mockReturnValue(new Promise(() => {})),
+        },
+      } as unknown as SorokitClient);
+
+      render(<FeeEstimator compact />);
+      expect(screen.getByText("Loading…")).toBeInTheDocument();
+    });
+  });
+
+  describe("onFeeLoad callback", () => {
+    it("fires onFeeLoad with expected fee data after loading", async () => {
+      const onFeeLoad = vi.fn();
+      mockEstimateFee({ data: { baseFee: "100", recommended: "500" }, error: null });
+      render(<FeeEstimator onFeeLoad={onFeeLoad} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("100")).toBeInTheDocument();
+      });
+      expect(onFeeLoad).toHaveBeenCalledTimes(1);
+      expect(onFeeLoad).toHaveBeenCalledWith({
+        baseFee: "100",
+        recommended: "500",
+      });
+    });
+
+    it("does not call onFeeLoad when fee data has an error", async () => {
+      const onFeeLoad = vi.fn();
+      mockEstimateFee({ data: null, error: "Network error" });
+      render(<FeeEstimator onFeeLoad={onFeeLoad} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Network error")).toBeInTheDocument();
+      });
+      expect(onFeeLoad).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("FeeCell export", () => {
+    it("can be imported directly from sorokit-ui (FeeEstimator module)", () => {
+      expect(FeeCell).toBeDefined();
+      expect(typeof FeeCell).toBe("function");
     });
   });
 });

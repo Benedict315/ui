@@ -1,9 +1,11 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SorobanInvokeButton } from "./SorobanInvokeButton";
-import { getClient } from "@/lib/client";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
-import type { SorokitClient, InvokeParams } from "@/lib/client";
+import type { InvokeParams,SorokitClient } from "@/lib/client";
+import { getClient } from "@/lib/client";
+
+import { SorobanInvokeButton } from "./SorobanInvokeButton";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -93,6 +95,25 @@ describe("SorobanInvokeButton", () => {
 
     await waitFor(() => screen.getByText("Failed"));
     expect(screen.getByText(/something went wrong while invoking/i)).toBeInTheDocument();
+  });
+
+  it("hides the result block when showResult is false", async () => {
+    mockInvokeContract({ data: { txHash: "abc" }, error: null, status: "success" });
+    render(<SorobanInvokeButton params={PARAMS} showResult={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
+
+    await waitFor(() => expect(screen.getByText("Done")).toBeInTheDocument());
+    expect(screen.queryByText("Result")).not.toBeInTheDocument();
+    expect(screen.queryByText(/txHash/)).not.toBeInTheDocument();
+  });
+
+  it("hides the error block when showResult is false", async () => {
+    mockInvokeContract({ data: null, error: "Out of gas", status: "error" });
+    render(<SorobanInvokeButton params={PARAMS} showResult={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
+
+    await waitFor(() => expect(screen.getByText("Failed")).toBeInTheDocument());
+    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
   });
 
   it("disables the button and shows connect wallet hint when not connected", () => {

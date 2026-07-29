@@ -1,22 +1,28 @@
-import { WalletConnectButton } from "@/components/WalletConnectButton";
-import { NetworkSwitcher } from "@/components/NetworkSwitcher";
-import { useSorokit } from "@/context/useSorokit";
+import { Cancel01Icon,Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Menu01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
-import { SCREEN_LABELS } from "@/lib/nav-labels";
+import { useState } from "react";
+
+import { AccountSidebar } from "@/components/AccountSidebar";
+import { NetworkSwitcher } from "@/components/NetworkSwitcher";
 import type { NavSection } from "@/components/Sidebar";
+import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { useSorokit } from "@/context/useSorokit";
+import { SCREEN_LABELS } from "@/lib/nav-labels";
 
 const LABELS = SCREEN_LABELS;
 
 export function TopBar({
   active,
   onMenuToggle,
+  sidebarOpen,
 }: {
   active: NavSection;
   onMenuToggle: () => void;
+  sidebarOpen?: boolean;
 }) {
   const { error, clearError } = useSorokit();
   const { title, sub } = LABELS[active];
+  const [accountSidebarOpen, setAccountSidebarOpen] = useState(false);
 
   return (
     <div className="shrink-0">
@@ -25,6 +31,7 @@ export function TopBar({
           <p className="text-[12px] text-red">{error}</p>
           <button
             onClick={clearError}
+            aria-label="Dismiss error"
             className="text-red opacity-50 hover:opacity-100 shrink-0 transition-opacity"
           >
             <HugeiconsIcon
@@ -36,12 +43,13 @@ export function TopBar({
           </button>
         </div>
       )}
-      <header className="flex items-center justify-between px-4 sm:px-6 h-[60px] border-b border-line bg-surface shrink-0">
+      <header className="flex items-center justify-between px-4 sm:px-6 min-h-[60px] border-b border-line bg-surface shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuToggle}
             className="lg:hidden flex items-center justify-center w-8 h-8 rounded-md hover:bg-surface-2 transition-colors text-ink-2"
             aria-label="Open menu"
+            aria-expanded={sidebarOpen}
           >
             <HugeiconsIcon
               icon={Menu01Icon}
@@ -61,9 +69,15 @@ export function TopBar({
         </div>
         <div className="flex items-center gap-2.5">
           <NetworkSwitcher />
-          <WalletConnectButton />
+          <WalletConnectButton
+            onOpenModal={() => setAccountSidebarOpen(true)}
+          />
         </div>
       </header>
+      <AccountSidebar
+        open={accountSidebarOpen}
+        onClose={() => setAccountSidebarOpen(false)}
+      />
     </div>
   );
 }

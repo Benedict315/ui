@@ -1,7 +1,9 @@
-import { render, screen, fireEvent, within } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TopBar } from "./TopBar";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import { useSorokit } from "@/context/useSorokit";
+
+import { TopBar } from "./TopBar";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
@@ -80,5 +82,70 @@ describe("TopBar", () => {
     render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
     fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
     expect(onMenuToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the title as an h1 element", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    const { container } = render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toBeInTheDocument();
+    expect(container.querySelector("h1")).toBe(heading);
+  });
+
+  it("renders the title text matching the active nav label", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    render(<TopBar active="account" onMenuToggle={onMenuToggle} />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Account");
+  });
+
+  it("renders only one h1 element", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    const { container } = render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    expect(container.querySelectorAll("h1")).toHaveLength(1);
+  });
+
+  it("sets aria-expanded to true on the menu button when sidebarOpen is true", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    render(<TopBar active="wallet" onMenuToggle={onMenuToggle} sidebarOpen={true} />);
+    expect(screen.getByRole("button", { name: /open menu/i })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+
+  it("sets aria-expanded to false on the menu button when sidebarOpen is false", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    render(<TopBar active="wallet" onMenuToggle={onMenuToggle} sidebarOpen={false} />);
+    expect(screen.getByRole("button", { name: /open menu/i })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it("uses min-h rather than fixed h for the header", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      error: null,
+      clearError,
+    } as ReturnType<typeof useSorokit>);
+    const { container } = render(<TopBar active="wallet" onMenuToggle={onMenuToggle} />);
+    const header = container.querySelector("header");
+    expect(header).toBeInTheDocument();
+    expect(header!.className).toContain("min-h-[60px]");
+    expect(header!.className).not.toMatch(/(?<!min-)h-\[/);
   });
 });

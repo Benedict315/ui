@@ -1,67 +1,146 @@
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { AddressDisplay } from "./AddressDisplay";
 
-// Mock navigator.clipboard safely in JSDOM
 const mockWriteText = vi.fn().mockResolvedValue(undefined);
 beforeAll(() => {
   Object.defineProperty(navigator, "clipboard", {
-    value: {
-      writeText: mockWriteText,
-    },
+    value: { writeText: mockWriteText },
     configurable: true,
     writable: true,
   });
 });
 
+beforeEach(() => {
+  mockWriteText.mockClear();
+});
+
 describe("AddressDisplay", () => {
   const address = "GBAMQXTQ7IQKPZXJKZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQQQQ";
 
-  it("renders truncated address and copy button in tab order with correct aria-label", async () => {
-    render(<AddressDisplay address={address} />);
-
-    // Confirm address text is present (truncated format)
-    expect(screen.getByText("GBAMQXTQ...ZJQQQQ")).toBeInTheDocument();
-
-    // Confirm copy button exists with aria-label
-    const copyBtn = screen.getByRole("button", { name: "Copy address" });
-    expect(copyBtn).toBeInTheDocument();
-
-    // Confirm it is focusable (in tab order)
-    expect(copyBtn).not.toHaveAttribute("tabindex", "-1");
-
-    // Click to copy and verify clipboard call
-    await act(async () => {
-      fireEvent.click(copyBtn);
+  describe("basic render", () => {
+    it("renders truncated address and copy button with correct aria-label", async () => {
+      render(<AddressDisplay address={address} />);
+      expect(screen.getByText("GBAMQXTQ...ZJQQQQ")).toBeInTheDocument();
+      const copyBtn = screen.getByRole("button", { name: "Copy address" });
+      expect(copyBtn).toBeInTheDocument();
+      expect(copyBtn).not.toHaveAttribute("tabindex", "-1");
+      await act(async () => { fireEvent.click(copyBtn); });
+      expect(mockWriteText).toHaveBeenCalledWith(address);
+      expect(screen.getByRole("button", { name: "Address copied" })).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Copy address" })).toBeInTheDocument();
+      }, { timeout: 2500 });
     });
-    expect(mockWriteText).toHaveBeenCalledWith(address);
 
-    // Verify aria-label changes to "Address copied" after copy
-    expect(screen.getByRole("button", { name: "Address copied" })).toBeInTheDocument();
-
-    // Wait for the state to reset back to "Copy address"
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Copy address" })).toBeInTheDocument();
-    }, { timeout: 2500 });
+    it("applies base opacity-50 to copy button", () => {
+      render(<AddressDisplay address={address} />);
+      const copyBtn = screen.getByRole("button", { name: "Copy address" });
+      expect(copyBtn.className).toContain("opacity-50");
+      expect(copyBtn.className).not.toContain("opacity-0");
+    });
   });
 
-  it("verifies copy button has visibility class (opacity-50 base opacity)", () => {
-    render(<AddressDisplay address={address} />);
+  describe("showFull prop", () => {
+    it("renders the full address and applies select-all class", () => {
+      render(<AddressDisplay address={address} showFull />);
+      const el = screen.getByText(address);
+      expect(el).toBeInTheDocument();
+      expect(el.className).toContain("select-all");
+    });
 
-    const copyBtn = screen.getByRole("button", { name: "Copy address" });
-
-    // Expect base opacity-50 for visibility (not opacity-0)
-    expect(copyBtn.className).toContain("opacity-50");
-    expect(copyBtn.className).not.toContain("opacity-0");
+    it("does not add select-all when showFull is false", () => {
+      render(<AddressDisplay address={address} />);
+      const el = screen.getByText("GBAMQXTQ...ZJQQQQ");
+      expect(el.className).not.toContain("select-all");
+    });
   });
 
-  it("shows the full address when showFull is true", () => {
-    render(<AddressDisplay address={address} showFull />);
-    expect(screen.getByText(address)).toBeInTheDocument();
+  describe("onCopy callback", () => {
+    it("fires after successful clipboard write", async () => {
+      const onCopy = vi.fn();
+      render(<AddressDisplay address={address} onCopy={onCopy} />);
+      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Copy address" })); });
+      expect(onCopy).toHaveBeenCalled();
+    });
   });
 
-  it("renders a label above the address when label prop is provided", () => {
-    render(<AddressDisplay address={address} label="Destination" />);
-    expect(screen.getByText("Destination")).toBeInTheDocument();
+  describe("masked prop", () => {
+    it("shows GBAM···QQQQ format when masked is true", () => {
+      render(<AddressDisplay address={address} masked />);
+      expect(screen.getByText("GBAM···QQQQ")).toBeInTheDocument();
+    });
+
+    it("does not show masked format by default", () => {
+      render(<AddressDisplay address={address} />);
+      expect(screen.queryByText("GBAM···QQQQ")).not.toBeInTheDocument();
+      expect(screen.getByText("GBAMQXTQ...ZJQQQQ")).toBeInTheDocument();
+    });
+  });
+
+  describe("mono prop", () => {
+    it("applies font-mono class when mono is true", () => {
+      render(<AddressDisplay address={address} mono />);
+      const el = screen.getByText("GBAMQXTQ...ZJQQQQ");
+      expect(el.className).toContain("font-mono");
+    });
+
+    it("does not apply font-mono by default", () => {
+      render(<AddressDisplay address={address} />);
+      const el = screen.getByText("GBAMQXTQ...ZJQQQQ");
+      expect(el.className).not.toContain("font-mono");
+    });
+  });
+
+  describe("label prop / dl/dt/dd structure", () => {
+    it("renders label as dt inside a dl when label prop is provided", () => {
+      const { container } = render(<AddressDisplay address={address} label="Destination" />);
+      const dl = container.querySelector("dl");
+      expect(dl).toBeInTheDocument();
+      const dt = dl!.querySelector("dt");
+      expect(dt).toHaveTextContent("Destination");
+      const dd = dl!.querySelector("dd");
+      expect(dd).toBeInTheDocument();
+    });
+
+    it("renders without dl/dt when label is not provided", () => {
+      const { container } = render(<AddressDisplay address={address} />);
+      expect(container.querySelector("dl")).not.toBeInTheDocument();
+      expect(container.querySelector("dt")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("size prop", () => {
+    it("applies text-[10px] for sm size", () => {
+      render(<AddressDisplay address={address} showFull size="sm" />);
+      expect(screen.getByText(address).className).toContain("text-[10px]");
+    });
+
+    it("applies text-[11px] for md size (default)", () => {
+      render(<AddressDisplay address={address} showFull />);
+      expect(screen.getByText(address).className).toContain("text-[11px]");
+    });
+
+    it("applies text-[13px] for lg size", () => {
+      render(<AddressDisplay address={address} showFull size="lg" />);
+      expect(screen.getByText(address).className).toContain("text-[13px]");
+    });
+  });
+
+  describe("custom start/end", () => {
+    it("truncates with custom start and end values", () => {
+      render(<AddressDisplay address={address} start={4} end={4} />);
+      expect(screen.getByText("GBAM...QQQQ")).toBeInTheDocument();
+    });
+  });
+
+  describe("masked + mono combination", () => {
+    it("applies font-mono and shows masked format when both are true", () => {
+      render(<AddressDisplay address={address} masked mono />);
+      const el = screen.getByText("GBAM···QQQQ");
+      expect(el).toBeInTheDocument();
+      expect(el.className).toContain("font-mono");
+    });
   });
 });

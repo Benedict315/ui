@@ -1,22 +1,59 @@
-import { useEffect, useState } from "react";
-import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { truncateAddress } from "@/lib/utils";
-import type { ClaimableBalance } from "@/lib/client";
+import { useEffect, useRef, useState } from "react";
 
-function BalanceRow({ cb }: { cb: ClaimableBalance }) {
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { useSorokit } from "@/context/useSorokit";
+import type { ClaimableBalance } from "@/lib/client";
+import { getClient } from "@/lib/client";
+import { cn, truncateAddress } from "@/lib/utils";
+
+function isPredicateExpired(predicate: unknown, _currentTime: number): boolean {
+  if (!predicate || typeof predicate !== "object") return false;
+  const p = predicate as Record<string, unknown>;
+  if (p.unconditional === true) return false;
+  if (typeof p.timeBound === "object" && p.timeBound !== null) {
+    const tb = p.timeBound as Record<string, unknown>;
+    if (typeof tb.end === "number" && _currentTime > tb.end) return true;
+    if (typeof tb.start === "number" && _currentTime < tb.start) return true;
+  }
+  if (typeof p.endTime === "number" && _currentTime > p.endTime) return true;
+  if (Array.isArray(p.and)) return p.and.every((child: unknown) => isPredicateExpired(child, _currentTime));
+  if (Array.isArray(p.or)) return p.or.some((child: unknown) => isPredicateExpired(child, _currentTime));
+  if (typeof p.not === "object" && p.not !== null) return !isPredicateExpired(p.not, _currentTime);
+  return false;
+}
+
+interface BalanceRowProps {
+  cb: ClaimableBalance;
+  confirmThreshold?: string;
+  currentTime?: number;
+}
+
+function BalanceRow({ cb, confirmThreshold, currentTime = Date.now() }: BalanceRowProps) {
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
+  const confirmRef = useRef<HTMLDialogElement>(null);
 
   const rawCode = cb.asset.includes(":") ? cb.asset.split(":")[0] : cb.asset;
   const assetCode = rawCode === "native" ? "XLM" : rawCode;
+  const amountNum = parseFloat(cb.amount);
+  const expired = cb.claimants.some((c) => isPredicateExpired(c.predicate, currentTime));
 
   async function handleClaim() {
+    if (confirmThreshold && amountNum >= parseFloat(confirmThreshold)) {
+      setShowConfirm(true);
+      return;
+    }
+    await doClaim();
+  }
+
+  async function doClaim() {
     setClaiming(true);
     setClaimError(null);
+    setShowConfirm(false);
     try {
       const { error } = await getClient().account.claimBalance(cb.id);
       if (!error) {
@@ -29,17 +66,24 @@ function BalanceRow({ cb }: { cb: ClaimableBalance }) {
     }
   }
 
+  function handleCopyId() {
+    navigator.clipboard.writeText(cb.id);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 1600);
+  }
+
   return (
     <div className="flex items-center justify-between px-5 py-4 border-b border-line last:border-0 gap-4">
       <div className="flex flex-col gap-1.5 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-[14px] font-semibold text-ink">
-            {parseFloat(cb.amount).toLocaleString(undefined, {
+            {amountNum.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 4,
             })}
           </span>
           <Badge variant="teal">{assetCode}</Badge>
+          {expired && <Badge variant="error">Expired</Badge>}
           {claimed && (
             <Badge variant="success" dot live>
               Claimed
@@ -52,14 +96,25 @@ function BalanceRow({ cb }: { cb: ClaimableBalance }) {
           </span>
           <span data-address>{truncateAddress(cb.sponsor, 8, 6)}</span>
         </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-mono text-ink-3">{truncateAddress(cb.id, 8, 6)}</span>
+          <button
+            onClick={handleCopyId}
+            aria-label={copiedId ? "Balance ID copied" : "Copy balance ID"}
+            className="text-ink-4 hover:text-ink-2 transition-colors text-[10px] p-0.5"
+          >
+            {copiedId ? "✓" : "⎘"}
+          </button>
+        </div>
       </div>
       {!claimed && (
         <div className="flex flex-col items-end gap-1.5 shrink-0">
           <Button
             size="sm"
             loading={claiming}
+            disabled={expired}
             onClick={handleClaim}
-            className="shrink-0"
+            className={cn("shrink-0", expired && "opacity-40 cursor-not-allowed")}
           >
             Claim
           </Button>
@@ -70,11 +125,38 @@ function BalanceRow({ cb }: { cb: ClaimableBalance }) {
           )}
         </div>
       )}
+
+      {showConfirm && (
+        <dialog
+          ref={confirmRef}
+          open
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        >
+          <div className="rounded-xl border border-line bg-surface p-6 max-w-sm w-full shadow-xl">
+            <h4 className="text-[14px] font-semibold text-ink mb-2">Confirm Claim</h4>
+            <p className="text-[13px] text-ink-2 mb-4">
+              You are about to claim {amountNum.toLocaleString()} {assetCode}. This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <Button variant="ghost" size="sm" onClick={() => setShowConfirm(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="sm" onClick={doClaim}>
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </dialog>
+      )}
     </div>
   );
 }
 
-export function ClaimableBalanceCard() {
+export interface ClaimableBalanceCardProps {
+  confirmThreshold?: string;
+}
+
+export function ClaimableBalanceCard({ confirmThreshold }: ClaimableBalanceCardProps = {}) {
   const { address, isConnected } = useSorokit();
   const [balances, setBalances] = useState<ClaimableBalance[]>([]);
   const [loading, setLoading] = useState(false);
@@ -107,6 +189,8 @@ export function ClaimableBalanceCard() {
     };
   }, [address]);
 
+  if (!isConnected) return null;
+
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-line">
@@ -123,11 +207,7 @@ export function ClaimableBalanceCard() {
         )}
       </div>
 
-      {!isConnected ? (
-        <p className="text-[13px] text-ink-3 text-center py-10">
-          Connect your wallet to view claimable balances
-        </p>
-      ) : loading ? (
+      {loading ? (
         <div className="px-5 py-5 flex flex-col gap-4">
           {[1, 2].map((i) => (
             <div key={i} className="flex items-center justify-between gap-4">
@@ -148,7 +228,7 @@ export function ClaimableBalanceCard() {
       ) : (
         <div>
           {balances.map((cb) => (
-            <BalanceRow key={cb.id} cb={cb} />
+            <BalanceRow key={cb.id} cb={cb} confirmThreshold={confirmThreshold} />
           ))}
         </div>
       )}

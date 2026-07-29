@@ -1,6 +1,5 @@
-import { cn } from "@/lib/utils";
-import { truncateAddress } from "@/lib/utils";
 import type { Balance } from "@/lib/client";
+import { cn, truncateAddress } from "@/lib/utils";
 
 const ASSET_COLORS: Record<string, { bg: string; text: string }> = {
   XLM: { bg: "bg-[rgba(20,184,166,0.12)]", text: "text-teal" },
@@ -14,24 +13,48 @@ function getAssetColor(code: string) {
   return ASSET_COLORS[code] ?? { bg: "bg-surface-2", text: "text-ink-2" };
 }
 
+/**
+ * Assets whose issuer is well known enough that printing the issuer address
+ * next to the code is noise rather than information.
+ */
+const KNOWN_ASSETS = new Set(["XLM", "USDC", "USDT", "BTC", "ETH"]);
+
+/** Whether `code` is in the built-in known-asset registry. */
+export function isKnownAsset(code: string): boolean {
+  return KNOWN_ASSETS.has(code.toUpperCase());
+}
+
 interface AssetBadgeProps {
   balance: Balance;
   showIssuer?: boolean;
+  /**
+   * Show the issuer only for assets outside the known-asset registry
+   * (XLM, USDC, USDT, BTC, ETH). Takes precedence over `showIssuer`.
+   */
+  showIssuerForUnknown?: boolean;
   size?: "sm" | "md" | "lg";
+  /** Makes the badge an interactive button — e.g. for asset selection. */
+  onClick?: () => void;
   className?: string;
 }
 
 export function AssetBadge({
   balance,
   showIssuer = true,
+  showIssuerForUnknown,
   size = "md",
+  onClick,
   className,
 }: AssetBadgeProps) {
-  const code =
-    balance.assetType === "native"
+  const isLpShares = balance.assetType === "liquidity_pool_shares";
+  const code = isLpShares
+    ? "LP"
+    : balance.assetType === "native"
       ? "XLM"
       : (balance.assetCode ?? balance.asset);
-  const { bg, text } = getAssetColor(code);
+  const { bg, text } = isLpShares
+    ? { bg: "bg-surface-2", text: "text-ink-2" }
+    : getAssetColor(code);
 
   const iconSize =
     size === "sm"
@@ -47,32 +70,68 @@ export function AssetBadge({
         : "text-[13px]";
   const subSize = size === "sm" ? "text-[10px]" : "text-[11px]";
 
-  return (
-    <div className={cn("flex items-center gap-2.5", className)}>
+  // A large circle looks sparse with two characters, so show the full short
+  // code (capped at 4) at lg.
+  const iconLabel = size === "lg" ? code.slice(0, 4) : code.slice(0, 2);
+
+  // showIssuerForUnknown narrows showIssuer: known assets never show it.
+  const issuerVisible = showIssuerForUnknown
+    ? !isKnownAsset(code)
+    : showIssuer;
+
+  const content = (
+    <>
       <div
         className={cn(
           "rounded-full flex items-center justify-center font-bold shrink-0",
           iconSize,
+          // Four characters need to shrink to stay inside the circle.
+          size === "lg" && iconLabel.length > 2 && "text-[11px] tracking-tight",
           bg,
           text,
         )}
       >
-        {code.slice(0, 2)}
+        {iconLabel}
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
         <span className={cn("font-medium text-ink leading-none", labelSize)}>
           {code}
         </span>
-        {showIssuer &&
+        {issuerVisible &&
           (balance.assetType === "native" ? (
             <span className={cn("text-ink-3", subSize)}>Stellar Lumens</span>
+          ) : isLpShares ? (
+            <span className={cn("text-ink-3", subSize)}>
+              Liquidity Pool Shares
+            </span>
           ) : balance.assetIssuer ? (
             <span data-address className={subSize}>
               {truncateAddress(balance.assetIssuer, 6, 4)}
             </span>
           ) : null)}
       </div>
-    </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`Select ${code}`}
+        className={cn(
+          "flex items-center gap-2.5 text-left rounded-lg -mx-1.5 px-1.5 py-1 cursor-pointer transition-colors",
+          "hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand",
+          className,
+        )}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={cn("flex items-center gap-2.5", className)}>{content}</div>
   );
 }
 
