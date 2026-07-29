@@ -210,6 +210,22 @@ describe("SorobanPanel", () => {
     expect(mockInvokeContract).toHaveBeenCalledOnce();
   });
 
+  it("invokes with Cmd+Enter from the arguments field", async () => {
+    mockInvokeContract.mockResolvedValueOnce({ data: { ok: true }, error: null });
+    render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+    fireEvent.change(screen.getByLabelText("Method"), {
+      target: { value: "balance" },
+    });
+
+    fireEvent.keyDown(screen.getByLabelText("Arguments (JSON array)"), {
+      key: "Enter",
+      metaKey: true,
+    });
+
+    expect(await screen.findByText("Result")).toBeInTheDocument();
+    expect(mockInvokeContract).toHaveBeenCalledOnce();
+  });
+
   it("grows the argument textarea as lines are added and remains user-resizable", () => {
     render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
     const textarea = screen.getByLabelText("Arguments (JSON array)");
@@ -218,6 +234,16 @@ describe("SorobanPanel", () => {
 
     expect(textarea).toHaveAttribute("rows", "5");
     expect(textarea).toHaveClass("resize-y");
+  });
+
+  it("updates the textarea height style dynamically on input", () => {
+    render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+    const textarea = screen.getByLabelText("Arguments (JSON array)") as HTMLTextAreaElement;
+
+    Object.defineProperty(textarea, "scrollHeight", { value: 120, configurable: true });
+    fireEvent.input(textarea, { target: { value: "[\nline1\nline2\n]" } });
+
+    expect(textarea.style.height).toBe("120px");
   });
 
   // ── Contract ID history (#205) ──────────────────────────────────────────

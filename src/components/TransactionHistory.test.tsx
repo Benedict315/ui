@@ -63,19 +63,22 @@ describe("TransactionHistory", () => {
     expect(screen.getByText(/connect your wallet/i)).toBeInTheDocument();
   });
 
-  it("renders the empty state and Friendbot link on testnet", async () => {
+  it("renders the empty state with icon and message on testnet", async () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: ADDRESS,
       isConnected: true,
       network: { name: "testnet" },
     } as unknown as ReturnType<typeof useSorokit>);
     mockGetHistory([], 0);
-    render(<TransactionHistory />);
+    const { container } = render(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
 
     await waitFor(() => {
       expect(screen.getByText("No transactions yet")).toBeInTheDocument();
     });
+    const iconContainer = container.querySelector('[aria-hidden="true"]');
+    expect(iconContainer).toBeInTheDocument();
+    expect(iconContainer?.querySelector("svg")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /fund with friendbot/i })).toHaveAttribute(
       "href",
       "https://friendbot.stellar.org",
@@ -166,6 +169,39 @@ describe("TransactionHistory", () => {
     await waitFor(() =>
       expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE),
     );
+  });
+
+  it("persists and restores page in sessionStorage across remount", async () => {
+    const getHistory = vi.fn().mockResolvedValue({
+      data: Array.from({ length: PAGE_SIZE }, (_, i) => makeTx(i)),
+      error: null,
+      total: 25,
+    });
+    vi.mocked(getClient).mockReturnValue({
+      transaction: { getHistory },
+    } as unknown as SorokitClient);
+
+    const { unmount } = render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+    await waitFor(() => screen.getByText("Next"));
+
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+    act(() => { vi.advanceTimersByTime(0); });
+    await waitFor(() => {
+      expect(screen.getByText(/page 2 of 3/i)).toBeInTheDocument();
+    });
+    expect(
+      sessionStorage.getItem(`sorokit-transaction-history-page:${ADDRESS}`),
+    ).toBe("2");
+
+    getHistory.mockClear();
+    unmount();
+
+    render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+    await waitFor(() => {
+      expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE);
+    });
   });
 
   it("handles an invalid total without rendering invalid pagination", async () => {
