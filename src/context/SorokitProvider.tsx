@@ -30,6 +30,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
     }
   });
   const [error, setError] = useState<string | null>(null);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [errorSeverity, setErrorSeverity] = useState<"info" | "error">("error");
   const [errorHistory, setErrorHistory] = useState<string[]>([]);
 
@@ -166,6 +167,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
       }
       if (data?.address) {
         setAddress(data.address);
+        setError(null);
       } else {
         // #353 — data and error both empty (e.g. the user dismissed the
         // wallet dialog without picking one) previously left the UI stuck:
@@ -182,14 +184,19 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
   }, [reportError]);
 
   const disconnectWallet = useCallback(async () => {
-    await clientRef.current.wallet.disconnect();
-    setAddress(null);
-    setWalletName(null);
-    setAccount(null);
-    setBalances([]);
-    // #353 — a fresh session shouldn't carry over error history from
-    // whatever the previous wallet connection ran into.
-    setErrorHistory([]);
+    setIsDisconnecting(true);
+    try {
+      await clientRef.current.wallet.disconnect();
+      setAddress(null);
+      setWalletName(null);
+      setAccount(null);
+      setBalances([]);
+      // #353 — a fresh session shouldn't carry over error history from
+      // whatever the previous wallet connection ran into.
+      setErrorHistory([]);
+    } finally {
+      setIsDisconnecting(false);
+    }
   }, []);
 
   const switchNetwork = useCallback(
@@ -265,6 +272,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
       isConnected: !!address,
       isConnecting,
       isLoading: isConnecting || isLoadingAccount,
+      isDisconnecting,
       connectWallet,
       disconnectWallet,
       account,
@@ -285,6 +293,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
       address,
       walletName,
       isConnecting,
+      isDisconnecting,
       isLoadingAccount,
       connectWallet,
       disconnectWallet,
