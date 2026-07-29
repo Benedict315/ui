@@ -73,4 +73,54 @@ describe("Badge", () => {
     expect(dot?.className).toContain("rounded-full");
     expect(container.firstChild?.textContent).toBe("");
   });
+
+  describe("dot without children", () => {
+    it("drops the pill chrome so the dot does not sit in a collapsed pill", () => {
+      const { container } = render(<Badge dot />);
+      const badge = container.firstChild as HTMLElement;
+
+      expect(badge.className).not.toContain("px-2");
+      expect(badge.className).not.toContain("py-1");
+      expect(badge.className).not.toContain("rounded-full px-");
+      expect(badge.className).not.toContain("border");
+      expect(badge.className).not.toContain("bg-surface-2");
+    });
+
+    it("keeps the pill chrome when children are present", () => {
+      const { container } = render(<Badge dot>Live</Badge>);
+      const badge = container.firstChild as HTMLElement;
+
+      expect(badge.className).toContain("px-2");
+      expect(badge.className).toContain("py-1");
+      expect(badge.className).toContain("border");
+    });
+
+    it("treats an empty string child as no children", () => {
+      const { container } = render(<Badge dot>{""}</Badge>);
+      const badge = container.firstChild as HTMLElement;
+      expect(badge.className).not.toContain("px-2");
+    });
+
+    it("uses the variant's dot colour when standalone", () => {
+      const { container } = render(<Badge dot variant="success" />);
+      const dot = container.querySelector('[aria-hidden="true"]');
+      expect(dot?.className).toContain("bg-green");
+    });
+
+    it("still exposes a live region when live is set", () => {
+      const { container } = render(<Badge dot live />);
+      const badge = container.firstChild as HTMLElement;
+      expect(badge).toHaveAttribute("role", "status");
+      expect(badge).toHaveAttribute("aria-live", "polite");
+    });
+
+    it("forwards className and other props when standalone", () => {
+      const { container } = render(
+        <Badge dot className="my-dot" data-testid="standalone" />,
+      );
+      const badge = container.firstChild as HTMLElement;
+      expect(badge.className).toContain("my-dot");
+      expect(badge).toHaveAttribute("data-testid", "standalone");
+    });
+  });
 });
