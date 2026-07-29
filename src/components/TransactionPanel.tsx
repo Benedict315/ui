@@ -63,7 +63,7 @@ export function TransactionPanel({
   onSuccess,
   onError,
 }: TransactionPanelProps = {}) {
-  const { address, isConnected, balances, network, account } = useSorokit();
+  const { address, isConnected, balances, isLoadingAccount, network, account } = useSorokit();
   const [dest, setDest] = useState(defaultDestination);
   const [destDirty, setDestDirty] = useState(false);
   const [amount, setAmount] = useState(defaultAmount);
@@ -94,12 +94,23 @@ export function TransactionPanel({
   const isMemoIdValid =
     memoType !== "id" || (memo.trim() !== "" && /^\d+$/.test(memo.trim()));
 
+  // Check 7-decimal precision limit
+  const decimalPlaces = amount.includes(".") ? amount.split(".")[1]?.length ?? 0 : 0;
+  const isDecimalPrecisionValid = decimalPlaces <= 7;
+
+  // Check if user has sufficient balance for the selected asset
+  const selectedAssetBalance = assetOptions.find((b) => b.asset === selectedAsset);
+  const insufficientBalance =
+    selectedAssetBalance && parsedAmount > parseFloat(selectedAssetBalance.balance);
+
   const canSubmit =
     isConnected &&
     isDestValid &&
     amount.trim() !== "" &&
     isAmountValid &&
-    isMemoIdValid;
+    isMemoIdValid &&
+    isDecimalPrecisionValid &&
+    !insufficientBalance;
 
   /** The actual submission — only ever called from the confirm modal. */
   async function submitTransaction() {
@@ -192,7 +203,7 @@ export function TransactionPanel({
 
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
-      <div className="px-6 py-4 border-b border-line">
+      <div className="px-5 py-4 border-b border-line">
         <h3 className="text-[14px] font-semibold text-ink">Send Payment</h3>
         <p className="text-[12px] text-ink-3 mt-0.5">
           Submit a payment on the Stellar network
@@ -308,9 +319,11 @@ export function TransactionPanel({
               label="Asset"
               value={selectedAsset}
               onChange={(e) => setAsset(e.target.value)}
-              disabled={state === "loading" || assetOptions.length === 0}
+              disabled={state === "loading" || isLoadingAccount}
             >
-              {assetOptions.length === 0 ? (
+              {isLoadingAccount ? (
+                <option value="">Loading assets…</option>
+              ) : assetOptions.length === 0 ? (
                 <option value="XLM">XLM</option>
               ) : (
                 assetOptions.map((b) => (
@@ -339,7 +352,11 @@ export function TransactionPanel({
                       ? "Amount must be greater than 0"
                       : parsedAmount < 0.0000001
                         ? "Minimum amount is 0.0000001 XLM"
-                        : undefined
+                        : !isDecimalPrecisionValid
+                          ? "Maximum 7 decimal places allowed"
+                          : insufficientBalance
+                            ? `Insufficient balance. Maximum: ${selectedAssetBalance?.balance ?? "0"}`
+                            : undefined
                   : undefined
               }
               disabled={state === "loading"}
@@ -387,7 +404,7 @@ export function TransactionPanel({
         )}
       </div>
 
-      <div className="px-6 py-4 border-t border-line flex items-center gap-3">
+      <div className="px-5 py-4 border-t border-line flex items-center gap-3">
         {state === "success" || state === "error" ? (
           <Button
             variant="secondary"

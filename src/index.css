@@ -82,6 +82,9 @@
   /* ── QR canvas (override for light/dark themes) ── */
   --color-qr-canvas-bg: #ffffff;
   --color-qr-canvas-fg: #0d0d0d;
+
+  /* ── Layout ── */
+  --sorokit-nav-height: 60px; /* top bar / sidebar header height */
 }
 
 /* ─────────────────────────────────────────────────────────

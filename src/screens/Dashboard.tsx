@@ -27,7 +27,12 @@ const SCREENS: Record<NavSection, ComponentType> = {
   nfts: NFTScreen,
 };
 
-export function Dashboard() {
+export interface DashboardProps {
+  /** Max width of the main content column. Defaults to "700px". */
+  maxContentWidth?: string;
+}
+
+export function Dashboard({ maxContentWidth = "700px" }: DashboardProps = {}) {
   const [active, setActive] = useState<NavSection>("wallet");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -48,7 +53,10 @@ export function Dashboard() {
         />
         <NetworkBanner active={active} />
         <main className="flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-[700px] mx-auto px-6 py-8 sm:px-10 sm:py-10 min-h-[300px]">
+          <div
+            className="mx-auto px-6 py-8 sm:px-10 sm:py-10 min-h-[300px]"
+            style={{ maxWidth: maxContentWidth }}
+          >
             <ActiveScreen />
           </div>
         </main>

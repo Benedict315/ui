@@ -18,7 +18,6 @@ interface FeeEstimatorProps {
   /** Compact single-line display variant. */
   compact?: boolean;
   /** Callback fired when fee data loads successfully. */
-  variant?: "default" | "compact";
   onFeeLoad?: (fee: FeeData) => void;
 }
 
@@ -26,7 +25,6 @@ export function FeeEstimator({
   className,
   refreshInterval = 0,
   compact,
-  variant = "default",
   onFeeLoad,
 }: FeeEstimatorProps) {
   const [fee, setFee] = useState<FeeData | null>(null);
@@ -43,11 +41,7 @@ export function FeeEstimator({
       }
       setFee(data);
       setError(null);
-      if (data && onFeeLoad) {
-        onFeeLoad(data);
-      if (data) {
-        onFeeLoad?.(data);
-      }
+      if (data) onFeeLoad?.(data);
     } finally {
       setLoading(false);
     }
@@ -144,54 +138,7 @@ export function FeeEstimator({
                   }
                 />
               </div>
-        <button
-          onClick={() => void load()}
-          disabled={loading}
-          className="p-1.5 rounded-lg hover:bg-surface-2 text-ink-3 hover:text-ink-2 transition-colors disabled:opacity-40"
-          title="Refresh"
-          aria-label="Refresh fee estimate"
-        >
-          <HugeiconsIcon
-            icon={Refresh01Icon}
-            size={14}
-            color="currentColor"
-            strokeWidth={1.5}
-            className={loading ? "animate-spin" : ""}
-          />
-        </button>
-      </div>
-
-      <div className="px-5 py-4" aria-live="polite" aria-atomic="true">
-        {loading && !fee ? (
-          variant === "compact" ? (
-            <div className="h-6 w-28 rounded-lg bg-surface-2 animate-pulse" />
-          ) : (
-            <div className="flex gap-4">
-              <div className="h-8 w-24 rounded-lg bg-surface-2 animate-pulse" />
-              <div className="h-8 w-24 rounded-lg bg-surface-2 animate-pulse" />
-            </div>
-          )
-        ) : error ? (
-          <p className="text-[12px] text-red">{error}</p>
-        ) : fee ? (
-          variant === "compact" ? (
-            <p className="text-[13px] text-ink">Fee: ~{fee.recommended} stroops</p>
-          ) : (
-            <div className="flex items-center gap-4">
-              <FeeCell label="Base Fee" value={fee.baseFee} unit="stroops" />
-              <div className="w-px h-8 bg-line" />
-              <FeeCell
-                label="Recommended"
-                value={fee.recommended}
-                unit="stroops"
-                highlight
-                highFee={
-                  parseInt(fee.recommended, 10) > parseInt(fee.baseFee, 10) * 2
-                }
-              />
-            </div>
-          )
-        ) : null}
+            ) : null}
           </div>
         </>
       )}
@@ -227,12 +174,14 @@ export function FeeCell({
             highlight ? "text-brand" : "text-ink",
           )}
         >
-          {value}
+          {Number.isNaN(parseInt(value, 10)) ? "—" : value}
         </span>
         <span className="text-[10px] text-ink-3">{unit}</span>
       </div>
       <span className="text-[10px] text-ink-3">
-        (≈ {parseInt(value, 10) / 10_000_000} XLM)
+        {Number.isNaN(parseInt(value, 10))
+          ? "(≈ — XLM)"
+          : `(≈ ${parseInt(value, 10) / 10_000_000} XLM)`}
       </span>
     </div>
   );

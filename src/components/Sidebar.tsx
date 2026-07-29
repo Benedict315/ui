@@ -149,7 +149,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
         <button
           type="button"
           onClick={() => onNavigate("wallet")}
-          className="flex items-center gap-3 px-5 h-[60px] border-b border-line shrink-0 text-left cursor-pointer"
+          className="flex items-center gap-3 px-5 h-[var(--sorokit-nav-height)] border-b border-line shrink-0 text-left cursor-pointer"
         >
           <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center shrink-0">
             <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
