@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";import { StrictMode, useRef, useState } from "react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { StrictMode, useRef, useState } from "react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
 import { renderWithProvider } from "@/__tests__/utils";
@@ -479,6 +480,140 @@ describe("SorokitProvider", () => {
         fireEvent.click(screen.getByText("Refresh"));
       });
       expect(getAccountSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("onError, errorSeverity, errorHistory (#351)", () => {
+    it("fires onError with the correct source label when a wallet error occurs", async () => {
+      const onError = vi.fn();
+      const errorClient = {
+        ...mockClient,
+        wallet: {
+          ...mockClient.wallet,
+          connect: vi.fn().mockResolvedValue({ data: null, error: "Wallet rejected" }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<TestComponent />, { client: errorClient, onError });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      expect(onError).toHaveBeenCalledWith("Wallet rejected", "wallet");
+    });
+
+    it("fires onError with 'network' source when a network switch fails", async () => {
+      const onError = vi.fn();
+      const errorClient = {
+        ...mockClient,
+        network: {
+          ...mockClient.network,
+          switchNetwork: vi.fn().mockResolvedValue({ data: null, error: "Network unreachable" }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<TestComponent />, { client: errorClient, onError });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Switch"));
+      });
+
+      expect(onError).toHaveBeenCalledWith("Network unreachable", "network");
+    });
+
+    it("sets errorSeverity to 'error' on a failed connect", async () => {
+      const SeverityProbe = () => {
+        const { errorSeverity, connectWallet, error } = useSorokit();
+        return (
+          <div>
+            <div data-testid="error">{error || "none"}</div>
+            <div data-testid="errorSeverity">{errorSeverity || "none"}</div>
+            <button onClick={() => connectWallet()}>Connect</button>
+          </div>
+        );
+      };
+
+      const errorClient = {
+        ...mockClient,
+        wallet: {
+          ...mockClient.wallet,
+          connect: vi.fn().mockResolvedValue({ data: null, error: "Wallet rejected" }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<SeverityProbe />, { client: errorClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("errorSeverity")).toHaveTextContent("error");
+      });
+    });
+
+    it("sets errorSeverity to 'info' when connect resolves with no data and no error", async () => {
+      const SeverityProbe = () => {
+        const { errorSeverity, connectWallet, error } = useSorokit();
+        return (
+          <div>
+            <div data-testid="error">{error || "none"}</div>
+            <div data-testid="errorSeverity">{errorSeverity || "none"}</div>
+            <button onClick={() => connectWallet()}>Connect</button>
+          </div>
+        );
+      };
+
+      const cancelledClient = {
+        ...mockClient,
+        wallet: {
+          ...mockClient.wallet,
+          connect: vi.fn().mockResolvedValue({ data: null, error: null }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<SeverityProbe />, { client: cancelledClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("errorSeverity")).toHaveTextContent("info");
+      });
+    });
+
+    it("grows errorHistory across multiple errors", async () => {
+      renderWithProvider(<TestComponent />, { client: mockClient });
+
+      // Connect to populate address so account loading triggers
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("address")).toHaveTextContent("GABC");
+      });
+
+      // Now make getAccount fail repeatedly
+      const errorMessage = "Account fetch failed";
+      mockClient.account.getAccount = vi.fn().mockResolvedValue({ data: null, error: errorMessage });
+
+      // Refresh to trigger first error
+      await act(async () => {
+        fireEvent.click(screen.getByText("Refresh"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("error")).toHaveTextContent(errorMessage);
+      });
+
+      // Trigger a second error by refreshing again
+      await act(async () => {
+        fireEvent.click(screen.getByText("Refresh"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("errorHistoryCount")).toHaveTextContent("2");
+      });
     });
   });
 
