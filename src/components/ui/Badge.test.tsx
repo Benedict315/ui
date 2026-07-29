@@ -32,4 +32,45 @@ describe("Badge", () => {
     const dot = container.querySelector('[aria-hidden="true"]');
     expect(dot).toBeInTheDocument();
   });
+
+  it("applies smaller font and padding for size sm", () => {
+    const { container } = render(<Badge size="sm">Small</Badge>);
+    const badge = container.firstChild as HTMLElement;
+    expect(badge.className).toContain("text-[10px]");
+    expect(badge.className).toContain("px-1.5");
+    expect(badge.className).toContain("py-0.5");
+  });
+
+  it("applies default font and padding for size md", () => {
+    const { container } = render(<Badge size="md">Medium</Badge>);
+    const badge = container.firstChild as HTMLElement;
+    expect(badge.className).toContain("text-[11px]");
+    expect(badge.className).toContain("px-2");
+    expect(badge.className).toContain("py-1");
+  });
+
+  it("defaults to md size when size is not specified", () => {
+    const { container } = render(<Badge>Default</Badge>);
+    const badge = container.firstChild as HTMLElement;
+    expect(badge.className).toContain("text-[11px]");
+    expect(badge.className).toContain("px-2");
+  });
+
+  it("applies purple styling for primary variant", () => {
+    const { container } = render(<Badge variant="primary">Primary</Badge>);
+    const badge = container.firstChild as HTMLElement;
+    expect(badge.className).toContain("bg-brand-dim");
+    expect(badge.className).toContain("text-brand");
+    expect(badge.className).not.toContain("teal");
+  });
+
+  it("renders a standalone indicator dot when no children provided", () => {
+    const { container } = render(<Badge dot />);
+    const dot = container.querySelector('[aria-hidden="true"]');
+    expect(dot).toBeInTheDocument();
+    expect(dot?.className).toContain("w-1");
+    expect(dot?.className).toContain("h-1");
+    expect(dot?.className).toContain("rounded-full");
+    expect(container.firstChild?.textContent).toBe("");
+  });
 });
