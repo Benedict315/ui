@@ -41,6 +41,10 @@ export function QRCode({
   canvasBackground,
   canvasForeground,
 }: QRCodeProps) {
+  if (size <= 0) {
+    console.warn("QRCode size must be greater than 0, got", size);
+  }
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [renderError, setRenderError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
