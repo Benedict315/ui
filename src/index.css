@@ -128,6 +128,15 @@ html[data-theme="light"] {
   }
 }
 
+@keyframes highlight-flash {
+  0% {
+    background-color: var(--color-success-bg-strong);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────
    CUSTOM UTILITY CLASSES
    Define utility classes that use our custom CSS properties.
@@ -142,6 +151,9 @@ html[data-theme="light"] {
     );
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
+  }
+  .animate-highlight {
+    animation: highlight-flash 1.5s ease-out;
   }
   .bg-brand {
     background-color: var(--color-brand);
