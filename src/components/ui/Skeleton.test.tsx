@@ -36,6 +36,8 @@ describe("Skeleton", () => {
 
     const { container: c2 } = render(<Skeleton />);
     expect(c2.firstElementChild).toHaveClass("rounded-lg");
+  });
+
   it("uses animate-pulse by default (no variant prop)", () => {
     const { container } = render(<Skeleton />);
     expect(container.firstElementChild).toHaveClass("animate-pulse");
@@ -67,6 +69,7 @@ describe("SkeletonRow", () => {
     // Each SkeletonRow contains 1 wrapper div + 3 internal Skeletons = 4 presentational divs per row
     // Or querying top-level children / row divs:
     expect(container.children.length).toBe(5);
+    void rows;
   });
 });
 
@@ -92,6 +95,8 @@ describe("SkeletonCard", () => {
     );
     render(<SkeletonCard header={customHeader} />);
     expect(screen.getByTestId("custom-card-header")).toBeInTheDocument();
+  });
+
   it("uses stable keys that encode row count — changing rows remounts items", () => {
     const { rerender, container } = render(<SkeletonCard rows={3} />);
     const before = Array.from(

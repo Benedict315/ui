@@ -54,6 +54,12 @@ export interface TransactionPanelProps {
   defaultMemo?: string;
   onSuccess?: (result: TxResult) => void;
   onError?: (error: string) => void;
+  /**
+   * When true (the default), the footer button opens a confirmation modal
+   * showing transaction details before `submitTransaction` runs. Pass
+   * `false` to submit immediately on click, skipping the preview step.
+   */
+  previewMode?: boolean;
 }
 
 export function TransactionPanel({
@@ -62,6 +68,7 @@ export function TransactionPanel({
   defaultMemo = "",
   onSuccess,
   onError,
+  previewMode = true,
 }: TransactionPanelProps = {}) {
   const { address, isConnected, balances, network, account } = useSorokit();
   const [dest, setDest] = useState(defaultDestination);
@@ -187,7 +194,12 @@ export function TransactionPanel({
   }
 
   const handleSendClick = () => {
-    void handleReview();
+    if (state === "loading" || !address || !canSubmit) return;
+    if (previewMode) {
+      void handleReview();
+    } else {
+      void submitTransaction();
+    }
   };
 
   const explorerUrl = result ? explorerTxUrl(network, result.hash) : null;

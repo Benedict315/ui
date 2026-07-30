@@ -113,28 +113,26 @@ describe("TopBar", () => {
     expect(container.querySelectorAll("h1")).toHaveLength(1);
   });
 
-  it("sets aria-expanded to true on the menu button when sidebarOpen is true", () => {
+  it("sets aria-expanded to true and aria-label to 'Close menu' when sidebarOpen is true", () => {
     vi.mocked(useSorokit).mockReturnValue({
       error: null,
       clearError,
     } as ReturnType<typeof useSorokit>);
     render(<TopBar active="wallet" onMenuToggle={onMenuToggle} sidebarOpen={true} />);
-    expect(screen.getByRole("button", { name: /open menu/i })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
+    const button = screen.getByRole("button", { name: /close menu/i });
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(button).toHaveAttribute("aria-label", "Close menu");
   });
 
-  it("sets aria-expanded to false on the menu button when sidebarOpen is false", () => {
+  it("sets aria-expanded to false and aria-label to 'Open menu' when sidebarOpen is false", () => {
     vi.mocked(useSorokit).mockReturnValue({
       error: null,
       clearError,
     } as ReturnType<typeof useSorokit>);
     render(<TopBar active="wallet" onMenuToggle={onMenuToggle} sidebarOpen={false} />);
-    expect(screen.getByRole("button", { name: /open menu/i })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
+    const button = screen.getByRole("button", { name: /open menu/i });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    expect(button).toHaveAttribute("aria-label", "Open menu");
   });
 
   it("uses min-h rather than fixed h for the header", () => {

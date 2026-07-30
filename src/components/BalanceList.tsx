@@ -101,9 +101,18 @@ function AssetRow({
 export interface BalanceListProps {
   onAssetClick?: (balance: Balance) => void;
   detailRef?: React.RefObject<HTMLElement | null>;
+  /** When true, renders an approximate XLM-equivalent portfolio total in the header. */
+  showTotal?: boolean;
+  /** Price of 1 XLM (e.g. in USD). Used alongside `showTotal` to show a USD-equivalent figure. */
+  xlmPrice?: number;
 }
 
-export function BalanceList({ onAssetClick, detailRef }: BalanceListProps) {
+export function BalanceList({
+  onAssetClick,
+  detailRef,
+  showTotal,
+  xlmPrice,
+}: BalanceListProps) {
   const { balances, isLoadingAccount, isConnected, network } = useSorokit();
   const [search, setSearch] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("default");
@@ -119,7 +128,21 @@ export function BalanceList({ onAssetClick, detailRef }: BalanceListProps) {
       )
     : balances;
 
-  const sorted = sortBalances(filtered, sortMode);
+  const regularBalances = filtered.filter(
+    (b) => b.assetType !== "liquidity_pool_shares",
+  );
+  const lpBalances = filtered.filter(
+    (b) => b.assetType === "liquidity_pool_shares",
+  );
+
+  const sorted = sortBalances(regularBalances, sortMode);
+  const sortedLp = sortBalances(lpBalances, sortMode);
+
+  // Approximate — only native XLM balances are summed since other assets
+  // have no price feed available here.
+  const xlmTotal = balances
+    .filter((b) => b.assetType === "native")
+    .reduce((sum, b) => sum + Number(b.balance), 0);
 
   const cycleSort = () => {
     setSortMode((m) =>
@@ -141,6 +164,14 @@ export function BalanceList({ onAssetClick, detailRef }: BalanceListProps) {
         <div>
           <h3 className="text-[14px] font-semibold text-ink">Assets</h3>
           <p className="text-[12px] text-ink-3 mt-0.5">Token balances</p>
+          {showTotal && isConnected && !isLoadingAccount && (
+            <p className="text-[11px] text-ink-3 mt-0.5">
+              ~{xlmTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} XLM
+              {typeof xlmPrice === "number"
+                ? ` (~$${(xlmTotal * xlmPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })})`
+                : ""}
+            </p>
+          )}
         </div>
         {isConnected && !isLoadingAccount && (
           <div className="flex items-center gap-2">
@@ -177,7 +208,7 @@ export function BalanceList({ onAssetClick, detailRef }: BalanceListProps) {
             <AssetRowSkeleton key={i} />
           ))}
         </div>
-      ) : sorted.length === 0 ? (
+      ) : sorted.length === 0 && sortedLp.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-10">
           <p className="text-[13px] text-ink-3">
             {search ? "No matching assets" : "No assets found"}
@@ -195,13 +226,33 @@ export function BalanceList({ onAssetClick, detailRef }: BalanceListProps) {
         </div>
       ) : (
         <div>
-          {sorted.map((b) => (
-            <AssetRow
-              key={b.asset}
-              b={b}
-              onClick={onAssetClick ? () => handleAssetClick(b) : undefined}
-            />
-          ))}
+          {sorted.length > 0 && (
+            <div>
+              {sorted.map((b) => (
+                <AssetRow
+                  key={b.asset}
+                  b={b}
+                  onClick={onAssetClick ? () => handleAssetClick(b) : undefined}
+                />
+              ))}
+            </div>
+          )}
+          {sortedLp.length > 0 && (
+            <div>
+              <div className="px-5 py-2.5 border-b border-t border-line bg-surface-2">
+                <h4 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-3">
+                  Liquidity Positions
+                </h4>
+              </div>
+              {sortedLp.map((b) => (
+                <AssetRow
+                  key={b.asset}
+                  b={b}
+                  onClick={onAssetClick ? () => handleAssetClick(b) : undefined}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -552,6 +552,44 @@ describe("TransactionPanel", () => {
     });
   });
 
+  // ── previewMode (#315) ──────────────────────────────────────────────────────
+  describe("previewMode", () => {
+    it("submits directly without a confirmation modal when previewMode is false", async () => {
+      const mockSubmit = vi
+        .fn()
+        .mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null });
+      mockGetClient(mockSubmit);
+
+      render(<TransactionPanel previewMode={false} />);
+
+      const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
+      });
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      await screen.findByText("Transaction submitted");
+      expect(mockSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ destination: validDest, amount: "10" }),
+      );
+    });
+
+    it("shows a confirmation modal by default (previewMode omitted)", async () => {
+      mockGetClient(vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null }));
+      render(<TransactionPanel />);
+
+      const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+      fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+      fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+      fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
+
+      expect(await screen.findByRole("dialog", { name: /confirm transaction/i })).toBeInTheDocument();
+    });
+  });
+
   // ── Asset-specific Send button label (#343) ────────────────────────────────
   describe("send button label is asset-specific (#343)", () => {
     const balances = [

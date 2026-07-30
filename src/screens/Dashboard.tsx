@@ -75,6 +75,7 @@ export function Dashboard({
         <TopBar
           active={active}
           onMenuToggle={() => setSidebarOpen((o) => !o)}
+          sidebarOpen={sidebarOpen}
         />
         <NetworkBanner active={active} />
         <main className="flex-1 min-h-0 overflow-y-auto">
