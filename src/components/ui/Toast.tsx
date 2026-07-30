@@ -1,4 +1,5 @@
 import * as ToastPrimitive from "@radix-ui/react-toast";
+
 import type { Toast as ToastType } from "@/context/ToastContext";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +55,11 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     <ToastPrimitive.Root
       type={toast.duration === 0 ? "foreground" : "background"}
       onOpenChange={(open) => { if (!open) onDismiss(toast.id); }}
+      // Radix's Root defaults to role="status"/aria-live="off" and announces
+      // through its own offscreen region. Notifications here are transient and
+      // action-bearing, so expose the toast itself as an assertive live region.
+      role="alert"
+      aria-live="assertive"
       className={cn(
         "flex items-start gap-3 rounded-xl border border-line bg-surface p-4 shadow-lg",
         "data-[state=open]:animate-in data-[state=open]:fade-in data-[state=open]:slide-in-from-right-full",
