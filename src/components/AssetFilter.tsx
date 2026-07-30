@@ -1,23 +1,23 @@
 import {
-  useState,
-  useMemo,
-  useCallback,
-  useRef,
-  useEffect,
-  useDeferredValue,
-  type ReactNode,
-} from "react";
-import { cn } from "@/lib/utils";
-import { HugeiconsIcon } from "@hugeicons/react";
-import {
+  ArrowDown01Icon,
+  Cancel01Icon,
   Search01Icon,
   StarIcon,
-  StarIcon as StarFillIcon,
-  ArrowDown01Icon,
   Tick01Icon,
-  Cancel01Icon,
 } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  type ReactNode,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
 import type { Balance } from "@/lib/client";
+import { cn } from "@/lib/utils";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -46,7 +46,6 @@ export type VerifiedFilter = "all" | "verified" | "unverified";
 
 const FAVORITES_KEY = "sorokit-asset-favorites";
 const CUSTOM_ASSETS_KEY = "sorokit-custom-assets";
-const ROW_HEIGHT = 52;
 
 const FILTER_TABS: { key: VerifiedFilter; label: string }[] = [
   { key: "all", label: "All" },
@@ -537,9 +536,8 @@ function AssetFilter({
   }, [showSortDropdown]);
 
   // ── Reset focused index when filtered list changes ─────────────────────────
-  useEffect(() => {
-    setFocusedIndex(0);
-  }, [filtered]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setFocusedIndex(0); }, [filtered]);
 
 
   // ── Render ─────────────────────────────────────────────────────────────────
