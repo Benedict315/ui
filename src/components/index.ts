@@ -32,6 +32,8 @@ export {
   CardTitle,
 } from "./ui/Card";
 export { Input } from "./ui/Input";
+export { InfoCell } from "./ui/InfoCell";
+export { LabelledValue } from "./ui/LabelledValue";
 export { AssetRowSkeleton, Skeleton, SkeletonCard, SkeletonRow } from "./ui/Skeleton";
 
 // Error handling
