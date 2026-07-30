@@ -242,6 +242,103 @@ describe("Button", () => {
   });
 });
 
+describe("Button — re-submission guard and spinner accessibility", () => {
+  it("hides the spinner from assistive tech", () => {
+    const { container } = render(<Button loading>Submit</Button>);
+    const spinner = container.querySelector(".animate-spin");
+
+    expect(spinner).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("announces loading through sr-only text rather than the spinner", () => {
+    render(<Button loading>Submit</Button>);
+
+    expect(screen.getByText("Loading")).toHaveClass("sr-only");
+  });
+
+  it("marks the button busy while loading", () => {
+    render(<Button loading>Submit</Button>);
+
+    expect(screen.getByRole("button", { name: "LoadingSubmit" })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+  });
+
+  it("does not re-submit when Enter is pressed on a loading submit button", () => {
+    const submit = vi.fn((e: React.FormEvent) => e.preventDefault());
+
+    render(
+      <form onSubmit={submit}>
+        <input aria-label="amount" />
+        <Button type="submit" loading>
+          Send
+        </Button>
+      </form>,
+    );
+
+    // A disabled submit button must not be treated as the form's default
+    // button, so Enter in a field cannot fire another submit.
+    fireEvent.keyDown(screen.getByLabelText("amount"), { key: "Enter" });
+    fireEvent.keyPress(screen.getByLabelText("amount"), {
+      key: "Enter",
+      code: "Enter",
+      charCode: 13,
+    });
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "LoadingSend" })).toBeDisabled();
+  });
+
+  it("does not fire onClick when Enter activates a loading button", () => {
+    const onClick = vi.fn();
+    render(
+      <Button loading onClick={onClick}>
+        Send
+      </Button>,
+    );
+
+    const button = screen.getByRole("button", { name: "LoadingSend" });
+    fireEvent.keyDown(button, { key: "Enter" });
+    // Keyboard activation of a button surfaces as a click event.
+    fireEvent.click(button);
+
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("does not fire onClick when Enter activates a disabled button", () => {
+    const onClick = vi.fn();
+    render(
+      <Button disabled onClick={onClick}>
+        Send
+      </Button>,
+    );
+
+    const button = screen.getByRole("button", { name: "Send" });
+    fireEvent.keyDown(button, { key: "Enter" });
+    fireEvent.click(button);
+
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("still fires onClick once the button is no longer loading", () => {
+    const onClick = vi.fn();
+    const { rerender } = render(
+      <Button loading onClick={onClick}>
+        Send
+      </Button>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "LoadingSend" }));
+    expect(onClick).not.toHaveBeenCalled();
+
+    rerender(<Button onClick={onClick}>Send</Button>);
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("ButtonGroup", () => {
   it("renders its children inside a group role", () => {
     render(

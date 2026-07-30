@@ -48,7 +48,12 @@ export default defineConfig({
     emptyOutDir: true,
   },
   optimizeDeps: {
-    include: ["sorokit-core", "@creit.tech/stellar-wallets-kit"],
+    include: [
+      "sorokit-core",
+      "@creit.tech/stellar-wallets-kit",
+      "react",
+      "react-dom",
+    ],
   },
   resolve: {
     alias: {
