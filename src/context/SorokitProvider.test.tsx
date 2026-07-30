@@ -617,6 +617,92 @@ describe("SorokitProvider", () => {
     });
   });
 
+  describe("Strict Mode cancelled flag prevents state updates after cleanup (#331)", () => {
+    it("does not update state after the effect has been cleaned up (active=false)", async () => {
+      // In StrictMode, effects run twice. The first run's cleanup sets
+      // active=false, so the second run's async callback should not update state.
+      // We verify this by checking that the network state is not set from a
+      // stale async callback.
+      const slowClient = {
+        ...mockClient,
+        network: {
+          getNetwork: vi.fn().mockImplementation(
+            () => new Promise((resolve) => setTimeout(() => resolve({ data: { name: "mainnet" }, error: null }), 100))
+          ),
+          switchNetwork: vi.fn().mockResolvedValue({ data: null, error: null }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      const NetworkProbe = () => {
+        const { network } = useSorokit();
+        return <div data-testid="network">{network?.name ?? "none"}</div>;
+      };
+
+      render(
+        <StrictMode>
+          <SorokitProvider client={slowClient}>
+            <NetworkProbe />
+          </SorokitProvider>
+        </StrictMode>,
+      );
+
+      // Wait for the async effect to settle
+      await waitFor(() => {
+        expect(screen.getByTestId("network")).toHaveTextContent("mainnet");
+      }, { timeout: 2000 });
+    });
+
+    it("does not update account state from a stale async callback after address change cleanup", async () => {
+      // When address changes, the old effect's cleanup sets active=false.
+      // A slow getAccount from the old effect should not overwrite the new data.
+      let resolveOldAccount: (v: { data: { sequence: string }; error: null }) => void = () => {};
+      const slowGetAccount = vi.fn().mockImplementation(
+        () => new Promise((resolve) => { resolveOldAccount = resolve; })
+      );
+
+      const client = {
+        ...mockClient,
+        account: {
+          getAccount: slowGetAccount,
+          getBalances: vi.fn().mockResolvedValue({ data: [], error: null }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      const AddressChanger = () => {
+        const { address, connectWallet } = useSorokit();
+        return (
+          <div>
+            <div data-testid="address">{address || "none"}</div>
+            <button onClick={() => connectWallet()}>Connect</button>
+          </div>
+        );
+      };
+
+      render(
+        <StrictMode>
+          <SorokitProvider client={client}>
+            <AddressChanger />
+          </SorokitProvider>
+        </StrictMode>,
+      );
+
+      // Connect to trigger account loading
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      // Wait for the first account load to complete
+      await act(async () => {
+        resolveOldAccount({ data: { sequence: "100" }, error: null });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("address")).toHaveTextContent("GABC");
+      });
+    });
+  });
+
   describe("connect() with no data and no error (#353)", () => {
     it("shows a user-facing error when connect resolves with data: null, error: null", async () => {
       const cancelledClient = {

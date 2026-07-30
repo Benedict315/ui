@@ -81,23 +81,6 @@ function buildCurlCommand(
   method: string,
   args: unknown[],
 ): string {
-  const rpcBody = JSON.stringify(
-    {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "simulateTransaction",
-      params: {
-        transaction: `AAAAAgAAAAB7AAAAAAAAAAAAAAABAAAAAeJ0ZXN0AAAAAAAAAQAAABAAAAABAAAAHAAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAAAAAAAAAAAAAAKAAAAAAAAAAEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAA=`,
-      },
-    },
-    null,
-    2,
-  );
-  return `curl -X POST \\
-  -H "Content-Type: application/json" \\
-  -d '${rpcBody}' \\
-  https://soroban-testnet.stellar.org`;
-function buildCurlCommand(contractId: string, method: string, args: unknown[]): string {
   const body = JSON.stringify({ contractId, method, args }, null, 2);
   return `curl -X POST https://soroban-rpc.example.com/invoke \\\n  -H "Content-Type: application/json" \\\n  -d '${body}'`;
 }
@@ -155,45 +138,6 @@ export function SorobanPanel({
         if (!signal.aborted) setState("error");
         return;
       }
-      const soroban = getClient().soroban;
-      if (mode === "simulate") {
-        const { data, error: err } = await soroban.simulateContract({
-          contractId: contractId.trim(),
-          method: method.trim(),
-          args: parsedArgs,
-          sourceAccount: address ?? undefined,
-        });
-        if (signal.aborted) return;
-        if (err) {
-          setError(err);
-          setState("error");
-          return;
-        }
-        setResult(data);
-        setTxHash(extractTxHash(data));
-        setState("success");
-        setContractHistory((prev) =>
-          addContractToHistory(contractId.trim(), prev),
-        );
-      } else {
-        const { data, error: err } = await soroban.invokeContract({
-          contractId: contractId.trim(),
-          method: method.trim(),
-          args: parsedArgs,
-          sourceAccount: address ?? undefined,
-        });
-        if (signal.aborted) return;
-        if (err) {
-          setError(err);
-          setState("error");
-          return;
-        }
-        setResult(data);
-        setTxHash(extractTxHash(data));
-        setState("success");
-        setContractHistory((prev) =>
-          addContractToHistory(contractId.trim(), prev),
-        );
       const invoke = mode === "simulate"
         ? getClient().soroban.simulateContract
         : getClient().soroban.invokeContract;
@@ -209,6 +153,12 @@ export function SorobanPanel({
         setState("error");
         return;
       }
+      setResult(data);
+      setTxHash(extractTxHash(data));
+      setState("success");
+      setContractHistory((prev) =>
+        addContractToHistory(contractId.trim(), prev),
+      );
     } catch (e) {
       if (!signal.aborted) {
         const message = e instanceof Error ? e.message : "Unknown error";
@@ -488,7 +438,6 @@ export function SorobanPanel({
               : "Invoking…"
             : mode === "simulate"
               ? "Simulate Contract"
-              ? "Simulate"
               : "Invoke Contract"}
         </Button>
       </div>
