@@ -3,17 +3,18 @@ import {
   Cancel01Icon,
   Search01Icon,
   StarIcon,
+  StarIcon as StarFillIcon,
   Tick01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  type ReactNode,
   useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 
 import type { Balance } from "@/lib/client";
@@ -465,24 +466,36 @@ function AssetFilter({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (filtered.length === 0) return;
-      let index = focusedIndex;
+
+      const scrollIntoView = (index: number) => {
+        if (!listRef.current) return;
+        const rows = listRef.current.querySelectorAll("[data-asset-row]");
+        const row = rows[index] as HTMLElement | undefined;
+        if (row) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      };
+
+      const clamp = (i: number) => Math.max(0, Math.min(i, filtered.length - 1));
 
       switch (e.key) {
         case "ArrowDown":
           e.preventDefault();
-          index = Math.min(focusedIndex + 1, filtered.length - 1);
+          setFocusedIndex(clamp(focusedIndex + 1));
+          scrollIntoView(clamp(focusedIndex + 1));
           break;
         case "ArrowUp":
           e.preventDefault();
-          index = Math.max(focusedIndex - 1, 0);
+          setFocusedIndex(clamp(focusedIndex - 1));
+          scrollIntoView(clamp(focusedIndex - 1));
           break;
         case "Home":
           e.preventDefault();
-          index = 0;
+          setFocusedIndex(0);
+          scrollIntoView(0);
           break;
         case "End":
           e.preventDefault();
-          index = filtered.length - 1;
+          setFocusedIndex(filtered.length - 1);
+          scrollIntoView(filtered.length - 1);
           break;
         case "Enter":
           e.preventDefault();
@@ -493,21 +506,9 @@ function AssetFilter({
         default:
           return;
       }
-
-      setFocusedIndex(index);
     },
     [filtered, focusedIndex, onSelect],
   );
-
-  // ── Scroll focused row into view ───────────────────────────────────────────
-  const scrollToRow = useCallback((index: number) => {
-    if (!listRef.current) return;
-    const rows = listRef.current.querySelectorAll("[data-asset-row]");
-    const row = rows[index] as HTMLElement | undefined;
-    if (row) {
-      row.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }
-  }, []);
 
   // ── Extract unique networks ────────────────────────────────────────────────
   const extractedNetworks = useMemo<string[]>(() => {
