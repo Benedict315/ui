@@ -3,12 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-
-import { cn } from "@/lib/utils";
-
-import { ContractInteractionDebugger } from "./ContractInteractionDebugger";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
+
+import { ContractInteractionDebugger } from "./ContractInteractionDebugger";
 
 type State = "idle" | "loading" | "success" | "error";
 
@@ -138,20 +136,45 @@ export function SorobanPanel({
         if (!signal.aborted) setState("error");
         return;
       }
-      const invoke = mode === "simulate"
-        ? getClient().soroban.simulateContract
-        : getClient().soroban.invokeContract;
-      const { data, error: err } = await invoke({
-        contractId: contractId.trim(),
-        method: method.trim(),
-        args: parsedArgs,
-        sourceAccount: address ?? undefined,
-      });
-      if (signal.aborted) return;
-      if (err) {
-        setError(err);
-        setState("error");
-        return;
+      const soroban = getClient().soroban;
+      if (mode === "simulate") {
+        const { data, error: err } = await soroban.simulateContract({
+          contractId: contractId.trim(),
+          method: method.trim(),
+          args: parsedArgs,
+          sourceAccount: address ?? undefined,
+        });
+        if (signal.aborted) return;
+        if (err) {
+          setError(err);
+          setState("error");
+          return;
+        }
+        setResult(data);
+        setTxHash(extractTxHash(data));
+        setState("success");
+        setContractHistory((prev) =>
+          addContractToHistory(contractId.trim(), prev),
+        );
+      } else {
+        const { data, error: err } = await soroban.invokeContract({
+          contractId: contractId.trim(),
+          method: method.trim(),
+          args: parsedArgs,
+          sourceAccount: address ?? undefined,
+        });
+        if (signal.aborted) return;
+        if (err) {
+          setError(err);
+          setState("error");
+          return;
+        }
+        setResult(data);
+        setTxHash(extractTxHash(data));
+        setState("success");
+        setContractHistory((prev) =>
+          addContractToHistory(contractId.trim(), prev),
+        );
       }
       setResult(data);
       setTxHash(extractTxHash(data));
@@ -428,7 +451,8 @@ export function SorobanPanel({
         <Button
           size="md"
           loading={state === "loading"}
-          disabled={!canInvoke || state === "loading"}
+          // `canInvoke` already requires state !== "loading".
+          disabled={!canInvoke}
           onClick={handleClick}
         >
           {state === "loading"

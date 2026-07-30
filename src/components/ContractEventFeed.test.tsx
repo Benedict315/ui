@@ -542,4 +542,82 @@ describe("ContractEventFeed", () => {
       });
     });
   });
+
+  describe("stale events and loading recovery", () => {
+    const OTHER_CONTRACT_ID =
+      "CBBZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNB";
+
+    it("clears the previous contract's events when contractId changes", async () => {
+      mockGetEvents({ data: [MOCK_EVENT], error: null });
+
+      const { rerender } = render(
+        <ContractEventFeed contractId={CONTRACT_ID} />,
+      );
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => expect(screen.getByText("transfer")).toBeInTheDocument());
+
+      // New contract's fetch never settles, so anything still on screen can
+      // only be left over from the previous contract.
+      vi.mocked(getClient).mockReturnValue({
+        soroban: {
+          getEvents: vi.fn().mockReturnValue(new Promise(() => {})),
+        },
+      } as unknown as SorokitClient);
+
+      rerender(<ContractEventFeed contractId={OTHER_CONTRACT_ID} />);
+
+      expect(screen.queryByText("transfer")).not.toBeInTheDocument();
+    });
+
+    it("does not keep stale events when the new contract's fetch errors", async () => {
+      mockGetEvents({ data: [MOCK_EVENT], error: null });
+
+      const { rerender } = render(
+        <ContractEventFeed contractId={CONTRACT_ID} />,
+      );
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => expect(screen.getByText("transfer")).toBeInTheDocument());
+
+      mockGetEvents({ data: null, error: "RPC unavailable" });
+      rerender(<ContractEventFeed contractId={OTHER_CONTRACT_ID} />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() =>
+        expect(screen.getByText("RPC unavailable")).toBeInTheDocument(),
+      );
+      expect(screen.queryByText("transfer")).not.toBeInTheDocument();
+    });
+
+    it("returns loading to false after getEvents reports an error", async () => {
+      mockGetEvents({ data: null, error: "RPC unavailable" });
+
+      const { container } = render(
+        <ContractEventFeed contractId={CONTRACT_ID} />,
+      );
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() =>
+        expect(screen.getByText("RPC unavailable")).toBeInTheDocument(),
+      );
+      // The skeleton is gone, so loading settled rather than sticking on.
+      expect(container.querySelector(".animate-pulse")).not.toBeInTheDocument();
+    });
+
+    it("returns loading to false after getEvents rejects", async () => {
+      vi.mocked(getClient).mockReturnValue({
+        soroban: {
+          getEvents: vi.fn().mockRejectedValue(new Error("network down")),
+        },
+      } as unknown as SorokitClient);
+
+      const { container } = render(
+        <ContractEventFeed contractId={CONTRACT_ID} />,
+      );
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() =>
+        expect(container.querySelector(".animate-pulse")).not.toBeInTheDocument(),
+      );
+    });
+  });
 });

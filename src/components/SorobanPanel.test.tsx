@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { act,fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -132,6 +133,22 @@ describe("SorobanPanel", () => {
     });
   });
 
+  it("grows the argument textarea as lines are added and remains user-resizable", () => {
+    render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+    const textarea = screen.getByLabelText(
+      "Arguments (JSON array)",
+    ) as HTMLTextAreaElement;
+
+    expect(textarea.rows).toBe(3);
+    expect(textarea.className).toContain("resize-y");
+
+    fireEvent.input(textarea, {
+      target: { value: "[\n1,\n2,\n3,\n4\n]" },
+    });
+
+    expect(textarea.rows).toBe(6);
+  });
+
   describe("simulate mode", () => {
     it("renders Simulate badge and subtitle", () => {
       render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} mode="simulate" />);
@@ -157,7 +174,20 @@ describe("SorobanPanel", () => {
       fireEvent.click(screen.getByRole("button", { name: /simulate/i }));
       expect(await screen.findByText("Simulation Result", { selector: "span" })).toBeInTheDocument();
     });
+  });
 
+  it("updates the textarea height style dynamically on input", () => {
+    render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+    const textarea = screen.getByLabelText("Arguments (JSON array)") as HTMLTextAreaElement;
+
+    Object.defineProperty(textarea, "scrollHeight", { value: 120, configurable: true });
+    fireEvent.input(textarea, { target: { value: "[\nline1\nline2\n]" } });
+
+    expect(textarea.style.height).toBe("120px");
+  });
+
+  // ── Contract ID history (#205) ──────────────────────────────────────────
+  describe("contract ID history", () => {
     it("shows Simulating… label while loading", async () => {
       let resolveSimulate: (v: { data: unknown; error: null }) => void = () => {};
       mockSimulateContract.mockReturnValueOnce(new Promise((resolve) => { resolveSimulate = resolve; }));
@@ -375,6 +405,92 @@ describe("SorobanPanel", () => {
       await screen.findByText("Result", { selector: "span" });
       const buttons = screen.getAllByRole("button", { name: /copy as cURL/i });
       expect(buttons.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe("duplicate invocation guard", () => {
+    /** Holds the in-flight call open so a second attempt can be made. */
+    function pendingInvoke() {
+      let resolveInvoke: (v: { data: unknown; error: null }) => void = () => {};
+      mockInvokeContract.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveInvoke = resolve;
+        }),
+      );
+      return () => resolveInvoke({ data: { ok: true }, error: null });
+    }
+
+    it("ignores a second click while an invocation is in flight", async () => {
+      const finish = pendingInvoke();
+      render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+      fireEvent.change(screen.getByLabelText("Method"), {
+        target: { value: "balance" },
+      });
+
+      const button = screen.getByRole("button", { name: /invoke/i });
+      fireEvent.click(button);
+      expect(mockInvokeContract).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(button);
+      fireEvent.click(button);
+
+      expect(mockInvokeContract).toHaveBeenCalledTimes(1);
+      expect(button).toBeDisabled();
+
+      await act(async () => { finish(); });
+    });
+
+    it("ignores Cmd+Enter while an invocation is in flight", async () => {
+      const finish = pendingInvoke();
+      render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+      fireEvent.change(screen.getByLabelText("Method"), {
+        target: { value: "balance" },
+      });
+
+      const argsField = screen.getByLabelText("Arguments (JSON array)");
+      fireEvent.keyDown(argsField, { key: "Enter", metaKey: true });
+      expect(mockInvokeContract).toHaveBeenCalledTimes(1);
+
+      // The keyboard path calls doInvoke() directly, so the disabled button
+      // can't block it — the guard at the top of the function has to.
+      fireEvent.keyDown(argsField, { key: "Enter", metaKey: true });
+      fireEvent.keyDown(argsField, { key: "Enter", ctrlKey: true });
+
+      expect(mockInvokeContract).toHaveBeenCalledTimes(1);
+
+      await act(async () => { finish(); });
+    });
+
+    it("allows a fresh invocation once the previous one settles", async () => {
+      const finish = pendingInvoke();
+      render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+      fireEvent.change(screen.getByLabelText("Method"), {
+        target: { value: "balance" },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: /invoke/i }));
+      expect(mockInvokeContract).toHaveBeenCalledTimes(1);
+
+      await act(async () => { finish(); });
+      await screen.findByText("Result", { selector: "span" });
+
+      mockInvokeContract.mockResolvedValueOnce({ data: { ok: true }, error: null });
+      fireEvent.click(screen.getByRole("button", { name: /invoke/i }));
+
+      expect(mockInvokeContract).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not invoke at all when the guard's preconditions are unmet", () => {
+      render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);
+
+      // No method entered, so canInvoke is false.
+      fireEvent.click(screen.getByRole("button", { name: /invoke/i }));
+      fireEvent.keyDown(screen.getByLabelText("Arguments (JSON array)"), {
+        key: "Enter",
+        metaKey: true,
+      });
+
+      expect(mockInvokeContract).not.toHaveBeenCalled();
     });
   });
 });
