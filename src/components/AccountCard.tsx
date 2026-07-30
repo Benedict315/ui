@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { Badge } from "@/components/ui/Badge";
+import { LabelledValue } from "@/components/ui/LabelledValue";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useSorokit } from "@/context/useSorokit";
 import { truncateAddress } from "@/lib/utils";
@@ -78,7 +79,7 @@ export function AccountCard() {
             </a>
             {account && (
               <div className="grid grid-cols-2 gap-5">
-                <Field label="Sequence" labelId={sequenceLabelId}>
+                <LabelledValue label="Sequence" labelId={sequenceLabelId}>
                   <div className="flex items-center gap-1.5">
                     <span className="font-mono text-[12px] text-ink-2">
                       {account.sequence}
@@ -112,19 +113,19 @@ export function AccountCard() {
                       )}
                     </span>
                   </div>
-                </Field>
-                <Field label="Subentries">
+                </LabelledValue>
+                <LabelledValue label="Subentries">
                   <span className="text-[13px] text-ink">
                     {account.subentryCount}
                   </span>
-                </Field>
+                </LabelledValue>
                 <div className="col-span-2">
-                  <Field label="Reserve Impact">
+                  <LabelledValue label="Reserve Impact">
                     <span className="text-[13px] text-ink">
                       {(account.subentryCount * BASE_RESERVE_XLM).toFixed(2)}{" "}
                       XLM
                     </span>
-                  </Field>
+                  </LabelledValue>
                 </div>
               </div>
             )}
@@ -166,28 +167,6 @@ export function AccountCard() {
           </p>
         </div>
       )}
-    </div>
-  );
-}
-
-function Field({
-  label,
-  labelId,
-  children,
-}: {
-  label: string;
-  labelId?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span
-        id={labelId}
-        className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4"
-      >
-        {label}
-      </span>
-      {children}
     </div>
   );
 }
