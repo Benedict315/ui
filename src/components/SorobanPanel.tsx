@@ -179,7 +179,7 @@ export function SorobanPanel({
     doInvoke();
   }
 
-  const handleLoadAbi = useCallback(() => {
+  function handleLoadAbi() {
     setAbiError(null);
     try {
       const parsed = JSON.parse(abiRaw);
@@ -206,7 +206,6 @@ export function SorobanPanel({
     } catch {
       setAbiError("Invalid JSON — check the format and try again");
     }
-  }, [abiRaw]);
 
   const handleCopyCurl = useCallback(() => {
     const { parsedArgs } = parseArgsInput(argsRef.current);
