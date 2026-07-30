@@ -171,6 +171,70 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("Mounted successfully")).toBeInTheDocument();
   });
 
+  it("calls onRetry when the user clicks try again", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const onRetry = vi.fn();
+
+    render(
+      <ErrorBoundary onRetry={onRetry}>
+        <ThrowError />
+      </ErrorBoundary>
+    );
+
+    expect(onRetry).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onRetry from a custom fallback's reset callback", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const onRetry = vi.fn();
+
+    render(
+      <ErrorBoundary
+        onRetry={onRetry}
+        fallback={(_error, reset) => (
+          <button onClick={reset}>Reset Custom</button>
+        )}
+      >
+        <ThrowError />
+      </ErrorBoundary>
+    );
+
+    fireEvent.click(screen.getByText("Reset Custom"));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs onRetry before children re-mount so the retry uses fresh state", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    let clientReady = false;
+    const reinitialise = vi.fn(() => {
+      clientReady = true;
+    });
+
+    const NeedsClient = () => {
+      if (!clientReady) throw new Error("Client not initialized");
+      return <div data-testid="ready">Client ready</div>;
+    };
+
+    render(
+      <ErrorBoundary onRetry={reinitialise}>
+        <NeedsClient />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+
+    expect(reinitialise).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("ready")).toBeInTheDocument();
+  });
+
   it("applies scoped container styling when isolate is true", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
 

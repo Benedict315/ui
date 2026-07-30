@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AssetBadge } from "@/components/AssetBadge";
 import { Badge } from "@/components/ui/Badge";
 import { AssetRowSkeleton } from "@/components/ui/Skeleton";
+import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
 import type { Balance } from "@/lib/client";
 import { cn } from "@/lib/utils";
@@ -157,12 +158,11 @@ export function BalanceList({ onAssetClick, detailRef }: BalanceListProps) {
 
       {isConnected && !isLoadingAccount && balances.length > 0 && (
         <div className="px-4 py-2 border-b border-line">
-          <input
-            type="text"
+          <Input
             placeholder="Search assets…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full text-[12px] bg-surface-2 border border-line rounded-md px-3 py-1.5 text-ink placeholder:text-ink-4 focus:outline-none focus:border-brand"
+            className="text-[12px]"
           />
         </div>
       )}

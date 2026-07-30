@@ -9,7 +9,7 @@ import {
   Cancel01Icon,
   FilterIcon,
   Search01Icon,
-  Send01Icon,
+  SentIcon,
   Tag01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -188,7 +188,7 @@ export function NFTCard({ nft, selected, bulkMode, onSelect, onSend, onList }: N
               onClick={(e) => { e.stopPropagation(); onSend(nft); }}
               aria-label={`Send ${nft.metadata.name}`}
             >
-              <HugeiconsIcon icon={Send01Icon} size={11} color="currentColor" strokeWidth={1.5} />
+              <HugeiconsIcon icon={SentIcon} size={11} color="currentColor" strokeWidth={1.5} />
               Send
             </Button>
             <Button
@@ -667,7 +667,7 @@ function NFTDetailDialog({ nft, open, onClose, onSend, onList }: NFTDetailDialog
             {/* Actions */}
             <div className="flex gap-2 pt-1">
               <Button size="md" className="flex-1" onClick={() => { onClose(); onSend(nft); }}>
-                <HugeiconsIcon icon={Send01Icon} size={13} color="currentColor" strokeWidth={1.5} />
+                <HugeiconsIcon icon={SentIcon} size={13} color="currentColor" strokeWidth={1.5} />
                 Send
               </Button>
               <Button variant="secondary" size="md" className="flex-1" onClick={() => { onClose(); onList(nft); }}>
@@ -851,7 +851,7 @@ export function NFTGallery({ className }: NFTGalleryProps) {
                 disabled={selectedIds.size === 0}
                 onClick={() => setBulkSendOpen(true)}
               >
-                <HugeiconsIcon icon={Send01Icon} size={12} color="currentColor" strokeWidth={1.5} />
+                <HugeiconsIcon icon={SentIcon} size={12} color="currentColor" strokeWidth={1.5} />
                 Bulk send
               </Button>
               <Button variant="ghost" size="sm" onClick={exitBulkMode}>

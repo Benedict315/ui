@@ -65,7 +65,7 @@ export { AllowanceManager } from "./AllowanceManager";
 // Transactions
 export { ActivityTimeline } from "./ActivityTimeline";
 export { ClaimableBalanceCard } from "./ClaimableBalanceCard";
-export { FeeEstimator } from "./FeeEstimator";
+export { FeeEstimator, FeeCell } from "./FeeEstimator";
 export { GasOptimizer } from "./GasOptimizer";
 export type {
   TransactionConfirmModalProps,

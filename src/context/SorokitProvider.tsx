@@ -6,13 +6,20 @@ import type {
   NetworkInfo,
   NetworkName,
 } from "@/lib/client";
+import { initClient } from "@/lib/client";
 
 import { SorokitContext, type SorokitProviderProps } from "./SorokitContext";
 
 const STORAGE_KEY_NETWORK = "sorokit_network";
 const STORAGE_KEY_CUSTOM_NETWORKS = "sorokit_custom_networks";
 
-export function SorokitProvider({ client, onError, children }: SorokitProviderProps) {
+export function SorokitProvider({
+  client,
+  onError,
+  onNetworkChange,
+  createClientForNetwork,
+  children,
+}: SorokitProviderProps) {
   const [address, setAddress] = useState<string | null>(null);
   const [walletName, setWalletName] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -30,6 +37,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
     }
   });
   const [error, setError] = useState<string | null>(null);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [errorSeverity, setErrorSeverity] = useState<"info" | "error">("error");
   const [errorHistory, setErrorHistory] = useState<string[]>([]);
 
@@ -45,7 +53,20 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
   const clientRef = useRef(client);
   useEffect(() => {
     clientRef.current = client;
+    // Keep the module singleton pointed at the client the provider is using,
+    // so components that reach for `getClient()` share this one.
+    initClient(client);
   }, [client]);
+
+  const onNetworkChangeRef = useRef(onNetworkChange);
+  useEffect(() => {
+    onNetworkChangeRef.current = onNetworkChange;
+  }, [onNetworkChange]);
+
+  const createClientForNetworkRef = useRef(createClientForNetwork);
+  useEffect(() => {
+    createClientForNetworkRef.current = createClientForNetwork;
+  }, [createClientForNetwork]);
 
   // #353 — guards refreshAccount against overlapping calls (e.g. a user
   // clicking "Refresh" again before the previous request settles), so a
@@ -166,6 +187,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
       }
       if (data?.address) {
         setAddress(data.address);
+        setError(null);
       } else {
         // #353 — data and error both empty (e.g. the user dismissed the
         // wallet dialog without picking one) previously left the UI stuck:
@@ -182,15 +204,33 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
   }, [reportError]);
 
   const disconnectWallet = useCallback(async () => {
-    await clientRef.current.wallet.disconnect();
-    setAddress(null);
-    setWalletName(null);
-    setAccount(null);
-    setBalances([]);
-    // #353 — a fresh session shouldn't carry over error history from
-    // whatever the previous wallet connection ran into.
-    setErrorHistory([]);
-  }, []);
+    setIsDisconnecting(true);
+    try {
+      // A wallet adapter that throws (e.g. the extension went away
+      // mid-session) used to surface as an unhandled rejection. Capture it and
+      // still tear the session down — the user asked to disconnect.
+      let disconnectError: string | null = null;
+      try {
+        await clientRef.current.wallet.disconnect();
+      } catch (e) {
+        disconnectError =
+          e instanceof Error ? e.message : "Failed to disconnect wallet.";
+      }
+
+      setAddress(null);
+      setWalletName(null);
+      setAccount(null);
+      setBalances([]);
+      // #353 — a fresh session shouldn't carry over error history from
+      // whatever the previous wallet connection ran into.
+      setErrorHistory([]);
+
+      // Reported after the reset so the failure isn't cleared along with it.
+      if (disconnectError) reportError(disconnectError, "wallet", "error");
+    } finally {
+      setIsDisconnecting(false);
+    }
+  }, [reportError]);
 
   const switchNetwork = useCallback(
     async (param: NetworkName | NetworkInfo) => {
@@ -202,6 +242,18 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
       if (data) {
         setError(null);
         setNetwork(data);
+
+        // Re-point the `getClient()` singleton at the new network. Without
+        // this, callers like `getClient().transaction.submit()` keep hitting
+        // the previous network's endpoints after a switch.
+        const nextClient = createClientForNetworkRef.current?.(data);
+        if (nextClient) {
+          clientRef.current = nextClient;
+          initClient(nextClient);
+        } else {
+          initClient(clientRef.current);
+        }
+
         try {
           window.localStorage.setItem(
             STORAGE_KEY_NETWORK,
@@ -213,6 +265,8 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
         setAddress(null);
         setAccount(null);
         setBalances([]);
+
+        onNetworkChangeRef.current?.(data);
       }
     },
     [reportError],
@@ -265,6 +319,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
       isConnected: !!address,
       isConnecting,
       isLoading: isConnecting || isLoadingAccount,
+      isDisconnecting,
       connectWallet,
       disconnectWallet,
       account,
@@ -285,6 +340,7 @@ export function SorokitProvider({ client, onError, children }: SorokitProviderPr
       address,
       walletName,
       isConnecting,
+      isDisconnecting,
       isLoadingAccount,
       connectWallet,
       disconnectWallet,

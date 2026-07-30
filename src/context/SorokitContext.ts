@@ -16,6 +16,7 @@ export interface SorokitState {
   isLoading: boolean;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => Promise<void>;
+  isDisconnecting: boolean;
   account: AccountData | null;
   balances: Balance[];
   isLoadingAccount: boolean;
@@ -39,6 +40,18 @@ export interface SorokitState {
 export interface SorokitProviderProps {
   client: SorokitClient;
   onError?: (error: string, source: string) => void;
+  /**
+   * Called after every successful network switch. Use it for side effects the
+   * provider can't know about — clearing caches, re-subscribing to feeds —
+   * instead of watching the `network` value and depending on its shape.
+   */
+  onNetworkChange?: (network: NetworkInfo) => void;
+  /**
+   * Builds a client configured for a given network. When provided, a successful
+   * `switchNetwork` re-initialises the `getClient()` singleton with the result,
+   * so calls made after a switch reach the new network's endpoints.
+   */
+  createClientForNetwork?: (network: NetworkInfo) => SorokitClient;
   children: React.ReactNode;
 }
 

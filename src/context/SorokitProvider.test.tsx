@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useRef,useState } from "react";
+import { StrictMode, useRef, useState } from "react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
 import { renderWithProvider } from "@/__tests__/utils";
@@ -483,6 +483,140 @@ describe("SorokitProvider", () => {
     });
   });
 
+  describe("onError, errorSeverity, errorHistory (#351)", () => {
+    it("fires onError with the correct source label when a wallet error occurs", async () => {
+      const onError = vi.fn();
+      const errorClient = {
+        ...mockClient,
+        wallet: {
+          ...mockClient.wallet,
+          connect: vi.fn().mockResolvedValue({ data: null, error: "Wallet rejected" }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<TestComponent />, { client: errorClient, onError });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      expect(onError).toHaveBeenCalledWith("Wallet rejected", "wallet");
+    });
+
+    it("fires onError with 'network' source when a network switch fails", async () => {
+      const onError = vi.fn();
+      const errorClient = {
+        ...mockClient,
+        network: {
+          ...mockClient.network,
+          switchNetwork: vi.fn().mockResolvedValue({ data: null, error: "Network unreachable" }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<TestComponent />, { client: errorClient, onError });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Switch"));
+      });
+
+      expect(onError).toHaveBeenCalledWith("Network unreachable", "network");
+    });
+
+    it("sets errorSeverity to 'error' on a failed connect", async () => {
+      const SeverityProbe = () => {
+        const { errorSeverity, connectWallet, error } = useSorokit();
+        return (
+          <div>
+            <div data-testid="error">{error || "none"}</div>
+            <div data-testid="errorSeverity">{errorSeverity || "none"}</div>
+            <button onClick={() => connectWallet()}>Connect</button>
+          </div>
+        );
+      };
+
+      const errorClient = {
+        ...mockClient,
+        wallet: {
+          ...mockClient.wallet,
+          connect: vi.fn().mockResolvedValue({ data: null, error: "Wallet rejected" }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<SeverityProbe />, { client: errorClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("errorSeverity")).toHaveTextContent("error");
+      });
+    });
+
+    it("sets errorSeverity to 'info' when connect resolves with no data and no error", async () => {
+      const SeverityProbe = () => {
+        const { errorSeverity, connectWallet, error } = useSorokit();
+        return (
+          <div>
+            <div data-testid="error">{error || "none"}</div>
+            <div data-testid="errorSeverity">{errorSeverity || "none"}</div>
+            <button onClick={() => connectWallet()}>Connect</button>
+          </div>
+        );
+      };
+
+      const cancelledClient = {
+        ...mockClient,
+        wallet: {
+          ...mockClient.wallet,
+          connect: vi.fn().mockResolvedValue({ data: null, error: null }),
+        },
+      } as unknown as ReturnType<typeof getClient>;
+
+      renderWithProvider(<SeverityProbe />, { client: cancelledClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("errorSeverity")).toHaveTextContent("info");
+      });
+    });
+
+    it("grows errorHistory across multiple errors", async () => {
+      renderWithProvider(<TestComponent />, { client: mockClient });
+
+      // Connect to populate address so account loading triggers
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("address")).toHaveTextContent("GABC");
+      });
+
+      // Now make getAccount fail repeatedly
+      const errorMessage = "Account fetch failed";
+      mockClient.account.getAccount = vi.fn().mockResolvedValue({ data: null, error: errorMessage });
+
+      // Refresh to trigger first error
+      await act(async () => {
+        fireEvent.click(screen.getByText("Refresh"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("error")).toHaveTextContent(errorMessage);
+      });
+
+      // Trigger a second error by refreshing again
+      await act(async () => {
+        fireEvent.click(screen.getByText("Refresh"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("errorHistoryCount")).toHaveTextContent("2");
+      });
+    });
+  });
+
   describe("connect() with no data and no error (#353)", () => {
     it("shows a user-facing error when connect resolves with data: null, error: null", async () => {
       const cancelledClient = {
@@ -514,6 +648,175 @@ describe("SorokitProvider", () => {
 
       expect(screen.getByTestId("address")).toHaveTextContent("GABC");
       expect(screen.getByTestId("error")).toHaveTextContent("none");
+    });
+
+    it("works when wrapped in React.StrictMode (#343)", async () => {
+      render(
+        <StrictMode>
+          <SorokitProvider client={mockClient}>
+            <TestComponent />
+          </SorokitProvider>
+        </StrictMode>,
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("address")).toHaveTextContent("GABC");
+        expect(screen.getByTestId("account")).toHaveTextContent("100");
+        expect(screen.getByTestId("balances")).toHaveTextContent("1");
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Disconnect"));
+      });
+
+      expect(screen.getByTestId("address")).toHaveTextContent("none");
+      expect(screen.getByTestId("errorHistoryCount")).toHaveTextContent("0");
+    });
+  });
+
+  describe("disconnect errors, client re-init, and onNetworkChange", () => {
+    it("surfaces a disconnect failure and still clears the session", async () => {
+      mockClient.wallet.disconnect = vi
+        .fn()
+        .mockRejectedValue(new Error("Wallet extension unavailable"));
+
+      renderWithProvider(<TestComponent />, { client: mockClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("address")).toHaveTextContent("GABC");
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Disconnect"));
+      });
+
+      // The error is reported...
+      expect(screen.getByTestId("error")).toHaveTextContent(
+        "Wallet extension unavailable",
+      );
+      // ...and the session is still torn down.
+      expect(screen.getByTestId("address")).toHaveTextContent("none");
+      expect(screen.getByTestId("account")).toHaveTextContent("none");
+      expect(screen.getByTestId("balances")).toHaveTextContent("0");
+    });
+
+    it("reports a non-Error rejection with a fallback message", async () => {
+      mockClient.wallet.disconnect = vi.fn().mockRejectedValue("boom");
+
+      renderWithProvider(<TestComponent />, { client: mockClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Disconnect"));
+      });
+
+      expect(screen.getByTestId("error")).toHaveTextContent(
+        "Failed to disconnect wallet.",
+      );
+    });
+
+    it("points getClient() at the provider's client on mount", async () => {
+      await act(async () => {
+        renderWithProvider(<TestComponent />, { client: mockClient });
+      });
+
+      expect(getClient()).toBe(mockClient);
+    });
+
+    it("re-initialises getClient() with the new network's client after a switch", async () => {
+      const switchedClient = {
+        ...mockClient,
+      } as unknown as ReturnType<typeof getClient>;
+      const createClientForNetwork = vi.fn().mockReturnValue(switchedClient);
+
+      await act(async () => {
+        render(
+          <SorokitProvider
+            client={mockClient}
+            createClientForNetwork={createClientForNetwork}
+          >
+            <TestComponent />
+          </SorokitProvider>,
+        );
+      });
+
+      expect(getClient()).toBe(mockClient);
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Switch"));
+      });
+
+      expect(createClientForNetwork).toHaveBeenCalledWith({ name: "testnet" });
+      expect(getClient()).toBe(switchedClient);
+    });
+
+    it("keeps the existing client when no factory is provided", async () => {
+      await act(async () => {
+        renderWithProvider(<TestComponent />, { client: mockClient });
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Switch"));
+      });
+
+      expect(getClient()).toBe(mockClient);
+    });
+
+    it("fires onNetworkChange with the new network after a successful switch", async () => {
+      const onNetworkChange = vi.fn();
+
+      await act(async () => {
+        render(
+          <SorokitProvider
+            client={mockClient}
+            onNetworkChange={onNetworkChange}
+          >
+            <TestComponent />
+          </SorokitProvider>,
+        );
+      });
+      onNetworkChange.mockClear();
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Switch"));
+      });
+
+      expect(onNetworkChange).toHaveBeenCalledTimes(1);
+      expect(onNetworkChange).toHaveBeenCalledWith({ name: "testnet" });
+    });
+
+    it("does not fire onNetworkChange when the switch fails", async () => {
+      mockClient.network.switchNetwork = vi
+        .fn()
+        .mockResolvedValue({ data: null, error: "Invalid network: nope" });
+      const onNetworkChange = vi.fn();
+
+      await act(async () => {
+        render(
+          <SorokitProvider
+            client={mockClient}
+            onNetworkChange={onNetworkChange}
+          >
+            <TestComponent />
+          </SorokitProvider>,
+        );
+      });
+      onNetworkChange.mockClear();
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Switch"));
+      });
+
+      expect(onNetworkChange).not.toHaveBeenCalled();
+      expect(screen.getByTestId("error")).toHaveTextContent(
+        "Invalid network: nope",
+      );
     });
   });
 });

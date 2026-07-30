@@ -5,7 +5,7 @@
 
 import {
   Clock01Icon,
-  Gift01Icon,
+  GiftIcon,
   TimeQuarterIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -106,7 +106,7 @@ export function RewardsPanel({
           valueClassName="text-green"
           icon={
             <HugeiconsIcon
-              icon={Gift01Icon}
+              icon={GiftIcon}
               size={13}
               color="currentColor"
               strokeWidth={1.5}
