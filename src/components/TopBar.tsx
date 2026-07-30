@@ -43,12 +43,12 @@ export function TopBar({
           </button>
         </div>
       )}
-      <header className="flex items-center justify-between px-4 sm:px-6 min-h-[60px] border-b border-line bg-surface shrink-0">
+      <header className="flex items-center justify-between px-4 sm:px-6 h-auto sm:min-h-[60px] border-b border-line bg-surface shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuToggle}
             className="lg:hidden flex items-center justify-center w-8 h-8 rounded-md hover:bg-surface-2 transition-colors text-ink-2"
-            aria-label="Open menu"
+            aria-label={sidebarOpen ? "Close menu" : "Open menu"}
             aria-expanded={sidebarOpen}
           >
             <HugeiconsIcon

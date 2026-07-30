@@ -176,12 +176,6 @@ export function SorobanPanel({
           addContractToHistory(contractId.trim(), prev),
         );
       }
-      setResult(data);
-      setTxHash(extractTxHash(data));
-      setState("success");
-      setContractHistory((prev) =>
-        addContractToHistory(contractId.trim(), prev),
-      );
     } catch (e) {
       if (!signal.aborted) {
         const message = e instanceof Error ? e.message : "Unknown error";
@@ -229,6 +223,7 @@ export function SorobanPanel({
     } catch {
       setAbiError("Invalid JSON — check the format and try again");
     }
+  }
 
   const handleCopyCurl = useCallback(() => {
     const { parsedArgs } = parseArgsInput(argsRef.current);
