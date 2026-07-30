@@ -74,7 +74,11 @@ function addContractToHistory(contractId: string, current: string[]): string[] {
   return next;
 }
 
-function buildCurlCommand(contractId: string, method: string, args: unknown[]): string {
+function buildCurlCommand(
+  contractId: string,
+  method: string,
+  args: unknown[],
+): string {
   const body = JSON.stringify({ contractId, method, args }, null, 2);
   return `curl -X POST https://soroban-rpc.example.com/invoke \\\n  -H "Content-Type: application/json" \\\n  -d '${body}'`;
 }
@@ -172,6 +176,12 @@ export function SorobanPanel({
           addContractToHistory(contractId.trim(), prev),
         );
       }
+      setResult(data);
+      setTxHash(extractTxHash(data));
+      setState("success");
+      setContractHistory((prev) =>
+        addContractToHistory(contractId.trim(), prev),
+      );
     } catch (e) {
       if (!signal.aborted) {
         const message = e instanceof Error ? e.message : "Unknown error";
@@ -192,7 +202,7 @@ export function SorobanPanel({
     doInvoke();
   }
 
-  const handleLoadAbi = useCallback(() => {
+  function handleLoadAbi() {
     setAbiError(null);
     try {
       const parsed = JSON.parse(abiRaw);
@@ -219,7 +229,6 @@ export function SorobanPanel({
     } catch {
       setAbiError("Invalid JSON — check the format and try again");
     }
-  }, [abiRaw]);
 
   const handleCopyCurl = useCallback(() => {
     const { parsedArgs } = parseArgsInput(argsRef.current);
