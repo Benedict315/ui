@@ -63,19 +63,22 @@ describe("TransactionHistory", () => {
     expect(screen.getByText(/connect your wallet/i)).toBeInTheDocument();
   });
 
-  it("renders the empty state and Friendbot link on testnet", async () => {
+  it("renders the empty state with icon and message on testnet", async () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: ADDRESS,
       isConnected: true,
       network: { name: "testnet" },
     } as unknown as ReturnType<typeof useSorokit>);
     mockGetHistory([], 0);
-    render(<TransactionHistory />);
+    const { container } = render(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
 
     await waitFor(() => {
       expect(screen.getByText("No transactions yet")).toBeInTheDocument();
     });
+    const iconContainer = container.querySelector('[aria-hidden="true"]');
+    expect(iconContainer).toBeInTheDocument();
+    expect(iconContainer?.querySelector("svg")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /fund with friendbot/i })).toHaveAttribute(
       "href",
       "https://friendbot.stellar.org",
@@ -166,6 +169,39 @@ describe("TransactionHistory", () => {
     await waitFor(() =>
       expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE),
     );
+  });
+
+  it("persists and restores page in sessionStorage across remount", async () => {
+    const getHistory = vi.fn().mockResolvedValue({
+      data: Array.from({ length: PAGE_SIZE }, (_, i) => makeTx(i)),
+      error: null,
+      total: 25,
+    });
+    vi.mocked(getClient).mockReturnValue({
+      transaction: { getHistory },
+    } as unknown as SorokitClient);
+
+    const { unmount } = render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+    await waitFor(() => screen.getByText("Next"));
+
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+    act(() => { vi.advanceTimersByTime(0); });
+    await waitFor(() => {
+      expect(screen.getByText(/page 2 of 3/i)).toBeInTheDocument();
+    });
+    expect(
+      sessionStorage.getItem(`sorokit-transaction-history-page:${ADDRESS}`),
+    ).toBe("2");
+
+    getHistory.mockClear();
+    unmount();
+
+    render(<TransactionHistory />);
+    act(() => { vi.advanceTimersByTime(0); });
+    await waitFor(() => {
+      expect(getHistory).toHaveBeenCalledWith(ADDRESS, 2, PAGE_SIZE);
+    });
   });
 
   it("handles an invalid total without rendering invalid pagination", async () => {
@@ -413,6 +449,123 @@ describe("TransactionHistory", () => {
       const rows = screen.getAllByRole("article");
       expect(rows).toHaveLength(1);
       expect(rows[0]).toHaveTextContent(withinOk.hash.slice(0, 10));
+    });
+  });
+
+  describe("fee total, multi-op filter, and trend sparkline", () => {
+    /** Builds a tx with an explicit fee and operation count. */
+    function makeFeeTx(
+      id: string,
+      feePaid: string,
+      operationCount: number,
+      createdAt = "2024-01-01",
+    ): Transaction {
+      return {
+        hash: `hash${id.padStart(56, "0")}`,
+        ledger: 1000,
+        successful: true,
+        createdAt: new Date(createdAt).toISOString(),
+        memo: null,
+        feePaid,
+        operationCount,
+      } as unknown as Transaction;
+    }
+
+    async function renderWith(txs: Transaction[], props = {}) {
+      mockGetHistory(txs, txs.length);
+      render(<TransactionHistory {...props} />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getAllByRole("article"));
+    }
+
+    it("sums feePaid across displayed transactions in the footer", async () => {
+      await renderWith([
+        makeFeeTx("1", "100", 1),
+        makeFeeTx("2", "250", 1),
+        makeFeeTx("3", "150", 1),
+      ]);
+
+      const footer = document.querySelector("[data-fee-total]");
+      expect(footer).toHaveTextContent("Total fees: 500 stroops");
+      expect(footer).toHaveTextContent("0.00005 XLM");
+    });
+
+    it("ignores unparseable fee values instead of rendering NaN", async () => {
+      await renderWith([
+        makeFeeTx("1", "100", 1),
+        makeFeeTx("2", "not-a-number", 1),
+      ]);
+
+      const footer = document.querySelector("[data-fee-total]");
+      expect(footer).toHaveTextContent("Total fees: 100 stroops");
+      expect(footer?.textContent).not.toMatch(/NaN/);
+    });
+
+    it("filters to multi-operation transactions when Multi-op is toggled", async () => {
+      await renderWith([
+        makeFeeTx("1", "100", 1),
+        makeFeeTx("2", "100", 3),
+        makeFeeTx("3", "100", 1),
+      ]);
+      expect(screen.getAllByRole("article")).toHaveLength(3);
+
+      const toggle = screen.getByRole("button", { name: /multi-op/i });
+      fireEvent.click(toggle);
+
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+      const rows = screen.getAllByRole("article");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveTextContent("3 ops");
+
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getAllByRole("article")).toHaveLength(3);
+    });
+
+    it("recomputes the fee total from the filtered set", async () => {
+      await renderWith([
+        makeFeeTx("1", "100", 1),
+        makeFeeTx("2", "700", 2),
+      ]);
+      expect(document.querySelector("[data-fee-total]")).toHaveTextContent(
+        "Total fees: 800 stroops",
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /multi-op/i }));
+      expect(document.querySelector("[data-fee-total]")).toHaveTextContent(
+        "Total fees: 700 stroops",
+      );
+    });
+
+    it("hides the trend sparkline unless showTrend is set", async () => {
+      await renderWith([makeFeeTx("1", "100", 1)]);
+      expect(document.querySelectorAll("[data-trend-bar]")).toHaveLength(0);
+    });
+
+    it("renders a 7-bar sparkline when showTrend is set", async () => {
+      await renderWith([makeFeeTx("1", "100", 1)], { showTrend: true });
+      expect(document.querySelectorAll("[data-trend-bar]")).toHaveLength(7);
+    });
+
+    it("scales sparkline bars by each day's transaction count", async () => {
+      const today = new Date();
+      const yesterday = new Date(today.getTime() - 86_400_000);
+      await renderWith(
+        [
+          makeFeeTx("1", "100", 1, today.toISOString()),
+          makeFeeTx("2", "100", 1, today.toISOString()),
+          makeFeeTx("3", "100", 1, yesterday.toISOString()),
+        ],
+        { showTrend: true },
+      );
+
+      const bars = document.querySelectorAll("[data-trend-bar]");
+      // Buckets are oldest-first, so today is the last bar and yesterday the one before.
+      expect(bars[6]).toHaveAttribute("title", "2 transactions");
+      expect(bars[5]).toHaveAttribute("title", "1 transaction");
+      expect(bars[0]).toHaveAttribute("title", "0 transactions");
+      expect((bars[6] as HTMLElement).style.height).toBe("100%");
+      expect((bars[5] as HTMLElement).style.height).toBe("50%");
     });
   });
 });

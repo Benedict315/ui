@@ -135,6 +135,52 @@ describe("Input", () => {
     expect(hintText.className).toContain("opacity-0");
   });
 
+  // ── Prefix / suffix ────────────────────────────────────────────────────
+  describe("prefix and suffix", () => {
+    it("renders a prefix element inside the input container", () => {
+      render(<Input prefix="$" placeholder="Amount" />);
+      expect(screen.getByText("$")).toBeInTheDocument();
+    });
+
+    it("renders a suffix element inside the input container", () => {
+      render(<Input suffix="USD" placeholder="Amount" />);
+      expect(screen.getByText("USD")).toBeInTheDocument();
+    });
+
+    it("renders both prefix and suffix simultaneously", () => {
+      render(<Input prefix="$" suffix=".00" placeholder="Amount" />);
+      expect(screen.getByText("$")).toBeInTheDocument();
+      expect(screen.getByText(".00")).toBeInTheDocument();
+    });
+  });
+
+  // ── Controlled value warning ────────────────────────────────────────────
+  describe("controlled value warning", () => {
+    it("warns via console.warn when value is provided without onChange", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      render(<Input value="readonly" />);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("controlled"),
+      );
+      warnSpy.mockRestore();
+    });
+
+    it("does not warn when value and onChange are both provided", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      render(<Input value="editable" onChange={() => {}} />);
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("does not warn when value is undefined", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      render(<Input placeholder="uncontrolled" />);
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+  });
+
   // ── Password toggle (#205) ──────────────────────────────────────────────
   describe("password toggle", () => {
     it("does not render a toggle button for non-password inputs", () => {

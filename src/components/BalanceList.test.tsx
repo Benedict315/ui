@@ -331,6 +331,73 @@ describe("BalanceList", () => {
     });
   });
 
+  describe("portfolio total (#314)", () => {
+    it("does not render a total when showTotal is not passed", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockXlmBalance],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+      expect(screen.queryByText(/^~/)).not.toBeInTheDocument();
+    });
+
+    it("renders the summed native XLM total when showTotal is true", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockXlmBalance, mockUsdcBalance],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList showTotal />);
+      expect(screen.getByText("~100 XLM")).toBeInTheDocument();
+    });
+
+    it("renders a USD-equivalent figure when xlmPrice is also provided", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockXlmBalance],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList showTotal xlmPrice={0.5} />);
+      expect(screen.getByText("~100 XLM (~$50)")).toBeInTheDocument();
+    });
+  });
+
+  describe("Liquidity Positions section (#314)", () => {
+    const mockLpBalance = {
+      asset: "LP:XLM/USDC",
+      balance: "10.0000000",
+      assetType: "liquidity_pool_shares" as const,
+    };
+
+    it("renders LP share balances in a separate 'Liquidity Positions' section", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockXlmBalance, mockLpBalance],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+      expect(screen.getByText("Liquidity Positions")).toBeInTheDocument();
+      const badges = screen.getAllByTestId("asset-badge");
+      expect(badges.map((b) => b.textContent)).toEqual(["XLM", "LP:XLM/USDC"]);
+    });
+
+    it("does not render the Liquidity Positions header when there are no LP balances", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockXlmBalance],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+      expect(screen.queryByText("Liquidity Positions")).not.toBeInTheDocument();
+    });
+  });
+
   describe("sort toggle (#352)", () => {
     beforeEach(() => {
       vi.mocked(useSorokit).mockReturnValue({

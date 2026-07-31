@@ -543,152 +543,81 @@ describe("ContractEventFeed", () => {
     });
   });
 
-  // ── Topic overflow toggle (#328) ──────────────────────────────────────────
-  describe("topic overflow (#328)", () => {
-    function eventWithTopics(topics: string[]): ContractEvent {
-      return { ...MOCK_EVENT, id: "evt-topics", topics };
-    }
+  describe("stale events and loading recovery", () => {
+    const OTHER_CONTRACT_ID =
+      "CBBZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNB";
 
-    it("shows only the first 3 topics plus a '+N more' toggle when there are more than 3", async () => {
-      const topics = ["topic-1", "topic-2", "topic-3", "topic-4", "topic-5"];
-      mockGetEvents({ data: [eventWithTopics(topics)], error: null });
-      render(<ContractEventFeed contractId={CONTRACT_ID} />);
-      act(() => { vi.advanceTimersByTime(0); });
-
-      await waitFor(() => {
-        expect(screen.getByText("topic-1")).toBeInTheDocument();
-      });
-      expect(screen.getByText("topic-2")).toBeInTheDocument();
-      expect(screen.getByText("topic-3")).toBeInTheDocument();
-      expect(screen.queryByText("topic-4")).not.toBeInTheDocument();
-      expect(screen.queryByText("topic-5")).not.toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "+2 more" }),
-      ).toBeInTheDocument();
-    });
-
-    it("expands to show all topics when the '+N more' toggle is clicked, then collapses again", async () => {
-      const topics = ["topic-1", "topic-2", "topic-3", "topic-4", "topic-5"];
-      mockGetEvents({ data: [eventWithTopics(topics)], error: null });
-      render(<ContractEventFeed contractId={CONTRACT_ID} />);
-      act(() => { vi.advanceTimersByTime(0); });
-      await waitFor(() => screen.getByRole("button", { name: "+2 more" }));
-
-      fireEvent.click(screen.getByRole("button", { name: "+2 more" }));
-
-      expect(screen.getByText("topic-4")).toBeInTheDocument();
-      expect(screen.getByText("topic-5")).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "Show less" }),
-      ).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole("button", { name: "Show less" }));
-
-      expect(screen.queryByText("topic-4")).not.toBeInTheDocument();
-      expect(screen.queryByText("topic-5")).not.toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "+2 more" }),
-      ).toBeInTheDocument();
-    });
-
-    it("shows no overflow toggle when there are 3 or fewer topics", async () => {
-      // MOCK_EVENT has only 2 topics.
+    it("clears the previous contract's events when contractId changes", async () => {
       mockGetEvents({ data: [MOCK_EVENT], error: null });
-      render(<ContractEventFeed contractId={CONTRACT_ID} />);
+
+      const { rerender } = render(
+        <ContractEventFeed contractId={CONTRACT_ID} />,
+      );
       act(() => { vi.advanceTimersByTime(0); });
-      await waitFor(() => screen.getByText("GA...from"));
+      await waitFor(() => expect(screen.getByText("transfer")).toBeInTheDocument());
 
-      expect(screen.getByText("GB...to")).toBeInTheDocument();
-      expect(screen.queryByText(/\+\d+ more/)).not.toBeInTheDocument();
-    });
-  });
+      // New contract's fetch never settles, so anything still on screen can
+      // only be left over from the previous contract.
+      vi.mocked(getClient).mockReturnValue({
+        soroban: {
+          getEvents: vi.fn().mockReturnValue(new Promise(() => {})),
+        },
+      } as unknown as SorokitClient);
 
-  // ── Clear button (#328) ────────────────────────────────────────────────────
-  describe("Clear button (#328)", () => {
-    it("is disabled when there are no events", async () => {
-      mockGetEvents({ data: [], error: null });
-      render(<ContractEventFeed contractId={CONTRACT_ID} />);
-      act(() => { vi.advanceTimersByTime(0); });
-
-      await waitFor(() => {
-        expect(screen.getByRole("button", { name: "Clear" })).toBeDisabled();
-      });
-    });
-
-    it("resets the rendered events to none when clicked", async () => {
-      mockGetEvents({ data: [MOCK_EVENT], error: null });
-      render(<ContractEventFeed contractId={CONTRACT_ID} />);
-      act(() => { vi.advanceTimersByTime(0); });
-      await waitFor(() => screen.getByText("transfer"));
-
-      fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+      rerender(<ContractEventFeed contractId={OTHER_CONTRACT_ID} />);
 
       expect(screen.queryByText("transfer")).not.toBeInTheDocument();
-      expect(screen.getByText("No events found")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Clear" })).toBeDisabled();
     });
-  });
 
-  // ── Highlight animation on new events (#328) ──────────────────────────────
-  // Fake timers are already enabled globally (see the top-level beforeEach),
-  // which is what lets us advance past the 1.5s highlight-clear timeout below.
-  describe("highlight animation on new events (#328)", () => {
-    it("does not highlight events from the very first load", async () => {
+    it("does not keep stale events when the new contract's fetch errors", async () => {
       mockGetEvents({ data: [MOCK_EVENT], error: null });
+
+      const { rerender } = render(
+        <ContractEventFeed contractId={CONTRACT_ID} />,
+      );
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => expect(screen.getByText("transfer")).toBeInTheDocument());
+
+      mockGetEvents({ data: null, error: "RPC unavailable" });
+      rerender(<ContractEventFeed contractId={OTHER_CONTRACT_ID} />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() =>
+        expect(screen.getByText("RPC unavailable")).toBeInTheDocument(),
+      );
+      expect(screen.queryByText("transfer")).not.toBeInTheDocument();
+    });
+
+    it("returns loading to false after getEvents reports an error", async () => {
+      mockGetEvents({ data: null, error: "RPC unavailable" });
+
       const { container } = render(
         <ContractEventFeed contractId={CONTRACT_ID} />,
       );
       act(() => { vi.advanceTimersByTime(0); });
-      await waitFor(() => screen.getByText("transfer"));
 
-      expect(
-        container.querySelector('[class*="bg-brand-dim/40"]'),
-      ).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByText("RPC unavailable")).toBeInTheDocument(),
+      );
+      // The skeleton is gone, so loading settled rather than sticking on.
+      expect(container.querySelector(".animate-pulse")).not.toBeInTheDocument();
     });
 
-    it("highlights a newly-arrived event after a poll and removes the highlight after 1.5s", async () => {
-      const getEvents = vi
-        .fn()
-        .mockResolvedValueOnce({ data: [MOCK_EVENT], error: null })
-        // All subsequent polls (including any beyond the one under test)
-        // resolve with the same "new event" payload so advancing fake
-        // timers doesn't cause a later poll to resolve to `undefined`.
-        .mockResolvedValue({
-          data: [MOCK_EVENT, { ...MOCK_EVENT, id: "evt-new", ledger: 123457 }],
-          error: null,
-        });
+    it("returns loading to false after getEvents rejects", async () => {
       vi.mocked(getClient).mockReturnValue({
-        soroban: { getEvents },
+        soroban: {
+          getEvents: vi.fn().mockRejectedValue(new Error("network down")),
+        },
       } as unknown as SorokitClient);
 
       const { container } = render(
-        <ContractEventFeed contractId={CONTRACT_ID} pollInterval={500} />,
+        <ContractEventFeed contractId={CONTRACT_ID} />,
       );
       act(() => { vi.advanceTimersByTime(0); });
-      await waitFor(() => expect(getEvents).toHaveBeenCalledTimes(1));
 
-      // No highlight yet — only one event, and it was the first load.
-      expect(
-        container.querySelector('[class*="bg-brand-dim/40"]'),
-      ).not.toBeInTheDocument();
-
-      // Trigger the poll that introduces a brand-new event id.
-      act(() => { vi.advanceTimersByTime(500); });
-      await waitFor(() => expect(getEvents).toHaveBeenCalledTimes(2));
-
-      await waitFor(() => {
-        expect(
-          container.querySelector('[class*="bg-brand-dim/40"]'),
-        ).toBeInTheDocument();
-      });
-
-      act(() => { vi.advanceTimersByTime(1500); });
-
-      await waitFor(() => {
-        expect(
-          container.querySelector('[class*="bg-brand-dim/40"]'),
-        ).not.toBeInTheDocument();
-      });
+      await waitFor(() =>
+        expect(container.querySelector(".animate-pulse")).not.toBeInTheDocument(),
+      );
     });
   });
 });

@@ -1,39 +1,19 @@
 import { EyeIcon, EyeOffIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { forwardRef, type ReactNode,useEffect,useId, useState } from "react";
+import { forwardRef, useEffect,useId, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "prefix"> {
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
-  /**
-   * Helper text rendered below the input.
-   *
-   * When `error` is also provided, `error` takes precedence: the hint is
-   * suppressed (opacity-0, not read by screen readers via
-   * `aria-describedby`) and only the error message is shown. Once `error`
-   * clears, the hint reappears.
-   */
   hint?: string;
   /** Render a multi-line `<textarea>` instead of a single-line `<input>`. */
   multiline?: boolean;
-  /**
-   * Content rendered inside the input, anchored to the left (e.g. a
-   * currency symbol or icon). Adds left padding to the input so text
-   * doesn't render underneath it. Not supported in `multiline` mode.
-   */
-  prefix?: ReactNode;
-  /**
-   * Content rendered inside the input, anchored to the right (e.g. an
-   * asset code like "XLM"). Adds right padding to the input so text
-   * doesn't render underneath it. Not supported in `multiline` mode. If
-   * the input is also `type="password"`, the suffix and the
-   * show/hide-password toggle both occupy the right side; this combination
-   * is not adjusted for automatically.
-   */
-  suffix?: ReactNode;
+  /** Element rendered before the input value inside the container. */
+  prefix?: React.ReactNode;
+  /** Element rendered after the input value inside the container. */
+  suffix?: React.ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -47,13 +27,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
     const isPassword = props.type === "password";
 
-    if (process.env.NODE_ENV !== "production") {
-      if (props.value !== undefined && props.onChange === undefined && props.readOnly !== true) {
+    useEffect(() => {
+      if (props.value !== undefined && !props.onChange) {
         console.warn(
-          "Input: 'value' was provided without an 'onChange' handler. This will render a read-only field; pass 'onChange' or set 'readOnly' to suppress this warning.",
+          "Input received a controlled `value` prop without an `onChange` handler. " +
+            "The input will be read-only. Provide an `onChange` handler to make it editable.",
         );
       }
-    }
+    }, []);
 
     useEffect(() => {
       if (error) {
@@ -98,9 +79,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
           />
         ) : (
-          <div className="relative">
+          <div className="relative flex items-center">
             {prefix && (
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3 text-[12px]">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 text-[13px] pointer-events-none">
                 {prefix}
               </span>
             )}
@@ -116,21 +97,26 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                     : undefined
               }
               className={cn(
-                "h-9 w-full rounded-lg border bg-surface-2 px-3.5",
+                "h-9 w-full rounded-lg border bg-surface-2",
                 "text-[13px] text-ink placeholder:text-ink-4",
                 "outline-none transition-colors",
                 error
                   ? "border-error-dim-input focus:border-red focus:ring-1 ring-error-dim"
                   : "border-line focus:border-line-2 focus:ring-1 focus:ring-brand-dim",
                 "disabled:opacity-40 disabled:cursor-not-allowed",
-                isPassword && "pr-9",
-                suffix && "pr-9",
-                prefix && "pl-9",
+                prefix ? "pl-8" : "px-3.5",
+                suffix || isPassword ? "pr-9" : "px-3.5",
+                !prefix && !suffix && !isPassword && "px-3.5",
                 className,
               )}
               {...props}
               type={isPassword ? (showPassword ? "text" : "password") : props.type}
             />
+            {suffix && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 text-[13px] pointer-events-none">
+                {suffix}
+              </span>
+            )}
             {isPassword && (
               <button
                 type="button"
@@ -147,11 +133,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 />
               </button>
             )}
-            {suffix && !isPassword && (
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-3 text-[12px]">
-                {suffix}
-              </span>
-            )}
           </div>
         )}
         <div className="min-h-[18px] relative">
@@ -166,7 +147,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </p>
           <p
             id={`${inputId}-hint`}
-            data-testid="input-hint"
             className={cn(
               "absolute inset-x-0 top-0 text-[11px] text-ink-3 transition-opacity duration-150",
               !error && hint ? "opacity-100" : "opacity-0 pointer-events-none",

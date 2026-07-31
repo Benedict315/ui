@@ -16,6 +16,15 @@ export function truncateAddress(address: string | null | undefined, start = 6, e
   return `${chars.slice(0, start).join("")}...${chars.slice(-end).join("")}`;
 }
 
+export function safeFormat(balance: string): string {
+  const n = parseFloat(balance);
+  if (!balance || isNaN(n)) return "0.00";
+  return n.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  });
+}
+
 export function friendlyError(message: string): string {
   const normalizedMessage = message.trim().toLowerCase();
 

@@ -5,8 +5,7 @@ import { AssetRowSkeleton } from "@/components/ui/Skeleton";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
 import type { Balance } from "@/lib/client";
-import { formatUsd } from "@/lib/rebalancer";
-import { cn } from "@/lib/utils";
+import { cn, safeFormat } from "@/lib/utils";
 
 type SortMode = "default" | "balance-desc" | "alpha";
 
@@ -86,10 +85,7 @@ function AssetRow({
             isZeroBalance ? "text-ink-3" : "text-ink",
           )}
         >
-          {parseFloat(b.balance).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 4,
-          })}
+          {safeFormat(b.balance)}
         </span>
         {isZeroBalance && (
           <span className="text-[12px] text-ink-3">No balance</span>
@@ -102,9 +98,9 @@ function AssetRow({
 export interface BalanceListProps {
   onAssetClick?: (balance: Balance) => void;
   detailRef?: React.RefObject<HTMLElement | null>;
-  /** Show a "Portfolio Total" line in the header, computed from the XLM balance and `xlmPrice`. */
+  /** When true, renders an approximate XLM-equivalent portfolio total in the header. */
   showTotal?: boolean;
-  /** Current price of XLM in USD, used to compute the portfolio total when `showTotal` is set. */
+  /** Price of 1 XLM (e.g. in USD). Used alongside `showTotal` to show a USD-equivalent figure. */
   xlmPrice?: number;
 }
 
@@ -129,19 +125,21 @@ export function BalanceList({
       )
     : balances;
 
-  const sorted = sortBalances(filtered, sortMode);
-  const regularSorted = sorted.filter((b) => b.assetType !== "liquidity_pool_shares");
-  const lpSorted = sorted.filter((b) => b.assetType === "liquidity_pool_shares");
+  const regularBalances = filtered.filter(
+    (b) => b.assetType !== "liquidity_pool_shares",
+  );
+  const lpBalances = filtered.filter(
+    (b) => b.assetType === "liquidity_pool_shares",
+  );
 
-  const nativeBalance = balances.find((b) => b.assetType === "native");
-  const nativeBalanceNum = nativeBalance ? Number(nativeBalance.balance) : 0;
-  const showPortfolioTotal =
-    Boolean(showTotal) &&
-    isConnected &&
-    !isLoadingAccount &&
-    typeof xlmPrice === "number" &&
-    xlmPrice > 0;
-  const portfolioTotalUsd = nativeBalanceNum * (xlmPrice ?? 0);
+  const sorted = sortBalances(regularBalances, sortMode);
+  const sortedLp = sortBalances(lpBalances, sortMode);
+
+  // Approximate — only native XLM balances are summed since other assets
+  // have no price feed available here.
+  const xlmTotal = balances
+    .filter((b) => b.assetType === "native")
+    .reduce((sum, b) => sum + Number(b.balance), 0);
 
   const cycleSort = () => {
     setSortMode((m) =>
@@ -163,12 +161,12 @@ export function BalanceList({
         <div>
           <h3 className="text-[14px] font-semibold text-ink">Assets</h3>
           <p className="text-[12px] text-ink-3 mt-0.5">Token balances</p>
-          {showPortfolioTotal && (
+          {showTotal && isConnected && !isLoadingAccount && (
             <p className="text-[11px] text-ink-3 mt-0.5">
-              Portfolio Total{" "}
-              <span className="font-semibold text-ink">
-                ~{formatUsd(portfolioTotalUsd)}
-              </span>
+              ~{xlmTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} XLM
+              {typeof xlmPrice === "number"
+                ? ` (~$${(xlmTotal * xlmPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })})`
+                : ""}
             </p>
           )}
         </div>
@@ -207,7 +205,7 @@ export function BalanceList({
             <AssetRowSkeleton key={i} />
           ))}
         </div>
-      ) : sorted.length === 0 ? (
+      ) : sorted.length === 0 && sortedLp.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-10">
           <p className="text-[13px] text-ink-3">
             {search ? "No matching assets" : "No assets found"}
@@ -225,21 +223,25 @@ export function BalanceList({
         </div>
       ) : (
         <div>
-          {regularSorted.map((b) => (
-            <AssetRow
-              key={b.asset}
-              b={b}
-              onClick={onAssetClick ? () => handleAssetClick(b) : undefined}
-            />
-          ))}
-          {lpSorted.length > 0 && (
+          {sorted.length > 0 && (
             <div>
-              <div className="px-5 py-2 border-t border-line">
-                <h4 className="text-[12px] font-semibold text-ink-3 uppercase tracking-wide">
-                  Liquidity Pool Shares
+              {sorted.map((b) => (
+                <AssetRow
+                  key={b.asset}
+                  b={b}
+                  onClick={onAssetClick ? () => handleAssetClick(b) : undefined}
+                />
+              ))}
+            </div>
+          )}
+          {sortedLp.length > 0 && (
+            <div>
+              <div className="px-5 py-2.5 border-b border-t border-line bg-surface-2">
+                <h4 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-3">
+                  Liquidity Positions
                 </h4>
               </div>
-              {lpSorted.map((b) => (
+              {sortedLp.map((b) => (
                 <AssetRow
                   key={b.asset}
                   b={b}

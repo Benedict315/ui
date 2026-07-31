@@ -10,6 +10,13 @@ interface Props {
   fallback?: (error: Error, reset: () => void) => ReactNode;
   /** Called when the boundary catches an error. */
   onError?: (error: Error, info: ErrorInfo) => void;
+  /**
+   * Called when the user retries, before the boundary clears its error state.
+   * Use it to re-attempt the work that failed — e.g. re-initialising the
+   * Sorokit client after `createSorokitClient()` threw — so the retried render
+   * has a working dependency instead of throwing again immediately.
+   */
+  onRetry?: () => void;
   /** Render fallback content as an in-page scoped panel instead of a full-page state. */
   isolate?: boolean;
   /** Optional support URL shown in the default fallback. */
@@ -42,11 +49,16 @@ export class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  reset = () =>
+  reset = () => {
+    // Runs before the state clears so a re-initialisation attempt is already
+    // done by the time children re-mount under the new resetKey.
+    this.props.onRetry?.();
     this.setState((state) => ({
       error: null,
       resetKey: state.resetKey + 1,
+      componentStack: null,
     }));
+  };
 
   render() {
     const { error, resetKey, componentStack } = this.state;
