@@ -40,3 +40,28 @@ Object.defineProperty(globalThis, "localStorage", {
   configurable: true,
   writable: true,
 });
+
+// jsdom implements neither ResizeObserver nor pointer capture, both of which
+// Radix's popper-positioned primitives (Tooltip, Select, DropdownMenu) call
+// during layout. Without these, rendering any of them throws before a single
+// assertion runs. Minimal no-op stand-ins are enough: jsdom reports zero-sized
+// boxes anyway, so real measurements would be meaningless here.
+if (!("ResizeObserver" in globalThis)) {
+  class ResizeObserverStub implements ResizeObserver {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    value: ResizeObserverStub,
+    configurable: true,
+    writable: true,
+  });
+}
+
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false;
+  Element.prototype.setPointerCapture = () => {};
+  Element.prototype.releasePointerCapture = () => {};
+}
