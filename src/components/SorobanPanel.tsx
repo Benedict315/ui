@@ -3,12 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-
-import { cn } from "@/lib/utils";
-
-import { ContractInteractionDebugger } from "./ContractInteractionDebugger";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
+
+import { ContractInteractionDebugger } from "./ContractInteractionDebugger";
 
 type State = "idle" | "loading" | "success" | "error";
 
@@ -81,23 +79,6 @@ function buildCurlCommand(
   method: string,
   args: unknown[],
 ): string {
-  const rpcBody = JSON.stringify(
-    {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "simulateTransaction",
-      params: {
-        transaction: `AAAAAgAAAAB7AAAAAAAAAAAAAAABAAAAAeJ0ZXN0AAAAAAAAAQAAABAAAAABAAAAHAAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAAAAAAAAAAAAAAKAAAAAAAAAAEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAA=`,
-      },
-    },
-    null,
-    2,
-  );
-  return `curl -X POST \\
-  -H "Content-Type: application/json" \\
-  -d '${rpcBody}' \\
-  https://soroban-testnet.stellar.org`;
-function buildCurlCommand(contractId: string, method: string, args: unknown[]): string {
   const body = JSON.stringify({ contractId, method, args }, null, 2);
   return `curl -X POST https://soroban-rpc.example.com/invoke \\\n  -H "Content-Type: application/json" \\\n  -d '${body}'`;
 }
@@ -194,20 +175,6 @@ export function SorobanPanel({
         setContractHistory((prev) =>
           addContractToHistory(contractId.trim(), prev),
         );
-      const invoke = mode === "simulate"
-        ? getClient().soroban.simulateContract
-        : getClient().soroban.invokeContract;
-      const { data, error: err } = await invoke({
-        contractId: contractId.trim(),
-        method: method.trim(),
-        args: parsedArgs,
-        sourceAccount: address ?? undefined,
-      });
-      if (signal.aborted) return;
-      if (err) {
-        setError(err);
-        setState("error");
-        return;
       }
     } catch (e) {
       if (!signal.aborted) {
@@ -220,14 +187,16 @@ export function SorobanPanel({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (state === "loading") return;
     doInvoke();
   }
 
   function handleClick() {
+    if (state === "loading") return;
     doInvoke();
   }
 
-  const handleLoadAbi = useCallback(() => {
+  function handleLoadAbi() {
     setAbiError(null);
     try {
       const parsed = JSON.parse(abiRaw);
@@ -254,7 +223,7 @@ export function SorobanPanel({
     } catch {
       setAbiError("Invalid JSON — check the format and try again");
     }
-  }, [abiRaw]);
+  }
 
   const handleCopyCurl = useCallback(() => {
     const { parsedArgs } = parseArgsInput(argsRef.current);
@@ -477,7 +446,8 @@ export function SorobanPanel({
         <Button
           size="md"
           loading={state === "loading"}
-          disabled={!canInvoke || state === "loading"}
+          // `canInvoke` already requires state !== "loading".
+          disabled={!canInvoke}
           onClick={handleClick}
         >
           {state === "loading"
@@ -486,7 +456,6 @@ export function SorobanPanel({
               : "Invoking…"
             : mode === "simulate"
               ? "Simulate Contract"
-              ? "Simulate"
               : "Invoke Contract"}
         </Button>
       </div>

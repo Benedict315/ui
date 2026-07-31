@@ -42,6 +42,9 @@ export function FeeEstimator({
       setFee(data);
       setError(null);
       if (data) onFeeLoad?.(data);
+      if (data && onFeeLoad) {
+        onFeeLoad(data);
+      }
     } finally {
       setLoading(false);
     }

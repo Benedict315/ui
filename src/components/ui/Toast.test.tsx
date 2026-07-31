@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach,beforeEach, describe, expect, it, vi } from "vitest";
+
 import { ToastProvider, useToast } from "../../context/ToastContext";
 import { ToastContainer } from "./Toast";
 
@@ -94,9 +95,10 @@ describe("ToastProvider and ToastContainer", () => {
       vi.advanceTimersByTime(5100);
     });
 
-    await waitFor(() => {
-      expect(screen.queryByText("Success title")).not.toBeInTheDocument();
-    });
+    // The dismiss timer is a plain setTimeout in ToastProvider, so advancing
+    // inside act() removes the toast synchronously. `waitFor` polls on real
+    // timers and would simply hang out the clock here.
+    expect(screen.queryByText("Success title")).not.toBeInTheDocument();
   });
 
   it("renders warning and info types", () => {

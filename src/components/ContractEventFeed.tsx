@@ -39,15 +39,16 @@
  * @see {@link SorokitProvider} for setup
  * @see GitHub issue #8 for QR code scanner limitation
  */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import {
+  Activity01Icon,
+  AlertCircleIcon,
   Copy01Icon,
   Refresh01Icon,
   Tick01Icon,
-  AlertCircleIcon,
-  Activity01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import type { ContractEvent } from "@/lib/client";
@@ -65,6 +66,8 @@ const EVENT_TYPE_VARIANT: Record<
 };
 
 const DEFAULT_MAX_VALUE_LENGTH = 200;
+const TOPIC_PREVIEW_COUNT = 3;
+const HIGHLIGHT_DURATION_MS = 1500;
 
 function formatRelativeTime(fromMs: number, nowMs: number): string {
   const diff = Math.max(0, nowMs - fromMs);
@@ -144,9 +147,11 @@ function TopicTag({ topic }: { topic: string }) {
 function EventRow({
   event,
   maxValueLength,
+  isNew,
 }: {
   event: ContractEvent;
   maxValueLength: number;
+  isNew: boolean;
 }) {
   const variant = EVENT_TYPE_VARIANT[event.type] ?? "default";
   const time = new Date(event.createdAt).toLocaleTimeString([], {
@@ -154,9 +159,19 @@ function EventRow({
     minute: "2-digit",
     second: "2-digit",
   });
+  const [topicsExpanded, setTopicsExpanded] = useState(false);
+  const hiddenTopicCount = event.topics.length - TOPIC_PREVIEW_COUNT;
+  const visibleTopics = topicsExpanded
+    ? event.topics
+    : event.topics.slice(0, TOPIC_PREVIEW_COUNT);
 
   return (
-    <div className="flex items-start gap-3 px-5 py-3.5 border-b border-line last:border-0">
+    <div
+      className={cn(
+        "flex items-start gap-3 px-5 py-3.5 border-b border-line last:border-0",
+        isNew && "animate-highlight",
+      )}
+    >
       <div className="flex flex-col items-center gap-1 shrink-0 mt-0.5">
         <Badge variant={variant}>{event.type}</Badge>
         <span className="text-[10px] text-ink-4 font-mono">{time}</span>
@@ -171,10 +186,19 @@ function EventRow({
           </span>
         </div>
         {event.topics.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {event.topics.map((t, i) => (
+          <div className="flex flex-wrap items-center gap-1">
+            {visibleTopics.map((t, i) => (
               <TopicTag key={i} topic={t} />
             ))}
+            {hiddenTopicCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setTopicsExpanded((e) => !e)}
+                className="text-[10px] font-semibold text-brand hover:underline"
+              >
+                {topicsExpanded ? "Show less" : `+${hiddenTopicCount} more`}
+              </button>
+            )}
           </div>
         )}
         {event.value !== null && event.value !== undefined && (
@@ -224,6 +248,27 @@ export function ContractEventFeed({
   );
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // IDs highlighted as newly-arrived. `prevEventIdsRef` is the baseline from
+  // the previous successful load — `null` means no baseline yet, so the very
+  // first load doesn't flag every event as "new".
+  const [newEventIds, setNewEventIds] = useState<Set<string>>(new Set());
+  const prevEventIdsRef = useRef<Set<string> | null>(null);
+
+  // Drop the previous contract's events as soon as `contractId` changes.
+  // `load` only replaces `events` once the new fetch succeeds, so without this
+  // the old contract's events stay on screen — and survive outright if the new
+  // fetch errors. Adjusted during render rather than in an effect so no stale
+  // frame is committed.
+  const [prevContractId, setPrevContractId] = useState(contractId);
+  if (prevContractId !== contractId) {
+    setPrevContractId(contractId);
+    setEvents([]);
+    setError(null);
+    setLastUpdatedAt(null);
+    setNewEventIds(new Set());
+    prevEventIdsRef.current = null;
+  }
+
   const load = useCallback(async () => {
     if (!contractId.trim()) return;
     setLoading(true);
@@ -235,15 +280,39 @@ export function ContractEventFeed({
       );
       if (err) {
         setError(err);
+        setLoading(false);
         return;
       }
-      setEvents(data ?? []);
+      const newData = data ?? [];
+      if (prevEventIdsRef.current !== null) {
+        const baseline = prevEventIdsRef.current;
+        const addedIds = newData
+          .filter((e) => !baseline.has(e.id))
+          .map((e) => e.id);
+        if (addedIds.length > 0) {
+          setNewEventIds((prev) => new Set([...prev, ...addedIds]));
+          window.setTimeout(() => {
+            setNewEventIds((prev) => {
+              const next = new Set(prev);
+              addedIds.forEach((id) => next.delete(id));
+              return next;
+            });
+          }, HIGHLIGHT_DURATION_MS);
+        }
+      }
+      prevEventIdsRef.current = new Set(newData.map((e) => e.id));
+      setEvents(newData);
       setError(null);
       setLastUpdatedAt(Date.now());
     } finally {
       setLoading(false);
     }
   }, [contractId, limit, fromLedger]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEvents([]);
+  }, [contractId]);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -256,7 +325,7 @@ export function ContractEventFeed({
   }, [load]);
 
   useEffect(() => {
-    if (live && pollInterval > 0) {
+    if (live && pollInterval > 0 && contractId.trim() !== "") {
       intervalRef.current = setInterval(() => {
         void load();
       }, pollInterval);
@@ -266,7 +335,7 @@ export function ContractEventFeed({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [live, pollInterval, load]);
+  }, [live, pollInterval, load, contractId]);
 
   // Tick the relative "Last updated" label once a second while polling is active.
   useEffect(() => {
@@ -339,6 +408,16 @@ export function ContractEventFeed({
               {live ? "Live" : "Paused"}
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setEvents([])}
+            disabled={events.length === 0}
+            title="Clear events"
+            aria-label="Clear events"
+            className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-surface-2 hover:bg-surface-3 text-ink-2 border border-line transition-colors disabled:opacity-40"
+          >
+            Clear
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -452,7 +531,12 @@ export function ContractEventFeed({
       ) : (
         <div aria-live="polite">
           {filteredEvents.map((e) => (
-            <EventRow key={e.id} event={e} maxValueLength={maxValueLength} />
+            <EventRow
+              key={e.id}
+              event={e}
+              maxValueLength={maxValueLength}
+              isNew={newEventIds.has(e.id)}
+            />
           ))}
         </div>
       )}

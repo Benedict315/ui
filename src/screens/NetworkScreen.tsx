@@ -1,12 +1,9 @@
-import {
-  Copy01Icon,
-  Tick01Icon,
-  Loader01Icon,
-} from "@hugeicons/core-free-icons";
+import { Loader01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
+import { InfoCell } from "@/components/ui/InfoCell";
 import { useSorokit } from "@/context/useSorokit";
 import type { NetworkName } from "@/lib/client";
 import { cn } from "@/lib/utils";

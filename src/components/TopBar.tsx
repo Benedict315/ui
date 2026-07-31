@@ -14,9 +14,11 @@ const LABELS = SCREEN_LABELS;
 export function TopBar({
   active,
   onMenuToggle,
+  sidebarOpen,
 }: {
   active: NavSection;
   onMenuToggle: () => void;
+  sidebarOpen?: boolean;
 }) {
   const { error, clearError } = useSorokit();
   const { title, sub } = LABELS[active];
@@ -42,11 +44,13 @@ export function TopBar({
         </div>
       )}
       <header className="flex items-center justify-between px-4 sm:px-6 h-[var(--sorokit-nav-height)] border-b border-line bg-surface shrink-0">
+      <header className="flex items-center justify-between px-4 sm:px-6 h-auto sm:min-h-[60px] border-b border-line bg-surface shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuToggle}
             className="lg:hidden flex items-center justify-center w-8 h-8 rounded-md hover:bg-surface-2 transition-colors text-ink-2"
-            aria-label="Open menu"
+            aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+            aria-expanded={sidebarOpen}
           >
             <HugeiconsIcon
               icon={Menu01Icon}

@@ -54,6 +54,34 @@ export function Badge({
   children,
   ...props
 }: BadgeProps) {
+  const liveProps = live
+    ? ({ role: "status", "aria-live": "polite" } as const)
+    : {};
+
+  const hasChildren =
+    children !== undefined &&
+    children !== null &&
+    children !== false &&
+    children !== "";
+
+  // A dot with no label has nothing to give the pill width, so the padded
+  // container collapses to a sliver and reads as broken. Drop the pill chrome
+  // and let the dot stand on its own.
+  if (dot && !hasChildren) {
+    return (
+      <span
+        className={cn("inline-flex items-center justify-center", className)}
+        {...liveProps}
+        {...props}
+      >
+        <span
+          aria-hidden="true"
+          className={cn("w-1 h-1 rounded-full shrink-0", dots[variant])}
+        />
+      </span>
+    );
+  }
+
   return (
     <span
       className={cn(
@@ -62,7 +90,7 @@ export function Badge({
         variants[variant],
         className,
       )}
-      {...(live ? { role: "status", "aria-live": "polite" } : {})}
+      {...liveProps}
       {...props}
     >
       {dot && (
