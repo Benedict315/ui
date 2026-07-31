@@ -5,7 +5,7 @@ import { AssetRowSkeleton } from "@/components/ui/Skeleton";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
 import type { Balance } from "@/lib/client";
-import { cn } from "@/lib/utils";
+import { cn, safeFormat } from "@/lib/utils";
 
 type SortMode = "default" | "balance-desc" | "alpha";
 
@@ -85,10 +85,7 @@ function AssetRow({
             isZeroBalance ? "text-ink-3" : "text-ink",
           )}
         >
-          {parseFloat(b.balance).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 4,
-          })}
+          {safeFormat(b.balance)}
         </span>
         {isZeroBalance && (
           <span className="text-[12px] text-ink-3">No balance</span>

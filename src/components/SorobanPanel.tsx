@@ -233,7 +233,7 @@ export function SorobanPanel({
 
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-line">
         <div>
           <h3 className="text-[14px] font-semibold text-ink">
             {mode === "simulate" ? "Contract Simulate" : "Contract Invoke"}
@@ -415,7 +415,7 @@ export function SorobanPanel({
         )}
       </div>
 
-      <div className="px-6 py-4 border-t border-line flex items-center gap-3">
+      <div className="px-5 py-4 border-t border-line flex items-center gap-3">
         {(state === "success" || state === "error") && (
           <Button
             variant="ghost"

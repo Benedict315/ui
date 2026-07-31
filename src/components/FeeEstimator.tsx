@@ -41,6 +41,7 @@ export function FeeEstimator({
       }
       setFee(data);
       setError(null);
+      if (data) onFeeLoad?.(data);
       if (data && onFeeLoad) {
         onFeeLoad(data);
       }
@@ -176,12 +177,14 @@ export function FeeCell({
             highlight ? "text-brand" : "text-ink",
           )}
         >
-          {value}
+          {Number.isNaN(parseInt(value, 10)) ? "—" : value}
         </span>
         <span className="text-[10px] text-ink-3">{unit}</span>
       </div>
       <span className="text-[10px] text-ink-3">
-        (≈ {parseInt(value, 10) / 10_000_000} XLM)
+        {Number.isNaN(parseInt(value, 10))
+          ? "(≈ — XLM)"
+          : `(≈ ${parseInt(value, 10) / 10_000_000} XLM)`}
       </span>
     </div>
   );

@@ -28,6 +28,12 @@ const SCREENS: Record<NavSection, ComponentType> = {
 };
 
 export interface DashboardProps {
+  /** Max width of the main content column. Defaults to "700px". */
+  maxContentWidth?: string;
+}
+
+export function Dashboard({ maxContentWidth = "700px" }: DashboardProps = {}) {
+  const [active, setActive] = useState<NavSection>("wallet");
   /**
    * Controlled active section. When provided, `Dashboard` renders this section
    * and never changes it internally — the parent owns the state and should
@@ -79,7 +85,10 @@ export function Dashboard({
         />
         <NetworkBanner active={active} />
         <main className="flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-[700px] mx-auto px-6 py-8 sm:px-10 sm:py-10 min-h-[300px]">
+          <div
+            className="mx-auto px-6 py-8 sm:px-10 sm:py-10 min-h-[300px]"
+            style={{ maxWidth: maxContentWidth }}
+          >
             <ActiveScreen />
           </div>
         </main>

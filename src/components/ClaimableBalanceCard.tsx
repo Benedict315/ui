@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 import type { ClaimableBalance } from "@/lib/client";
 import { getClient } from "@/lib/client";
-import { cn, truncateAddress } from "@/lib/utils";
+import { cn, safeFormat, truncateAddress } from "@/lib/utils";
 
 function isPredicateExpired(predicate: unknown, _currentTime: number): boolean {
   if (!predicate || typeof predicate !== "object") return false;
@@ -77,10 +77,7 @@ function BalanceRow({ cb, confirmThreshold, currentTime = Date.now() }: BalanceR
       <div className="flex flex-col gap-1.5 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-[14px] font-semibold text-ink">
-            {amountNum.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 4,
-            })}
+            {safeFormat(cb.amount)}
           </span>
           <Badge variant="teal">{assetCode}</Badge>
           {expired && <Badge variant="error">Expired</Badge>}
@@ -135,7 +132,7 @@ function BalanceRow({ cb, confirmThreshold, currentTime = Date.now() }: BalanceR
           <div className="rounded-xl border border-line bg-surface p-6 max-w-sm w-full shadow-xl">
             <h4 className="text-[14px] font-semibold text-ink mb-2">Confirm Claim</h4>
             <p className="text-[13px] text-ink-2 mb-4">
-              You are about to claim {amountNum.toLocaleString()} {assetCode}. This action cannot be undone.
+              You are about to claim {safeFormat(cb.amount)} {assetCode}. This action cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-3">
               <Button variant="ghost" size="sm" onClick={() => setShowConfirm(false)}>
