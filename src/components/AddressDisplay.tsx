@@ -2,6 +2,7 @@ import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 
+import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/lib/utils";
 import { truncateAddress } from "@/lib/utils";
 
@@ -58,36 +59,38 @@ export function AddressDisplay({
 
   const addressSpan = (
     <div className="flex items-center gap-2 group">
-      <span
-        data-address
-        className={cn(
-          "break-all leading-relaxed",
-          text,
-          mono && "font-mono",
-          showFull && "select-all",
-        )}
-        title={address}
-      >
-        {display}
-      </span>
-      <button
-        onClick={copy}
-        aria-label={copied ? "Address copied" : "Copy address"}
-        className={cn(
-          "shrink-0 p-1 rounded-md transition-all",
-          copied
-            ? "text-green bg-success-dim"
-            : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
-        )}
-        title={copied ? "Copied!" : "Copy address"}
-      >
-        <HugeiconsIcon
-          icon={copied ? Tick01Icon : Copy01Icon}
-          size={iconSize}
-          color="currentColor"
-          strokeWidth={2}
-        />
-      </button>
+      <Tooltip content={address}>
+        <span
+          data-address
+          className={cn(
+            "break-all leading-relaxed",
+            text,
+            mono && "font-mono",
+            showFull && "select-all",
+          )}
+        >
+          {display}
+        </span>
+      </Tooltip>
+      <Tooltip content={copied ? "Copied!" : "Copy address"}>
+        <button
+          onClick={copy}
+          aria-label={copied ? "Address copied" : "Copy address"}
+          className={cn(
+            "shrink-0 p-1 rounded-md transition-all",
+            copied
+              ? "text-green bg-success-dim"
+              : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
+          )}
+        >
+          <HugeiconsIcon
+            icon={copied ? Tick01Icon : Copy01Icon}
+            size={iconSize}
+            color="currentColor"
+            strokeWidth={2}
+          />
+        </button>
+      </Tooltip>
     </div>
   );
 

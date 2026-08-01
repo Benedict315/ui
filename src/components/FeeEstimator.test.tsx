@@ -72,7 +72,7 @@ describe("FeeEstimator", () => {
     // Wait for initial load to complete
     await waitFor(() => expect(screen.getByText("100")).toBeInTheDocument());
 
-    const refreshButton = screen.getByTitle("Refresh");
+    const refreshButton = screen.getByRole("button", { name: "Refresh fee estimate" });
     fireEvent.click(refreshButton);
 
     await waitFor(() => expect(estimateFee).toHaveBeenCalledTimes(2));
@@ -87,7 +87,7 @@ describe("FeeEstimator", () => {
     } as unknown as SorokitClient);
 
     render(<FeeEstimator />);
-    const refreshButton = screen.getByTitle("Refresh");
+    const refreshButton = screen.getByRole("button", { name: "Refresh fee estimate" });
     expect(refreshButton).toBeDisabled();
   });
 

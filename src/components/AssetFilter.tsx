@@ -789,6 +789,6 @@ function AssetFilter({
   );
 }
 
-export { AssetFilter, AssetFilterSkeleton };
+export { AssetFilter };
 export type { AssetItem, AssetMeta, SortKey, VerifiedFilter };
 

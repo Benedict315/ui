@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { getClient } from "@/lib/client";
 import { cn } from "@/lib/utils";
 
@@ -102,21 +103,22 @@ export function FeeEstimator({
                 Current Stellar base fee estimate
               </p>
             </div>
-            <button
-              onClick={() => void load()}
-              disabled={loading}
-              className="p-1.5 rounded-lg hover:bg-surface-2 text-ink-3 hover:text-ink-2 transition-colors disabled:opacity-40"
-              title="Refresh"
-              aria-label="Refresh fee estimate"
-            >
-              <HugeiconsIcon
-                icon={Refresh01Icon}
-                size={14}
-                color="currentColor"
-                strokeWidth={1.5}
-                className={loading ? "animate-spin" : ""}
-              />
-            </button>
+            <Tooltip content="Refresh">
+              <button
+                onClick={() => void load()}
+                disabled={loading}
+                className="p-1.5 rounded-lg hover:bg-surface-2 text-ink-3 hover:text-ink-2 transition-colors disabled:opacity-40"
+                aria-label="Refresh fee estimate"
+              >
+                <HugeiconsIcon
+                  icon={Refresh01Icon}
+                  size={14}
+                  color="currentColor"
+                  strokeWidth={1.5}
+                  className={loading ? "animate-spin" : ""}
+                />
+              </button>
+            </Tooltip>
           </div>
 
           <div className="px-5 py-4" aria-live="polite" aria-atomic="true">
