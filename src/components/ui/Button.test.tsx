@@ -259,26 +259,32 @@ describe("ButtonGroup", () => {
     render(
       <ButtonGroup>
         <Button>Prev</Button>
+        <Button>Next</Button>
       </ButtonGroup>
     );
     const group = screen.getByRole("group");
     expect(group).toHaveAttribute("data-orientation", "horizontal");
     expect(group.className).toContain("flex-row");
-    expect(group.className).toContain("rounded-l-none");
-    expect(group.className).toContain("rounded-r-none");
+    // The shared radius is collapsed through child-combinator selectors so the
+    // buttons read as one connected control: non-first siblings lose the left
+    // radius, non-last siblings lose the right radius.
+    expect(group.className).toContain("[&>*:not(:first-child)]:rounded-l-none");
+    expect(group.className).toContain("[&>*:not(:last-child)]:rounded-r-none");
   });
 
   it("collapses the shared border radius vertically", () => {
     render(
       <ButtonGroup orientation="vertical">
         <Button>Top</Button>
+        <Button>Bottom</Button>
       </ButtonGroup>
     );
     const group = screen.getByRole("group");
     expect(group).toHaveAttribute("data-orientation", "vertical");
     expect(group.className).toContain("flex-col");
-    expect(group.className).toContain("rounded-t-none");
-    expect(group.className).toContain("rounded-b-none");
+    // Non-first buttons drop the top radius, non-last buttons drop the bottom.
+    expect(group.className).toContain("[&>*:not(:first-child)]:rounded-t-none");
+    expect(group.className).toContain("[&>*:not(:last-child)]:rounded-b-none");
   });
 
   it("merges a custom className", () => {
