@@ -85,7 +85,7 @@ describe("SorobanScreen", () => {
     expect(screen.queryByText("Contract Events")).not.toBeInTheDocument();
   });
 
-  describe("localStorage pre-fill and saved contracts (#350)", () => {
+  describe("localStorage pre-fill and saved contracts (#347, #350)", () => {
     const CONTRACT_A = "CAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
     const CONTRACT_B = "CBBZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNB";
 
@@ -145,7 +145,7 @@ describe("SorobanScreen", () => {
     });
   });
 
-  describe("Stellar Expert link (#350)", () => {
+  describe("Stellar Expert link (#347, #350)", () => {
     const CONTRACT_ID = "CAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
 
     beforeEach(() => {
