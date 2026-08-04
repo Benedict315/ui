@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -47,6 +47,82 @@ describe("SorobanInvokeButton", () => {
     mockInvokeContract({ data: null, error: null, status: "idle" });
     render(<SorobanInvokeButton params={PARAMS} label="Send" />);
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
+  });
+
+  it("shows 'Invoking {method}…' as the loading label while an invocation is in flight", async () => {
+    let resolveInvoke: (value: {
+      data: unknown;
+      error: string | null;
+      status: string;
+    }) => void;
+    vi.mocked(getClient).mockReturnValue({
+      soroban: {
+        invokeContract: vi
+          .fn()
+          .mockImplementation(() => new Promise((resolve) => { resolveInvoke = resolve; })),
+      },
+    } as unknown as SorokitClient);
+
+    render(<SorobanInvokeButton params={PARAMS} />);
+    fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
+
+    const button = screen.getByRole("button");
+    expect(button.textContent).toContain("Invoking transfer…");
+
+    await act(async () => {
+      resolveInvoke!({ data: { ok: true }, error: null, status: "success" });
+    });
+    expect(
+      screen.getByRole("button", { name: "transfer()" }),
+    ).toHaveTextContent("transfer()");
+  });
+
+  it("shows a generic 'Invoking…' loading label when a custom label is provided", async () => {
+    let resolveInvoke: (value: {
+      data: unknown;
+      error: string | null;
+      status: string;
+    }) => void;
+    vi.mocked(getClient).mockReturnValue({
+      soroban: {
+        invokeContract: vi
+          .fn()
+          .mockImplementation(() => new Promise((resolve) => { resolveInvoke = resolve; })),
+      },
+    } as unknown as SorokitClient);
+
+    render(<SorobanInvokeButton params={PARAMS} label="Send" />);
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(screen.getByRole("button").textContent).toContain("Invoking…");
+
+    await act(async () => {
+      resolveInvoke!({ data: { ok: true }, error: null, status: "success" });
+    });
+  });
+
+  it("renders the tooltip prop as the button's title when connected", () => {
+    mockInvokeContract({ data: null, error: null, status: "idle" });
+    render(<SorobanInvokeButton params={PARAMS} tooltip="Runs transfer on-chain" />);
+    expect(screen.getByRole("button", { name: "transfer()" })).toHaveAttribute(
+      "title",
+      "Runs transfer on-chain",
+    );
+  });
+
+  it("falls back to a connect hint title when the wallet is not connected", () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      isConnected: false,
+    } as unknown as ReturnType<typeof useSorokit>);
+    vi.mocked(getClient).mockReturnValue({
+      soroban: { invokeContract: vi.fn() },
+    } as unknown as SorokitClient);
+
+    render(<SorobanInvokeButton params={PARAMS} tooltip="Runs transfer on-chain" />);
+    expect(screen.getByRole("button", { name: "transfer()" })).toHaveAttribute(
+      "title",
+      "Connect wallet to invoke",
+    );
   });
 
   it("calls onSuccess with the returned data on a successful invocation", async () => {
@@ -114,6 +190,27 @@ describe("SorobanInvokeButton", () => {
 
     await waitFor(() => expect(screen.getByText("Failed")).toBeInTheDocument());
     expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+  });
+
+  it("caps the result container height with maxResultHeight for overflow", async () => {
+    mockInvokeContract({ data: { txHash: "abc" }, error: null, status: "success" });
+    render(<SorobanInvokeButton params={PARAMS} maxResultHeight={120} />);
+    fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
+
+    await waitFor(() => expect(screen.getByText("Done")).toBeInTheDocument());
+    // The result container has a bounded max-height that scrolls on overflow.
+    const resultScroller = screen.getByText(/txHash/).closest("div.overflow-y-auto");
+    expect(resultScroller).toHaveStyle({ maxHeight: "120px" });
+  });
+
+  it("uses the default 200px max result height when maxResultHeight is not provided", async () => {
+    mockInvokeContract({ data: { txHash: "abc" }, error: null, status: "success" });
+    render(<SorobanInvokeButton params={PARAMS} />);
+    fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
+
+    await waitFor(() => expect(screen.getByText("Done")).toBeInTheDocument());
+    const resultScroller = screen.getByText(/txHash/).closest("div.overflow-y-auto");
+    expect(resultScroller).toHaveStyle({ maxHeight: "200px" });
   });
 
   it("disables the button and shows connect wallet hint when not connected", () => {

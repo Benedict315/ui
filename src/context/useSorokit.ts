@@ -4,11 +4,13 @@ import { SorokitContext, type SorokitState } from "./SorokitContext";
 
 const safeDefaults: SorokitState = {
   address: null,
+  walletName: null,
   isConnected: false,
   isConnecting: false,
   isLoading: false,
   connectWallet: async () => {},
   disconnectWallet: async () => {},
+  isDisconnecting: false,
   account: null,
   balances: [],
   isLoadingAccount: false,

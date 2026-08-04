@@ -10,7 +10,13 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient, type NetworkInfo, type TxResult } from "@/lib/client";
-import { cn } from "@/lib/utils";
+import { cn, truncateAddress } from "@/lib/utils";
+
+import {
+  TransactionConfirmModal,
+  type TransactionPreviewData,
+} from "./TransactionConfirmModal";
+import { TransactionStatusTracker } from "./TransactionStatusTracker";
 
 type State = "idle" | "loading" | "success" | "error";
 
@@ -42,18 +48,41 @@ function explorerTxUrl(
   return `https://stellar.expert/explorer/${segment}/tx/${hash}`;
 }
 
-export function TransactionPanel() {
-  const { address, isConnected, balances, network } = useSorokit();
-  const [dest, setDest] = useState("");
+export interface TransactionPanelProps {
+  defaultDestination?: string;
+  defaultAmount?: string;
+  defaultMemo?: string;
+  onSuccess?: (result: TxResult) => void;
+  onError?: (error: string) => void;
+  /**
+   * When true (the default), the footer button opens a confirmation modal
+   * showing transaction details before `submitTransaction` runs. Pass
+   * `false` to submit immediately on click, skipping the preview step.
+   */
+  previewMode?: boolean;
+}
+
+export function TransactionPanel({
+  defaultDestination = "",
+  defaultAmount = "",
+  defaultMemo = "",
+  onSuccess,
+  onError,
+  previewMode = true,
+}: TransactionPanelProps = {}) {
+  const { address, isConnected, balances, isLoadingAccount, network, account } = useSorokit();
+  const [dest, setDest] = useState(defaultDestination);
   const [destDirty, setDestDirty] = useState(false);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(defaultAmount);
   const [amountDirty, setAmountDirty] = useState(false);
   const [asset, setAsset] = useState("XLM");
   const [memoType, setMemoType] = useState<MemoType>("text");
-  const [memo, setMemo] = useState("");
+  const [memo, setMemo] = useState(defaultMemo);
   const [state, setState] = useState<State>("idle");
   const [result, setResult] = useState<TxResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<TransactionPreviewData | null>(null);
+  const [isBuildingPreview, setIsBuildingPreview] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const assetOptions = balances ?? [];
@@ -72,21 +101,32 @@ export function TransactionPanel() {
   const isMemoIdValid =
     memoType !== "id" || (memo.trim() !== "" && /^\d+$/.test(memo.trim()));
 
+  // Check 7-decimal precision limit
+  const decimalPlaces = amount.includes(".") ? amount.split(".")[1]?.length ?? 0 : 0;
+  const isDecimalPrecisionValid = decimalPlaces <= 7;
+
+  // Check if user has sufficient balance for the selected asset
+  const selectedAssetBalance = assetOptions.find((b) => b.asset === selectedAsset);
+  const insufficientBalance =
+    selectedAssetBalance && parsedAmount > parseFloat(selectedAssetBalance.balance);
+
   const canSubmit =
     isConnected &&
     isDestValid &&
     amount.trim() !== "" &&
     isAmountValid &&
-    isMemoIdValid;
+    isMemoIdValid &&
+    isDecimalPrecisionValid &&
+    !insufficientBalance;
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  /** The actual submission — only ever called from the confirm modal. */
+  async function submitTransaction() {
+    if (state === "loading") return;
     if (!address) {
       setError("Wallet not connected");
       setState("error");
       return;
     }
-    if (!canSubmit) return;
 
     // Cancel previous requests
     abortControllerRef.current?.abort();
@@ -110,10 +150,12 @@ export function TransactionPanel() {
       if (err) {
         setError(err);
         setState("error");
+        onError?.(err);
         return;
       }
       setResult(data);
       setState("success");
+      onSuccess?.(data!);
       setDest("");
       setAmount("");
       setMemo("");
@@ -121,21 +163,61 @@ export function TransactionPanel() {
       setAmountDirty(false);
     } catch (e) {
       if (!signal.aborted) {
-        setError(e instanceof Error ? e.message : "Unknown error");
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        setError(msg);
         setState("error");
+        onError?.(msg);
       }
+    } finally {
+      setPreview(null);
+    }
+  }
+
+  /** Builds a preview of the transaction and opens the confirmation modal. */
+  async function handleReview(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (state === "loading") return;
+    if (!address || !canSubmit) return;
+
+    setIsBuildingPreview(true);
+    try {
+      const { data: feeData } = await getClient().transaction.estimateFee();
+      const memoSuffix =
+        memoType !== "none" && memo.trim() !== "" ? ` — memo: "${memo.trim()}"` : "";
+      setPreview({
+        transactionType: "Payment",
+        operations: [
+          {
+            type: "Payment",
+            description: `Send ${amount.trim()} ${selectedAsset} to ${truncateAddress(dest.trim(), 8, 6)}${memoSuffix}`,
+          },
+        ],
+        fee: {
+          baseFeeStroops: feeData?.baseFee ?? "100",
+          totalStroops: feeData?.recommended ?? feeData?.baseFee ?? "100",
+        },
+        sourceAccount: address,
+        sequenceNumber: account?.sequence,
+      });
+    } finally {
+      setIsBuildingPreview(false);
     }
   }
 
   const handleSendClick = () => {
-    submit({ preventDefault: () => {} } as React.FormEvent);
+    if (state === "loading" || !address || !canSubmit) return;
+    if (previewMode) {
+      void handleReview();
+    } else {
+      void submitTransaction();
+    }
   };
 
   const explorerUrl = result ? explorerTxUrl(network, result.hash) : null;
 
   return (
     <div className="rounded-xl border border-line bg-surface overflow-hidden">
-      <div className="px-6 py-4 border-b border-line">
+      <div className="px-5 py-4 border-b border-line">
         <h3 className="text-[14px] font-semibold text-ink">Send Payment</h3>
         <p className="text-[12px] text-ink-3 mt-0.5">
           Submit a payment on the Stellar network
@@ -186,7 +268,7 @@ export function TransactionPanel() {
                   <ExternalLinkIcon className="mt-[3px] shrink-0 opacity-70" />
                 </a>
               ) : (
-                <span data-txhash className="break-all leading-relaxed">
+                <span data-testid="submitted-tx-hash" data-txhash className="break-all leading-relaxed">
                   {result.hash}
                 </span>
               )}
@@ -206,6 +288,7 @@ export function TransactionPanel() {
                 )}
               </div>
             </div>
+            <TransactionStatusTracker hash={result.hash} className="mt-2" />
           </div>
         ) : state === "error" ? (
           <div className="flex items-start gap-3">
@@ -226,7 +309,7 @@ export function TransactionPanel() {
             </div>
           </div>
         ) : (
-          <form onSubmit={submit} className="flex flex-col gap-5">
+          <form onSubmit={handleReview} className="flex flex-col gap-5">
             <Input
               label="Destination Address"
               placeholder="G..."
@@ -250,9 +333,11 @@ export function TransactionPanel() {
               label="Asset"
               value={selectedAsset}
               onChange={(e) => setAsset(e.target.value)}
-              disabled={state === "loading" || assetOptions.length === 0}
+              disabled={state === "loading" || isLoadingAccount}
             >
-              {assetOptions.length === 0 ? (
+              {isLoadingAccount ? (
+                <option value="">Loading assets…</option>
+              ) : assetOptions.length === 0 ? (
                 <option value="XLM">XLM</option>
               ) : (
                 assetOptions.map((b) => (
@@ -281,7 +366,11 @@ export function TransactionPanel() {
                       ? "Amount must be greater than 0"
                       : parsedAmount < 0.0000001
                         ? "Minimum amount is 0.0000001 XLM"
-                        : undefined
+                        : !isDecimalPrecisionValid
+                          ? "Maximum 7 decimal places allowed"
+                          : insufficientBalance
+                            ? `Insufficient balance. Maximum: ${selectedAssetBalance?.balance ?? "0"}`
+                            : undefined
                   : undefined
               }
               disabled={state === "loading"}
@@ -302,25 +391,34 @@ export function TransactionPanel() {
               ))}
             </Select>
             {memoType !== "none" && (
-              <Input
-                label={memoType === "id" ? "Memo ID" : "Memo (optional)"}
-                placeholder={memoType === "id" ? "1234567890" : "Text memo"}
-                inputMode={memoType === "id" ? "numeric" : undefined}
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                error={
-                  memoType === "id" && memo.trim() !== "" && !isMemoIdValid
-                    ? "Memo ID must be an unsigned integer"
-                    : undefined
-                }
-                disabled={state === "loading"}
-              />
+              <div className="flex flex-col gap-1.5">
+                <Input
+                  label={memoType === "id" ? "Memo ID" : "Memo (optional)"}
+                  placeholder={memoType === "id" ? "1234567890" : "Text memo"}
+                  inputMode={memoType === "id" ? "numeric" : undefined}
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  error={
+                    memoType === "id" && memo.trim() !== "" && !isMemoIdValid
+                      ? "Memo ID must be an unsigned integer"
+                      : undefined
+                  }
+                  disabled={state === "loading"}
+                />
+                {memoType === "text" && (
+                  <span
+                    className={`text-[10px] text-right ${memo.length >= 28 ? "text-red" : "text-ink-3"}`}
+                  >
+                    {memo.length}/28
+                  </span>
+                )}
+              </div>
             )}
           </form>
         )}
       </div>
 
-      <div className="px-6 py-4 border-t border-line flex items-center gap-3">
+      <div className="px-5 py-4 border-t border-line flex items-center gap-3">
         {state === "success" || state === "error" ? (
           <Button
             variant="secondary"
@@ -338,14 +436,26 @@ export function TransactionPanel() {
         ) : (
           <Button
             size="md"
-            loading={state === "loading"}
+            loading={state === "loading" || isBuildingPreview}
             disabled={!canSubmit}
             onClick={handleSendClick}
           >
-            {state === "loading" ? "Submitting…" : "Send Payment"}
+            {state === "loading"
+              ? "Submitting…"
+              : isBuildingPreview
+                ? "Preparing…"
+                : `Send ${selectedAsset}`}
           </Button>
         )}
       </div>
+
+      <TransactionConfirmModal
+        open={preview !== null}
+        transaction={preview}
+        isSigning={state === "loading"}
+        onCancel={() => setPreview(null)}
+        onConfirm={() => void submitTransaction()}
+      />
     </div>
   );
 }

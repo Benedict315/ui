@@ -2,6 +2,7 @@ import { Copy01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 
+import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/lib/utils";
 import { truncateAddress } from "@/lib/utils";
 
@@ -14,6 +15,8 @@ export interface AddressDisplayProps {
   label?: string;
   onCopy?: () => void;
   size?: "sm" | "md" | "lg";
+  masked?: boolean;
+  mono?: boolean;
 }
 
 const sizeConfig = {
@@ -31,6 +34,8 @@ export function AddressDisplay({
   label,
   onCopy,
   size = "md",
+  masked = false,
+  mono = false,
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
 
@@ -45,28 +50,29 @@ export function AddressDisplay({
     }
   }
 
-  const display = showFull ? address : truncateAddress(address, start, end);
+  const display = masked
+    ? `${address.slice(0, 4)}···${address.slice(-4)}`
+    : showFull
+      ? address
+      : truncateAddress(address, start, end);
   const { text, icon: iconSize } = sizeConfig[size];
 
-  return (
-    <div className={cn("flex flex-col gap-1", className)}>
-      {label && (
-        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
-          {label}
-        </span>
-      )}
-      <div className="flex items-center gap-2 group">
+  const addressSpan = (
+    <div className="flex items-center gap-2 group">
+      <Tooltip content={address}>
         <span
           data-address
           className={cn(
             "break-all leading-relaxed",
-            showFull && text,
+            text,
+            mono && "font-mono",
             showFull && "select-all",
           )}
-          title={address}
         >
           {display}
         </span>
+      </Tooltip>
+      <Tooltip content={copied ? "Copied!" : "Copy address"}>
         <button
           onClick={copy}
           aria-label={copied ? "Address copied" : "Copy address"}
@@ -76,7 +82,6 @@ export function AddressDisplay({
               ? "text-green bg-success-dim"
               : "text-ink-3 hover:text-ink-2 hover:bg-surface-2 opacity-50 hover:opacity-100",
           )}
-          title={copied ? "Copied!" : "Copy address"}
         >
           <HugeiconsIcon
             icon={copied ? Tick01Icon : Copy01Icon}
@@ -85,7 +90,24 @@ export function AddressDisplay({
             strokeWidth={2}
           />
         </button>
-      </div>
+      </Tooltip>
+    </div>
+  );
+
+  if (label) {
+    return (
+      <dl className={cn("flex flex-col gap-1", className)}>
+        <dt className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-4">
+          {label}
+        </dt>
+        <dd className="m-0">{addressSpan}</dd>
+      </dl>
+    );
+  }
+
+  return (
+    <div className={cn("flex flex-col gap-1", className)}>
+      {addressSpan}
     </div>
   );
 }

@@ -18,7 +18,10 @@ describe('TransactionPanel integration', () => {
   it('submits payment with correct payload', async () => {
     const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: 'txhash', ledger: 1 }, error: null });
     vi.mocked(getClient).mockReturnValue({
-      transaction: { submit: mockSubmit },
+      transaction: {
+        submit: mockSubmit,
+        estimateFee: vi.fn().mockResolvedValue({ data: { baseFee: '100', recommended: '100' }, error: null }),
+      },
     } as any);
 
     (useSorokit as any).mockReturnValue({
@@ -39,6 +42,9 @@ describe('TransactionPanel integration', () => {
     fireEvent.change(destInput, { target: { value: 'GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC' } });
     fireEvent.change(amountInput, { target: { value: '10' } });
     fireEvent.click(submitBtn);
+
+    await waitFor(() => screen.getByRole('dialog', { name: /confirm transaction/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirm & sign/i }));
 
     await waitFor(() => expect(mockSubmit).toHaveBeenCalledTimes(1));
     expect(mockSubmit).toHaveBeenCalledWith(
