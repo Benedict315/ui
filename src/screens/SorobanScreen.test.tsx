@@ -105,12 +105,12 @@ describe("SorobanScreen", () => {
       expect(input.value).toBe(CONTRACT_A);
     });
 
-    it("does not render the saved-contracts dropdown when there is only one entry", () => {
+    it("renders the saved-contracts dropdown with a single entry", () => {
       localStorage.setItem("sorokit-soroban-contract-history", JSON.stringify([CONTRACT_A]));
 
       render(<SorobanScreen />);
 
-      expect(screen.queryByText("Saved Contracts")).not.toBeInTheDocument();
+      expect(screen.getByText("Saved Contracts")).toBeInTheDocument();
     });
 
     it("lists saved contracts in a dropdown and applies one on click", () => {
@@ -142,6 +142,65 @@ describe("SorobanScreen", () => {
       const input = screen.getByPlaceholderText(/C\.\.\./i) as HTMLInputElement;
       expect(input.value).toBe("");
       expect(screen.queryByText("Saved Contracts")).not.toBeInTheDocument();
+    });
+
+    it("does not pre-fill an invalid contract id that is first in history", () => {
+      localStorage.setItem(
+        "sorokit-soroban-contract-history",
+        JSON.stringify(["not-a-valid-contract", CONTRACT_A]),
+      );
+
+      render(<SorobanScreen />);
+
+      const input = screen.getByPlaceholderText(/C\.\.\./i) as HTMLInputElement;
+      expect(input.value).toBe("");
+    });
+
+    it("removes a single saved contract from the dropdown and storage", () => {
+      localStorage.setItem(
+        "sorokit-soroban-contract-history",
+        JSON.stringify([CONTRACT_A, CONTRACT_B]),
+      );
+
+      render(<SorobanScreen />);
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: `Remove ${CONTRACT_A.slice(0, 6)}…${CONTRACT_A.slice(-4)} from saved contracts`,
+        }),
+      );
+
+      expect(screen.queryByText(`${CONTRACT_A.slice(0, 6)}…${CONTRACT_A.slice(-4)}`)).not.toBeInTheDocument();
+      expect(
+        JSON.parse(localStorage.getItem("sorokit-soroban-contract-history") ?? "[]"),
+      ).toEqual([CONTRACT_B]);
+    });
+
+    it("clears all saved contracts", () => {
+      localStorage.setItem(
+        "sorokit-soroban-contract-history",
+        JSON.stringify([CONTRACT_A, CONTRACT_B]),
+      );
+
+      render(<SorobanScreen />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+
+      expect(screen.queryByText("Saved Contracts")).not.toBeInTheDocument();
+      expect(
+        JSON.parse(localStorage.getItem("sorokit-soroban-contract-history") ?? "[]"),
+      ).toEqual([]);
+    });
+
+    it("shows the full contract id as a title on each saved-contract button", () => {
+      localStorage.setItem(
+        "sorokit-soroban-contract-history",
+        JSON.stringify([CONTRACT_A]),
+      );
+
+      render(<SorobanScreen />);
+
+      expect(screen.getByTitle(CONTRACT_A)).toBeInTheDocument();
     });
   });
 
@@ -210,6 +269,20 @@ describe("SorobanScreen", () => {
       } as unknown as ReturnType<typeof useSorokit>);
 
       render(<SorobanScreen />);
+
+      expect(screen.queryByRole("link", { name: /Stellar Expert/i })).not.toBeInTheDocument();
+    });
+
+    it("renders no Stellar Expert link for a non-empty but invalid contract id", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        isConnected: true,
+        address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA",
+        network: { name: "testnet" },
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<SorobanScreen />);
+      const input = screen.getByPlaceholderText(/C\.\.\./i);
+      fireEvent.change(input, { target: { value: "not-a-valid-contract" } });
 
       expect(screen.queryByRole("link", { name: /Stellar Expert/i })).not.toBeInTheDocument();
     });
