@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
-import { getClient, type BatchEntry, BatchEntryResult, BatchResult, BatchProgress } from "@/lib/client";
+import { type BatchEntry, BatchEntryResult, BatchProgress,BatchResult, getClient } from "@/lib/client";
 import { cn, truncateAddress } from "@/lib/utils";
 
 const STATUS_BADGE: Record<BatchEntryResult["status"], { variant: "default" | "warning" | "primary" | "success" | "error"; label: string }> = {

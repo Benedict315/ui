@@ -1,5 +1,5 @@
 import { FlameIcon } from "@hugeicons/core-free-icons";
-import { BulbIcon, ClockIcon, CircleGaugeIcon, Refresh01Icon, CalculatorIcon, ZapIcon } from "@hugeicons/core-free-icons";
+import { BulbIcon, CalculatorIcon, CircleGaugeIcon, ClockIcon, Refresh01Icon, ZapIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useState } from "react";
 

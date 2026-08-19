@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+
 import GovernanceDashboard from './GovernanceDashboard';
 
 test('renders dashboard', () => {

@@ -49,13 +49,19 @@ export interface TransactionHistoryTableProps {
 function formatDate(iso: string): { date: string; time: string } {
   const d = new Date(iso);
   return {
-    date: d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }),
+    date: d.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }),
     time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
   };
 }
 
 function truncateMemo(memo: string): string {
-  return memo.length > MEMO_TRUNCATE_LENGTH ? `${memo.slice(0, MEMO_TRUNCATE_LENGTH)}…` : memo;
+  return memo.length > MEMO_TRUNCATE_LENGTH
+    ? `${memo.slice(0, MEMO_TRUNCATE_LENGTH)}…`
+    : memo;
 }
 
 function matchesFilters(tx: Transaction, filters: TransactionFilters): boolean {
@@ -63,15 +69,25 @@ function matchesFilters(tx: Transaction, filters: TransactionFilters): boolean {
     if (filters.status === "success" && !tx.successful) return false;
     if (filters.status === "failed" && tx.successful) return false;
   }
-  if (filters.dateFrom && new Date(tx.createdAt) < new Date(filters.dateFrom)) return false;
-  if (filters.dateTo && new Date(tx.createdAt) > new Date(filters.dateTo + "T23:59:59")) return false;
+  if (filters.dateFrom && new Date(tx.createdAt) < new Date(filters.dateFrom))
+    return false;
+  if (
+    filters.dateTo &&
+    new Date(tx.createdAt) > new Date(filters.dateTo + "T23:59:59")
+  )
+    return false;
   const feeNum = Number(tx.feePaid);
   if (filters.amountFrom && feeNum < Number(filters.amountFrom)) return false;
   if (filters.amountTo && feeNum > Number(filters.amountTo)) return false;
   return true;
 }
 
-function compareValues(a: Transaction, b: Transaction, field: SortField, dir: SortDirection): number {
+function compareValues(
+  a: Transaction,
+  b: Transaction,
+  field: SortField,
+  dir: SortDirection,
+): number {
   const aVal = a[field];
   const bVal = b[field];
   if (typeof aVal === "string" && typeof bVal === "string") {
@@ -114,7 +130,16 @@ function escapeCsv(value: string): string {
 }
 
 function generateCsv(rows: Transaction[]): Blob {
-  const headers = ["Hash", "Ledger", "Date", "Time", "Status", "Fee (stroops)", "Operations", "Memo"];
+  const headers = [
+    "Hash",
+    "Ledger",
+    "Date",
+    "Time",
+    "Status",
+    "Fee (stroops)",
+    "Operations",
+    "Memo",
+  ];
   const lines: string[] = [headers.join(",")];
 
   for (const tx of rows) {
@@ -190,14 +215,24 @@ function FilterBar({ filters, onChange, show, onToggle }: FilterBarProps) {
         onClick={onToggle}
         className="flex items-center gap-1.5 text-[11px] font-medium text-ink-3 hover:text-ink transition-colors px-5 py-2 w-full"
       >
-        <HugeiconsIcon icon={FilterIcon} size={12} color="currentColor" strokeWidth={1.5} />
+        <HugeiconsIcon
+          icon={FilterIcon}
+          size={12}
+          color="currentColor"
+          strokeWidth={1.5}
+        />
         {show ? "Hide filters" : "Show filters"}
       </button>
       {show && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 px-5 pb-4">
           <select
             value={filters.status}
-            onChange={(e) => onChange({ ...filters, status: e.target.value as TransactionFilters["status"] })}
+            onChange={(e) =>
+              onChange({
+                ...filters,
+                status: e.target.value as TransactionFilters["status"],
+              })
+            }
             className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-ink-3 transition-colors"
             aria-label="Filter by status"
           >
@@ -225,7 +260,9 @@ function FilterBar({ filters, onChange, show, onToggle }: FilterBarProps) {
             type="number"
             label=""
             value={filters.amountFrom}
-            onChange={(e) => onChange({ ...filters, amountFrom: e.target.value })}
+            onChange={(e) =>
+              onChange({ ...filters, amountFrom: e.target.value })
+            }
             placeholder="Min fee"
             className="text-[12px]"
           />
@@ -256,7 +293,14 @@ interface SortHeaderProps {
   className?: string;
 }
 
-function SortHeader({ label, field, currentField, direction, onChange, className }: SortHeaderProps) {
+function SortHeader({
+  label,
+  field,
+  currentField,
+  direction,
+  onChange,
+  className,
+}: SortHeaderProps) {
   const isActive = currentField === field;
   return (
     <th
@@ -265,7 +309,9 @@ function SortHeader({ label, field, currentField, direction, onChange, className
         className,
       )}
       onClick={() => onChange(field)}
-      aria-sort={isActive ? (direction === "asc" ? "ascending" : "descending") : "none"}
+      aria-sort={
+        isActive ? (direction === "asc" ? "ascending" : "descending") : "none"
+      }
     >
       <div className="flex items-center gap-1">
         {label}
@@ -274,7 +320,10 @@ function SortHeader({ label, field, currentField, direction, onChange, className
           size={10}
           color="currentColor"
           strokeWidth={1.5}
-          className={cn("transition-transform", isActive && direction === "desc" && "rotate-180")}
+          className={cn(
+            "transition-transform",
+            isActive && direction === "desc" && "rotate-180",
+          )}
         />
       </div>
     </th>
@@ -285,7 +334,10 @@ function SortHeader({ label, field, currentField, direction, onChange, className
 /*  Transaction History Table                                          */
 /* ------------------------------------------------------------------ */
 
-export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: TransactionHistoryTableProps) {
+export function TransactionHistoryTable({
+  className,
+  pageSize = PAGE_SIZE,
+}: TransactionHistoryTableProps) {
   const { address, isConnected, network } = useSorokit();
   const [allTxs, setAllTxs] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -329,9 +381,9 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
     };
   }, [address]);
 
-  // Reset page when filters change
+   
   useEffect(() => {
-    setPage(1);
+    setPage((prev) => (prev !== 1 ? 1 : prev));
   }, [filters]);
 
   // Toggle sort
@@ -348,7 +400,10 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
   );
 
   // Filter + sort + paginate
-  const filtered = useMemo(() => allTxs.filter((tx) => matchesFilters(tx, filters)), [allTxs, filters]);
+  const filtered = useMemo(
+    () => allTxs.filter((tx) => matchesFilters(tx, filters)),
+    [allTxs, filters],
+  );
   const sorted = useMemo(
     () => [...filtered].sort((a, b) => compareValues(a, b, sortField, sortDir)),
     [filtered, sortField, sortDir],
@@ -358,13 +413,22 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
   const paged = sorted.slice((page - 1) * pageSize, page * pageSize);
 
   return (
-    <div className={cn("rounded-xl border border-line bg-surface overflow-hidden", className)}>
+    <div
+      className={cn(
+        "rounded-xl border border-line bg-surface overflow-hidden",
+        className,
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-line">
         <div>
-          <h3 className="text-[14px] font-semibold text-ink">Transaction History</h3>
+          <h3 className="text-[14px] font-semibold text-ink">
+            Transaction History
+          </h3>
           <p className="text-[12px] text-ink-3 mt-0.5">
-            {totalFiltered > 0 ? `${totalFiltered} transaction${totalFiltered !== 1 ? "s" : ""}` : "Past transactions"}
+            {totalFiltered > 0
+              ? `${totalFiltered} transaction${totalFiltered !== 1 ? "s" : ""}`
+              : "Past transactions"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -372,8 +436,17 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
             <span className="w-4 h-4 border border-ink-3 border-t-transparent rounded-full animate-spin" />
           )}
           {allTxs.length > 0 && (
-            <Button variant="secondary" size="sm" onClick={() => downloadCsv(allTxs)}>
-              <HugeiconsIcon icon={Download01Icon} size={12} color="currentColor" strokeWidth={1.5} />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => downloadCsv(allTxs)}
+            >
+              <HugeiconsIcon
+                icon={Download01Icon}
+                size={12}
+                color="currentColor"
+                strokeWidth={1.5}
+              />
               <span className="hidden sm:inline">CSV</span>
             </Button>
           )}
@@ -381,11 +454,18 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
       </div>
 
       {/* Filters */}
-      <FilterBar filters={filters} onChange={setFilters} show={showFilters} onToggle={() => setShowFilters((s) => !s)} />
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        show={showFilters}
+        onToggle={() => setShowFilters((s) => !s)}
+      />
 
       {/* States */}
       {!isConnected ? (
-        <div className="text-[13px] text-ink-3 text-center py-10">Connect your wallet to view history</div>
+        <div className="text-[13px] text-ink-3 text-center py-10">
+          Connect your wallet to view history
+        </div>
       ) : error ? (
         <div className="text-[13px] text-red text-center py-10">{error}</div>
       ) : loading && allTxs.length === 0 ? (
@@ -402,9 +482,13 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
           ))}
         </div>
       ) : allTxs.length === 0 ? (
-        <div className="text-[13px] text-ink-3 text-center py-10">No transactions found</div>
+        <div className="text-[13px] text-ink-3 text-center py-10">
+          No transactions found
+        </div>
       ) : paged.length === 0 ? (
-        <div className="text-[13px] text-ink-3 text-center py-10">No transactions match the current filters</div>
+        <div className="text-[13px] text-ink-3 text-center py-10">
+          No transactions match the current filters
+        </div>
       ) : (
         <>
           {/* Desktop table */}
@@ -413,19 +497,58 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
               <thead>
                 <tr className="border-b border-line">
                   <th className="text-[11px] font-semibold text-ink-3 uppercase tracking-wider px-4 py-3 text-left w-10" />
-                  <SortHeader label="Hash" field="createdAt" currentField={sortField} direction={sortDir} onChange={handleSort} />
-                  <SortHeader label="Ledger" field="ledger" currentField={sortField} direction={sortDir} onChange={handleSort} className="w-20 text-right" />
-                  <SortHeader label="Date" field="createdAt" currentField={sortField} direction={sortDir} onChange={handleSort} className="w-36" />
-                  <SortHeader label="Fee" field="feePaid" currentField={sortField} direction={sortDir} onChange={handleSort} className="w-28 text-right" />
-                  <SortHeader label="Ops" field="operationCount" currentField={sortField} direction={sortDir} onChange={handleSort} className="w-16 text-center" />
-                  <th className="text-[11px] font-semibold text-ink-3 uppercase tracking-wider px-4 py-3 text-left w-24">Status</th>
+                  <SortHeader
+                    label="Hash"
+                    field="createdAt"
+                    currentField={sortField}
+                    direction={sortDir}
+                    onChange={handleSort}
+                  />
+                  <SortHeader
+                    label="Ledger"
+                    field="ledger"
+                    currentField={sortField}
+                    direction={sortDir}
+                    onChange={handleSort}
+                    className="w-20 text-right"
+                  />
+                  <SortHeader
+                    label="Date"
+                    field="createdAt"
+                    currentField={sortField}
+                    direction={sortDir}
+                    onChange={handleSort}
+                    className="w-36"
+                  />
+                  <SortHeader
+                    label="Fee"
+                    field="feePaid"
+                    currentField={sortField}
+                    direction={sortDir}
+                    onChange={handleSort}
+                    className="w-28 text-right"
+                  />
+                  <SortHeader
+                    label="Ops"
+                    field="operationCount"
+                    currentField={sortField}
+                    direction={sortDir}
+                    onChange={handleSort}
+                    className="w-16 text-center"
+                  />
+                  <th className="text-[11px] font-semibold text-ink-3 uppercase tracking-wider px-4 py-3 text-left w-24">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {paged.map((tx) => {
                   const { date, time } = formatDate(tx.createdAt);
                   return (
-                    <tr key={tx.hash} className="border-b border-line last:border-0 hover:bg-surface-2/50 transition-colors">
+                    <tr
+                      key={tx.hash}
+                      className="border-b border-line last:border-0 hover:bg-surface-2/50 transition-colors"
+                    >
                       <td className="px-4 py-3">
                         <StatusIcon successful={tx.successful} />
                       </td>
@@ -441,16 +564,24 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
                               className="text-[13px] text-ink font-mono hover:underline hover:text-brand inline-flex items-center gap-1"
                             >
                               {truncateAddress(tx.hash, 8, 6)}
-                              <span aria-hidden="true" className="opacity-60">↗</span>
+                              <span aria-hidden="true" className="opacity-60">
+                                ↗
+                              </span>
                             </a>
                           ) : (
-                            <span data-txhash className="text-[13px] text-ink font-mono">
+                            <span
+                              data-txhash
+                              className="text-[13px] text-ink font-mono"
+                            >
                               {truncateAddress(tx.hash, 8, 6)}
                             </span>
                           );
                         })()}
                         {tx.memo && (
-                          <span className="block text-[10px] text-ink-3 mt-0.5" title={tx.memo}>
+                          <span
+                            className="block text-[10px] text-ink-3 mt-0.5"
+                            title={tx.memo}
+                          >
                             {truncateMemo(tx.memo)}
                           </span>
                         )}
@@ -460,7 +591,9 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-[13px] text-ink">{date}</span>
-                        <span className="block text-[10px] text-ink-3">{time}</span>
+                        <span className="block text-[10px] text-ink-3">
+                          {time}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-[13px] text-ink text-right font-mono">
                         {tx.feePaid}
@@ -469,7 +602,10 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
                         {tx.operationCount}
                       </td>
                       <td className="px-4 py-3">
-                        <Badge variant={tx.successful ? "success" : "error"} live>
+                        <Badge
+                          variant={tx.successful ? "success" : "error"}
+                          live
+                        >
                           {tx.successful ? "Success" : "Failed"}
                         </Badge>
                       </td>
@@ -485,7 +621,10 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
             {paged.map((tx) => {
               const { date, time } = formatDate(tx.createdAt);
               return (
-                <div key={tx.hash} className="flex items-center gap-3 px-4 py-3">
+                <div
+                  key={tx.hash}
+                  className="flex items-center gap-3 px-4 py-3"
+                >
                   <StatusIcon successful={tx.successful} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -502,19 +641,28 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
                             {truncateAddress(tx.hash, 8, 6)}
                           </a>
                         ) : (
-                          <span data-txhash className="text-[13px] text-ink font-mono truncate">
+                          <span
+                            data-txhash
+                            className="text-[13px] text-ink font-mono truncate"
+                          >
                             {truncateAddress(tx.hash, 8, 6)}
                           </span>
                         );
                       })()}
-                      <Badge variant={tx.successful ? "success" : "error"} live className="shrink-0">
+                      <Badge
+                        variant={tx.successful ? "success" : "error"}
+                        live
+                        className="shrink-0"
+                      >
                         {tx.successful ? "Success" : "Failed"}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 text-[11px] text-ink-3">
                       <span>Ledger {tx.ledger}</span>
                       <span>·</span>
-                      <span>{date} {time}</span>
+                      <span>
+                        {date} {time}
+                      </span>
                       <span>·</span>
                       <span>{tx.feePaid} stroops</span>
                     </div>
@@ -538,7 +686,12 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
                 >
-                  <HugeiconsIcon icon={ArrowLeft01Icon} size={12} color="currentColor" strokeWidth={2} />
+                  <HugeiconsIcon
+                    icon={ArrowLeft01Icon}
+                    size={12}
+                    color="currentColor"
+                    strokeWidth={2}
+                  />
                   Prev
                 </Button>
                 <Button
@@ -549,7 +702,12 @@ export function TransactionHistoryTable({ className, pageSize = PAGE_SIZE }: Tra
                   onClick={() => setPage((p) => p + 1)}
                 >
                   Next
-                  <HugeiconsIcon icon={ArrowRight01Icon} size={12} color="currentColor" strokeWidth={2} />
+                  <HugeiconsIcon
+                    icon={ArrowRight01Icon}
+                    size={12}
+                    color="currentColor"
+                    strokeWidth={2}
+                  />
                 </Button>
               </div>
             </div>

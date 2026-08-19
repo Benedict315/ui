@@ -1,7 +1,7 @@
-import { Badge } from "@/components/ui/Badge";
 import { AssetPill } from "@/components/AssetBadge";
-import { formatPct } from "@/lib/rebalancer";
+import { Badge } from "@/components/ui/Badge";
 import type { SwapSuggestion } from "@/lib/rebalancer";
+import { formatPct } from "@/lib/rebalancer";
 
 export interface SwapExecutionTrackerProps {
   swap: SwapSuggestion;

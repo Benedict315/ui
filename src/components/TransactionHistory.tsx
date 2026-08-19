@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { useSorokit } from "@/context/useSorokit";
 import type { Transaction } from "@/lib/client";
 import { getClient } from "@/lib/client";
-import { cn,truncateAddress } from "@/lib/utils";
+import { cn, truncateAddress } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 const MEMO_TRUNCATE_LENGTH = 20;
@@ -57,9 +57,7 @@ function dailyCounts(txs: Transaction[], now: Date = new Date()): number[] {
       created.getMonth(),
       created.getDate(),
     ).getTime();
-    const daysAgo = Math.round(
-      (startOfToday - startOfCreatedDay) / MS_PER_DAY,
-    );
+    const daysAgo = Math.round((startOfToday - startOfCreatedDay) / MS_PER_DAY);
     if (daysAgo >= 0 && daysAgo < TREND_DAYS) {
       counts[TREND_DAYS - 1 - daysAgo] += 1;
     }
@@ -130,7 +128,11 @@ function explorerTxUrl(
   hash: string,
 ): string | null {
   const segment =
-    networkName === "mainnet" ? "public" : networkName === "testnet" ? "testnet" : null;
+    networkName === "mainnet"
+      ? "public"
+      : networkName === "testnet"
+        ? "testnet"
+        : null;
   if (!segment) return null;
   return `https://stellar.expert/explorer/${segment}/tx/${hash}`;
 }
@@ -210,9 +212,7 @@ export function TxRow({
           <span className="text-[10px] text-ink-3">
             {dateStr} {timeStr}
           </span>
-          <span className="text-[10px] text-ink-3">
-            · {tx.feePaid} stroops
-          </span>
+          <span className="text-[10px] text-ink-3">· {tx.feePaid} stroops</span>
         </div>
       </div>
     </RowWrapper>
@@ -242,8 +242,12 @@ export function TransactionHistory({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+   
   useEffect(() => {
-    setPage(readStoredPage(address));
+    setPage((prev) => {
+      const stored = readStoredPage(address);
+      return prev !== stored ? stored : prev;
+    });
   }, [address]);
 
   useEffect(() => {
@@ -287,7 +291,8 @@ export function TransactionHistory({
     if (statusFilter === "failed" && tx.successful) return false;
     if (multiOpOnly && tx.operationCount <= 1) return false;
     if (startDate && new Date(tx.createdAt) < new Date(startDate)) return false;
-    if (endDate && new Date(tx.createdAt) > new Date(endDate + "T23:59:59")) return false;
+    if (endDate && new Date(tx.createdAt) > new Date(endDate + "T23:59:59"))
+      return false;
     return true;
   });
 
@@ -383,7 +388,9 @@ export function TransactionHistory({
               strokeWidth={1.5}
             />
           </div>
-          <p className="text-[13px] font-medium text-ink">No transactions yet</p>
+          <p className="text-[13px] font-medium text-ink">
+            No transactions yet
+          </p>
           {network?.name === "testnet" && (
             <a
               href="https://friendbot.stellar.org"
@@ -407,7 +414,10 @@ export function TransactionHistory({
               <span className="text-[11px] text-ink-3">
                 {filteredTxs.length} shown
               </span>
-              <span data-fee-total className="text-[11px] text-ink-2 tabular-nums">
+              <span
+                data-fee-total
+                className="text-[11px] text-ink-2 tabular-nums"
+              >
                 Total fees: {feeTotal.toLocaleString()} stroops (≈{" "}
                 {stroopsToXlm(feeTotal)} XLM)
               </span>

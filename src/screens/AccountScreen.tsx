@@ -1,4 +1,4 @@
-import { Refresh01Icon, Download01Icon } from "@hugeicons/core-free-icons";
+import { Download01Icon,Refresh01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useState } from "react";
 

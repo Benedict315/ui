@@ -21,8 +21,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
 import type { Nft, NftCollection } from "@/lib/client";
+import { getClient } from "@/lib/client";
 import { cn } from "@/lib/utils";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

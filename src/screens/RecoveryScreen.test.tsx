@@ -1,5 +1,6 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { act,fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+
 import { RecoveryScreen } from "./RecoveryScreen";
 
 describe("RecoveryScreen", () => {

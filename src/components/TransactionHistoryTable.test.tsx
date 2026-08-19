@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { TransactionHistoryTable } from "./TransactionHistoryTable";
-import { getClient } from "@/lib/client";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach,describe, expect, it, vi } from "vitest";
+
 import type { Transaction } from "@/lib/client";
+import { getClient } from "@/lib/client";
+
+import { TransactionHistoryTable } from "./TransactionHistoryTable";
 
 // Mock context
 vi.mock("@/context/useSorokit", () => ({

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+
 import { LabelledValue } from "./LabelledValue";
 
 interface InfoCellProps {

@@ -1,20 +1,20 @@
 import {
-  ChevronDownIcon,
   ArrowDown01Icon,
-  CheckmarkCircle01Icon,
-  Delete01Icon,
-  ClockIcon,
-  Refresh01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  CheckmarkCircle01Icon,
+  ChevronDownIcon,
+  ClockIcon,
+  Delete01Icon,
+  Refresh01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useState } from "react";
 
+import { Badge } from "@/components/ui/Badge";
+import type { AllowanceEntry } from "@/lib/client";
 import { getClient } from "@/lib/client";
 import { cn } from "@/lib/utils";
-import type { AllowanceEntry } from "@/lib/client";
-import { Badge } from "@/components/ui/Badge";
 
 interface AllowanceManagerProps {
   className?: string;

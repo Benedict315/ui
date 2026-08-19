@@ -1,7 +1,7 @@
-import { type ComponentType,useCallback,useState } from "react";
+import { type ComponentType, useCallback, useState } from "react";
 
 import { NetworkBanner } from "@/components/NetworkBanner";
-import { type NavSection,Sidebar } from "@/components/Sidebar";
+import { type NavSection, Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { AccountScreen } from "@/screens/AccountScreen";
 import { BudgetScreen } from "@/screens/BudgetScreen";
@@ -30,10 +30,6 @@ const SCREENS: Record<NavSection, ComponentType> = {
 export interface DashboardProps {
   /** Max width of the main content column. Defaults to "700px". */
   maxContentWidth?: string;
-}
-
-export function Dashboard({ maxContentWidth = "700px" }: DashboardProps = {}) {
-  const [active, setActive] = useState<NavSection>("wallet");
   /**
    * Controlled active section. When provided, `Dashboard` renders this section
    * and never changes it internally — the parent owns the state and should

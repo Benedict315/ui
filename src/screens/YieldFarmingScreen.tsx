@@ -1,7 +1,15 @@
-import { useState, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { useEffect, useState } from "react";
+
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
 
 interface FarmPosition {
   id: string;
@@ -28,7 +36,7 @@ export function YieldFarmingScreen() {
       baseApy: 12.5,
       bonusApy: 4.2,
       claimableRewards: 12.45,
-      pendingRewards: 2.10,
+      pendingRewards: 2.1,
       timeInFarmSeconds: 86400 * 12 + 3600 * 4, // 12 days 4 hours
       initialUsdValue: 1060, // e.g. price change caused some IL
     },
@@ -62,11 +70,13 @@ export function YieldFarmingScreen() {
           const pending = 0.005 + Math.random() * 0.01;
           return {
             ...pos,
-            claimableRewards: Number((pos.claimableRewards + earned).toFixed(4)),
+            claimableRewards: Number(
+              (pos.claimableRewards + earned).toFixed(4),
+            ),
             pendingRewards: Number((pos.pendingRewards + pending).toFixed(4)),
             timeInFarmSeconds: pos.timeInFarmSeconds + 5,
           };
-        })
+        }),
       );
     }, 5000);
 
@@ -90,19 +100,34 @@ export function YieldFarmingScreen() {
   };
 
   // Perform calculations
-  const totalClaimable = positions.reduce((acc, pos) => acc + pos.claimableRewards, 0);
+  const totalClaimable = positions.reduce(
+    (acc, pos) => acc + pos.claimableRewards,
+    0,
+  );
 
   return (
     <div className="space-y-6" data-testid="farming-screen">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-ink">Yield Farming Positions</h2>
-          <p className="text-[13px] text-ink-3">Track deposited capital, APY, rewards, and projected returns across Stellar pools.</p>
+          <h2 className="text-2xl font-bold text-ink">
+            Yield Farming Positions
+          </h2>
+          <p className="text-[13px] text-ink-3">
+            Track deposited capital, APY, rewards, and projected returns across
+            Stellar pools.
+          </p>
         </div>
         <div className="text-right bg-brand-dim border border-[rgba(86,69,212,0.2)] px-4 py-2 rounded-lg">
-          <p className="text-[11px] text-brand uppercase font-bold tracking-wider">Total Claimable Rewards</p>
-          <p className="text-[18px] font-extrabold text-ink" data-testid="total-rewards">{totalClaimable.toFixed(4)} XLM</p>
+          <p className="text-[11px] text-brand uppercase font-bold tracking-wider">
+            Total Claimable Rewards
+          </p>
+          <p
+            className="text-[18px] font-extrabold text-ink"
+            data-testid="total-rewards"
+          >
+            {totalClaimable.toFixed(4)} XLM
+          </p>
         </div>
       </div>
 
@@ -112,7 +137,6 @@ export function YieldFarmingScreen() {
           const totalApy = pos.baseApy + pos.bonusApy;
           const dailyProjected = (pos.usdValue * (totalApy / 100)) / 365;
           const weeklyProjected = dailyProjected * 7;
-          const yearlyProjected = pos.usdValue * (totalApy / 100);
 
           // Impermanent Loss Estimate calculation
           // Simplified: difference between pool value vs holding values
@@ -122,53 +146,85 @@ export function YieldFarmingScreen() {
           const ilPercentage = holdValue > 0 ? (ilAmount / holdValue) * 100 : 0;
 
           return (
-            <Card key={pos.id} className="border-line bg-surface overflow-hidden" data-testid="farming-card">
+            <Card
+              key={pos.id}
+              className="border-line bg-surface overflow-hidden"
+              data-testid="farming-card"
+            >
               <CardHeader className="flex flex-row items-center justify-between bg-surface-2/40">
                 <div>
-                  <CardTitle className="text-[16px] font-bold text-ink">{pos.pool}</CardTitle>
-                  <CardDescription>Time in Farm: {formatDuration(pos.timeInFarmSeconds)}</CardDescription>
+                  <CardTitle className="text-[16px] font-bold text-ink">
+                    {pos.pool}
+                  </CardTitle>
+                  <CardDescription>
+                    Time in Farm: {formatDuration(pos.timeInFarmSeconds)}
+                  </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="teal">Base APY: {pos.baseApy}%</Badge>
-                  {pos.bonusApy > 0 && <Badge variant="primary">+{pos.bonusApy}% Bonus</Badge>}
+                  {pos.bonusApy > 0 && (
+                    <Badge variant="primary">+{pos.bonusApy}% Bonus</Badge>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="py-4 grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Deposited Capital */}
                 <div>
-                  <p className="text-[11px] font-bold uppercase text-ink-3">Deposited Balance</p>
+                  <p className="text-[11px] font-bold uppercase text-ink-3">
+                    Deposited Balance
+                  </p>
                   <div className="mt-1 space-y-0.5">
                     <p className="text-[13px] text-ink">{pos.depositedA}</p>
                     <p className="text-[13px] text-ink">{pos.depositedB}</p>
                   </div>
-                  <p className="text-[11px] text-ink-4 mt-2">Value: ${pos.usdValue}</p>
+                  <p className="text-[11px] text-ink-4 mt-2">
+                    Value: ${pos.usdValue}
+                  </p>
                 </div>
 
                 {/* Rewards Accumulation */}
                 <div>
-                  <p className="text-[11px] font-bold uppercase text-ink-3">Accrued Rewards</p>
+                  <p className="text-[11px] font-bold uppercase text-ink-3">
+                    Accrued Rewards
+                  </p>
                   <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-[18px] font-bold text-ink">{pos.claimableRewards.toFixed(4)} XLM</span>
+                    <span className="text-[18px] font-bold text-ink">
+                      {pos.claimableRewards.toFixed(4)} XLM
+                    </span>
                     <Badge variant="success">Claimable</Badge>
                   </div>
-                  <p className="text-[11px] text-ink-4 mt-1">Pending: {pos.pendingRewards.toFixed(4)} XLM</p>
+                  <p className="text-[11px] text-ink-4 mt-1">
+                    Pending: {pos.pendingRewards.toFixed(4)} XLM
+                  </p>
                 </div>
 
                 {/* Projections & IL */}
                 <div>
-                  <p className="text-[11px] font-bold uppercase text-ink-3">Risk & Projections</p>
+                  <p className="text-[11px] font-bold uppercase text-ink-3">
+                    Risk & Projections
+                  </p>
                   <div className="mt-1.5 space-y-1">
                     <div className="flex justify-between text-[12px] text-ink-2">
                       <span>Daily Projection:</span>
-                      <strong className="text-ink">${dailyProjected.toFixed(2)}</strong>
+                      <strong className="text-ink">
+                        ${dailyProjected.toFixed(2)}
+                      </strong>
                     </div>
                     <div className="flex justify-between text-[12px] text-ink-2">
                       <span>Weekly Projection:</span>
-                      <strong className="text-ink">${weeklyProjected.toFixed(2)}</strong>
+                      <strong className="text-ink">
+                        ${weeklyProjected.toFixed(2)}
+                      </strong>
                     </div>
                     <div className="flex justify-between text-[12px] text-ink-2">
                       <span>Impermanent Loss (Est):</span>
-                      <span className={ilPercentage > 0.1 ? "text-orange font-semibold" : "text-green"}>
+                      <span
+                        className={
+                          ilPercentage > 0.1
+                            ? "text-orange font-semibold"
+                            : "text-green"
+                        }
+                      >
                         -{ilPercentage.toFixed(2)}% (${ilAmount.toFixed(2)})
                       </span>
                     </div>
@@ -176,10 +232,18 @@ export function YieldFarmingScreen() {
                 </div>
               </CardContent>
               <CardFooter className="bg-surface-2/20 flex justify-between items-center py-3">
-                <Button variant="secondary" size="sm" onClick={() => handleRemoveClick(pos)}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleRemoveClick(pos)}
+                >
                   Remove Liquidity
                 </Button>
-                <Button variant="primary" size="sm" onClick={() => handleClaimClick(pos)}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleClaimClick(pos)}
+                >
                   Claim Rewards
                 </Button>
               </CardFooter>
@@ -190,15 +254,22 @@ export function YieldFarmingScreen() {
 
       {/* Claim Modal */}
       {modalType === "claim" && selectedFarm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" data-testid="claim-modal">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          data-testid="claim-modal"
+        >
           <Card className="max-w-[400px] w-full bg-surface">
             <CardHeader>
               <CardTitle>Claim Farming Rewards</CardTitle>
-              <CardDescription>Verify fees and claim your rewards from {selectedFarm.pool}.</CardDescription>
+              <CardDescription>
+                Verify fees and claim your rewards from {selectedFarm.pool}.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-3.5 rounded bg-surface-2 border border-line">
-                <p className="text-[11px] text-ink-3">Accumulated Reward Balance</p>
+                <p className="text-[11px] text-ink-3">
+                  Accumulated Reward Balance
+                </p>
                 <p className="text-[20px] font-bold text-ink mt-1">
                   {selectedFarm.claimableRewards.toFixed(4)} XLM
                 </p>
@@ -209,7 +280,11 @@ export function YieldFarmingScreen() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button variant="secondary" size="sm" onClick={() => setModalType(null)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setModalType(null)}
+              >
                 Cancel
               </Button>
               <Button
@@ -218,8 +293,10 @@ export function YieldFarmingScreen() {
                 onClick={() => {
                   setPositions(
                     positions.map((p) =>
-                      p.id === selectedFarm.id ? { ...p, claimableRewards: 0 } : p
-                    )
+                      p.id === selectedFarm.id
+                        ? { ...p, claimableRewards: 0 }
+                        : p,
+                    ),
                   );
                   setModalType(null);
                 }}
@@ -233,11 +310,16 @@ export function YieldFarmingScreen() {
 
       {/* Remove Liquidity Modal */}
       {modalType === "remove" && selectedFarm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" data-testid="remove-modal">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          data-testid="remove-modal"
+        >
           <Card className="max-w-[400px] w-full bg-surface">
             <CardHeader>
               <CardTitle>Remove Liquidity</CardTitle>
-              <CardDescription>Confirm withdrawal from the {selectedFarm.pool} pool.</CardDescription>
+              <CardDescription>
+                Confirm withdrawal from the {selectedFarm.pool} pool.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1">
@@ -256,20 +338,33 @@ export function YieldFarmingScreen() {
                 />
               </div>
               <div className="p-3 bg-surface-2 rounded border border-line text-[11px] text-ink-2 space-y-1">
-                <p><strong>Withdrawal Estimate:</strong></p>
-                <p>Receiving: {selectedFarm.depositedA} + {selectedFarm.depositedB}</p>
-                <p className="text-ink-3">Estimated value: ~${selectedFarm.usdValue}</p>
+                <p>
+                  <strong>Withdrawal Estimate:</strong>
+                </p>
+                <p>
+                  Receiving: {selectedFarm.depositedA} +{" "}
+                  {selectedFarm.depositedB}
+                </p>
+                <p className="text-ink-3">
+                  Estimated value: ~${selectedFarm.usdValue}
+                </p>
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button variant="secondary" size="sm" onClick={() => setModalType(null)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setModalType(null)}
+              >
                 Cancel
               </Button>
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={() => {
-                  setPositions(positions.filter((p) => p.id !== selectedFarm.id));
+                  setPositions(
+                    positions.filter((p) => p.id !== selectedFarm.id),
+                  );
                   setModalType(null);
                 }}
               >

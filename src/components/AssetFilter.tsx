@@ -2,19 +2,19 @@ import {
   ArrowDown01Icon,
   Cancel01Icon,
   Search01Icon,
-  StarIcon,
   StarIcon as StarFillIcon,
+  StarIcon,
   Tick01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
+  type ReactNode,
   useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 
 import type { Balance } from "@/lib/client";

@@ -53,8 +53,8 @@ export {
 
 // Assets
 export { AssetBadge, AssetPill, isKnownAsset } from "./AssetBadge";
-export { AssetFilter, AssetFilterSkeleton } from "./AssetFilter";
 export type { AssetItem, AssetMeta, SortKey, VerifiedFilter } from "./AssetFilter";
+export { AssetFilter, AssetFilterSkeleton } from "./AssetFilter";
 
 // Address
 export { AddressDisplay } from "./AddressDisplay";

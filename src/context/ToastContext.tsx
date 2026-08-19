@@ -1,5 +1,12 @@
-import { createContext, useCallback, useContext, useState, useRef, useEffect } from "react";
 import type { ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -23,10 +30,22 @@ interface ToastContextValue {
   toasts: Toast[];
   addToast: (toast: Omit<Toast, "id">) => string;
   removeToast: (id: string) => void;
-  success: (title: string, options?: Omit<Partial<Toast>, "id" | "title" | "type">) => string;
-  error: (title: string, options?: Omit<Partial<Toast>, "id" | "title" | "type">) => string;
-  warning: (title: string, options?: Omit<Partial<Toast>, "id" | "title" | "type">) => string;
-  info: (title: string, options?: Omit<Partial<Toast>, "id" | "title" | "type">) => string;
+  success: (
+    title: string,
+    options?: Omit<Partial<Toast>, "id" | "title" | "type">,
+  ) => string;
+  error: (
+    title: string,
+    options?: Omit<Partial<Toast>, "id" | "title" | "type">,
+  ) => string;
+  warning: (
+    title: string,
+    options?: Omit<Partial<Toast>, "id" | "title" | "type">,
+  ) => string;
+  info: (
+    title: string,
+    options?: Omit<Partial<Toast>, "id" | "title" | "type">,
+  ) => string;
   clearAll: () => void;
 }
 
@@ -45,7 +64,9 @@ const DEFAULT_DURATION = 5000;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -107,15 +128,25 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   // Clean up all timers on unmount
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      timersRef.current.forEach((timer) => clearTimeout(timer));
-      timersRef.current.clear();
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
     };
   }, []);
 
   return (
     <ToastContext.Provider
-      value={{ toasts, addToast, removeToast, success, error, warning, info, clearAll }}
+      value={{
+        toasts,
+        addToast,
+        removeToast,
+        success,
+        error,
+        warning,
+        info,
+        clearAll,
+      }}
     >
       {children}
     </ToastContext.Provider>

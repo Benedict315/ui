@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
-import type { SorokitClient, AllowanceEntry } from "@/lib/client";
+import type { AllowanceEntry,SorokitClient } from "@/lib/client";
 import { getClient } from "@/lib/client";
 
 import { AllowanceManager } from "./AllowanceManager";

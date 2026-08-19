@@ -17,13 +17,13 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { cn } from "@/lib/utils";
 import type { Delegation, Validator } from "@/lib/staking";
 import {
   estimateDelegationFeeXlm,
   formatXlm,
   validateDelegationAmount,
 } from "@/lib/staking";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

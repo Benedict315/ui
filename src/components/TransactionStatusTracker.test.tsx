@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -11,7 +11,8 @@ vi.mock("@/context/useSorokit", () => ({
 }));
 
 vi.mock("@/lib/client", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/client")>("@/lib/client");
+  const actual =
+    await vi.importActual<typeof import("@/lib/client")>("@/lib/client");
   return {
     ...actual,
     getClient: vi.fn(),
@@ -25,14 +26,6 @@ async function flushAsyncUpdates() {
   await act(async () => {
     await Promise.resolve();
   });
-}
-
-function mockClientStatus(status: string, error: string | null = null) {
-  return {
-    transaction: {
-      getStatus: vi.fn().mockResolvedValue({ data: status, error }),
-    },
-  } as unknown as ReturnType<typeof getClient>;
 }
 
 describe("TransactionStatusTracker", () => {
@@ -57,7 +50,9 @@ describe("TransactionStatusTracker", () => {
       .fn()
       .mockResolvedValueOnce({ data: "pending", error: null })
       .mockResolvedValueOnce({ data: "success", error: null });
-    mockGetClient.mockReturnValue({ transaction: { getStatus } } as unknown as ReturnType<typeof getClient>);
+    mockGetClient.mockReturnValue({
+      transaction: { getStatus },
+    } as unknown as ReturnType<typeof getClient>);
 
     await act(async () => {
       render(<TransactionStatusTracker hash="tx-123" pollIntervalMs={1000} />);
@@ -65,49 +60,69 @@ describe("TransactionStatusTracker", () => {
 
     await flushAsyncUpdates();
 
-    expect(screen.getByText("Pending", { selector: "span" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Pending", { selector: "span" }),
+    ).toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
     await flushAsyncUpdates();
 
-    expect(screen.getByText("Confirmed", { selector: "span" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Confirmed", { selector: "span" }),
+    ).toBeInTheDocument();
 
-    expect(screen.getByRole("link", { name: /block explorer/i })).toHaveAttribute(
-      "href",
-      expect.stringContaining("tx-123"),
-    );
+    expect(
+      screen.getByRole("link", { name: /block explorer/i }),
+    ).toHaveAttribute("href", expect.stringContaining("tx-123"));
     expect(getStatus).toHaveBeenCalledTimes(2);
   });
 
   it("renders a failure message and stops polling once the transaction resolves", async () => {
-    const getStatus = vi.fn().mockResolvedValue({ data: "failed", error: "The transaction was rejected" });
-    mockGetClient.mockReturnValue({ transaction: { getStatus } } as unknown as ReturnType<typeof getClient>);
+    const getStatus = vi.fn().mockResolvedValue({
+      data: "failed",
+      error: "The transaction was rejected",
+    });
+    mockGetClient.mockReturnValue({
+      transaction: { getStatus },
+    } as unknown as ReturnType<typeof getClient>);
 
     await act(async () => {
       render(<TransactionStatusTracker hash="tx-456" pollIntervalMs={1000} />);
     });
 
     await flushAsyncUpdates();
-    expect(screen.getByText("Failed", { selector: "span" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Failed", { selector: "span" }),
+    ).toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5000);
     });
 
     expect(getStatus).toHaveBeenCalledTimes(1);
-    expect(screen.getByText(/The transaction was rejected/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/The transaction was rejected/i),
+    ).toBeInTheDocument();
   });
 
   it("tracks several hashes concurrently and supports copying the hash", async () => {
-    const getStatus = vi.fn()
+    const getStatus = vi
+      .fn()
       .mockResolvedValueOnce({ data: "pending", error: null })
       .mockResolvedValueOnce({ data: "pending", error: null });
-    mockGetClient.mockReturnValue({ transaction: { getStatus } } as unknown as ReturnType<typeof getClient>);
+    mockGetClient.mockReturnValue({
+      transaction: { getStatus },
+    } as unknown as ReturnType<typeof getClient>);
 
     await act(async () => {
-      render(<TransactionStatusTracker hashes={["hash-a", "hash-b"]} pollIntervalMs={1000} />);
+      render(
+        <TransactionStatusTracker
+          hashes={["hash-a", "hash-b"]}
+          pollIntervalMs={1000}
+        />,
+      );
     });
 
     await flushAsyncUpdates();
@@ -115,7 +130,9 @@ describe("TransactionStatusTracker", () => {
     expect(screen.getByText(/hash-a/i)).toBeInTheDocument();
     expect(screen.getByText(/hash-b/i)).toBeInTheDocument();
 
-    const copyButtons = screen.getAllByRole("button", { name: /copy transaction hash/i });
+    const copyButtons = screen.getAllByRole("button", {
+      name: /copy transaction hash/i,
+    });
     expect(copyButtons).toHaveLength(2);
 
     await act(async () => {
@@ -127,7 +144,9 @@ describe("TransactionStatusTracker", () => {
 
   it("shows a graceful network error and keeps polling", async () => {
     const getStatus = vi.fn().mockRejectedValue(new Error("RPC unavailable"));
-    mockGetClient.mockReturnValue({ transaction: { getStatus } } as unknown as ReturnType<typeof getClient>);
+    mockGetClient.mockReturnValue({
+      transaction: { getStatus },
+    } as unknown as ReturnType<typeof getClient>);
 
     await act(async () => {
       render(<TransactionStatusTracker hash="tx-789" pollIntervalMs={1000} />);

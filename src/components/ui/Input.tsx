@@ -1,6 +1,6 @@
 import { EyeIcon, EyeOffIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { forwardRef, useEffect,useId, useState } from "react";
+import { forwardRef, useEffect, useId, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -17,9 +17,13 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, multiline, prefix, suffix, className, id, ...props }, ref) => {
+  (
+    { label, error, hint, multiline, prefix, suffix, className, id, ...props },
+    ref,
+  ) => {
     const generatedId = useId();
-    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-") ?? generatedId;
+    const inputId =
+      id ?? label?.toLowerCase().replace(/\s+/g, "-") ?? generatedId;
 
     const [lastError, setLastError] = useState<string | undefined>(error);
     const [lastHint, setLastHint] = useState<string | undefined>(hint);
@@ -34,7 +38,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             "The input will be read-only. Provide an `onChange` handler to make it editable.",
         );
       }
-    }, []);
+    }, [props.onChange, props.value]);
 
     useEffect(() => {
       if (error) {
@@ -110,7 +114,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 className,
               )}
               {...props}
-              type={isPassword ? (showPassword ? "text" : "password") : props.type}
+              type={
+                isPassword ? (showPassword ? "text" : "password") : props.type
+              }
             />
             {suffix && (
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 text-[13px] pointer-events-none">

@@ -39,8 +39,6 @@
  * @see {@link SorokitProvider} for setup
  * @see GitHub issue #8 for QR code scanner limitation
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import {
   Activity01Icon,
   AlertCircleIcon,
@@ -49,6 +47,7 @@ import {
   Tick01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import type { ContractEvent } from "@/lib/client";

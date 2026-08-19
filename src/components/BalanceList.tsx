@@ -1,8 +1,9 @@
 import { useState } from "react";
+
 import { AssetBadge } from "@/components/AssetBadge";
 import { Badge } from "@/components/ui/Badge";
-import { AssetRowSkeleton } from "@/components/ui/Skeleton";
 import { Input } from "@/components/ui/Input";
+import { AssetRowSkeleton } from "@/components/ui/Skeleton";
 import { useSorokit } from "@/context/useSorokit";
 import type { Balance } from "@/lib/client";
 import { cn, safeFormat } from "@/lib/utils";

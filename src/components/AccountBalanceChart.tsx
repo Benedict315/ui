@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { useSorokit } from "@/context/useSorokit";
 import { cn } from "@/lib/utils";
@@ -64,7 +64,8 @@ function formatDate(dateStr: string): string {
 }
 
 function formatValue(value: number): string {
-  if (value >= 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (value >= 1000)
+    return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
   return value.toFixed(2);
 }
 
@@ -93,7 +94,8 @@ function LineChart({
   const rangeY = maxY - minY || 1;
 
   const xScale = (i: number) =>
-    padding.left + (i / (data.length - 1)) * (width - padding.left - padding.right);
+    padding.left +
+    (i / (data.length - 1)) * (width - padding.left - padding.right);
   const yScale = (v: number) =>
     padding.top +
     (1 - (v - minY) / rangeY) * (height - padding.top - padding.bottom);
@@ -105,8 +107,9 @@ function LineChart({
   const areaD = `${pathD} L${xScale(data.length - 1)},${height - padding.bottom} L${xScale(0)},${height - padding.bottom} Z`;
 
   const yTicks = 5;
-  const yTickValues = Array.from({ length: yTicks }, (_, i) =>
-    Math.round((minY + (rangeY * i) / (yTicks - 1)) * 100) / 100,
+  const yTickValues = Array.from(
+    { length: yTicks },
+    (_, i) => Math.round((minY + (rangeY * i) / (yTicks - 1)) * 100) / 100,
   );
 
   return (
@@ -118,7 +121,13 @@ function LineChart({
       aria-label={`Line chart with ${data.length} data points`}
     >
       <defs>
-        <linearGradient id={`gradient-${color.replace("#", "")}`} x1="0" x2="0" y1="0" y2="1">
+        <linearGradient
+          id={`gradient-${color.replace("#", "")}`}
+          x1="0"
+          x2="0"
+          y1="0"
+          y2="1"
+        >
           <stop offset="0%" stopColor={color} stopOpacity="0.15" />
           <stop offset="100%" stopColor={color} stopOpacity="0.01" />
         </linearGradient>
@@ -254,16 +263,21 @@ export function AccountBalanceChart({
     return activeAsset.data.slice(-timeframeDays);
   }, [activeAsset, timeframeDays]);
 
-  const currentValue = chartData.length > 0 ? chartData[chartData.length - 1].value : 0;
+  const currentValue =
+    chartData.length > 0 ? chartData[chartData.length - 1].value : 0;
   const startValue = chartData.length > 0 ? chartData[0].value : 0;
   const change = currentValue - startValue;
   const changePct = startValue > 0 ? (change / startValue) * 100 : 0;
 
   useEffect(() => {
     if (assets.length > 0 && !assets.find((a) => a.asset === activeTab)) {
-      setActiveTab(assets[0].asset);
+      setActiveTab((prev) =>
+        assets.find((a) => a.asset === prev)?.asset === prev
+          ? prev
+          : assets[0].asset,
+      );
     }
-  }, [assets, activeTab]);
+  }, [assets]);
 
   return (
     <div
@@ -337,9 +351,7 @@ export function AccountBalanceChart({
             <span className="text-[22px] font-semibold text-ink tabular-nums">
               {formatValue(hoveredPoint?.value ?? currentValue)}
             </span>
-            <span className="text-[11px] text-ink-3">
-              {activeTab}
-            </span>
+            <span className="text-[11px] text-ink-3">{activeTab}</span>
             <span
               className={cn(
                 "text-[11px] font-medium ml-2",
@@ -368,7 +380,8 @@ export function AccountBalanceChart({
 
           {!balanceHistory && (
             <p className="text-[10px] text-ink-4 text-center pb-3">
-              Chart shows simulated data. Pass real balance history via balanceHistory prop or integrate sorokit-core's streaming API.
+              Chart shows simulated data. Pass real balance history via
+              balanceHistory prop or integrate sorokit-core's streaming API.
             </p>
           )}
         </div>

@@ -23,13 +23,12 @@ import { AllocationInput } from "@/components/AllocationInput";
 import { RebalancerHistory } from "@/components/RebalancerHistory";
 import { SwapExecutionTracker } from "@/components/SwapExecutionTracker";
 import { SwapRoute } from "@/components/SwapRoute";
-import { PieChart } from "@/components/ui/PieChart";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { PieChart } from "@/components/ui/PieChart";
+import { SLICE_COLORS } from "@/components/ui/PieChart";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient } from "@/lib/client";
-import { SLICE_COLORS } from "@/components/ui/PieChart";
-import { cn } from "@/lib/utils";
 import type {
   AllocationDiff,
   PortfolioAsset,
@@ -51,6 +50,7 @@ import {
   updateSwapStatus,
   weightedAverageSlippage,
 } from "@/lib/rebalancer";
+import { cn } from "@/lib/utils";
 
 // ─── Mock price feed ──────────────────────────────────────────────────────────
 
