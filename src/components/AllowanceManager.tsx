@@ -9,6 +9,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
+import { useSorokit } from "@/context/useSorokit";
 import type { AllowanceEntry } from "@/lib/client";
 import { getClient } from "@/lib/client";
 import { cn } from "@/lib/utils";
@@ -47,15 +48,17 @@ function truncateAddress(address: string, start = 8, end = 6): string {
 }
 
 export function AllowanceManager({ className }: AllowanceManagerProps) {
+  const { address, isConnected } = useSorokit();
   const [allowances, setAllowances] = useState<AllowanceEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [processing, setProcessing] = useState<Record<string, 'increase' | 'decrease' | 'revoke' | null>>({});
 
+  const sourceAccount = address || "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34KZVN";
+
   const loadAllowances = useCallback(async () => {
     try {
-      const sourceAccount = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34KZVN";
       const { data, error: err } = await getClient().allowance.getAllowances(sourceAccount);
       if (err) {
         setError(err);
@@ -67,11 +70,13 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sourceAccount]);
 
   useEffect(() => {
     let active = true;
-    const sourceAccount = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34KZVN";
+    if (!isConnected || !address) {
+      return;
+    }
     getClient()
       .allowance.getAllowances(sourceAccount)
       .then(({ data, error: err }) => {
@@ -91,7 +96,7 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [address, isConnected, sourceAccount]);
 
   const handleIncrease = async (entry: AllowanceEntry) => {
     const key = `${entry.asset}-${entry.spender}`;
@@ -99,7 +104,7 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
 
     try {
       const params = {
-        sourceAccount: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34KZVN",
+        sourceAccount,
         asset: entry.asset,
         spender: entry.spender,
         amount: "100.00",
@@ -125,7 +130,7 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
 
     try {
       const params = {
-        sourceAccount: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34KZVN",
+        sourceAccount,
         asset: entry.asset,
         spender: entry.spender,
         amount: newAmount,
@@ -151,7 +156,7 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
 
     try {
       const params = {
-        sourceAccount: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34KZVN",
+        sourceAccount,
         asset: entry.asset,
         spender: entry.spender,
       };
@@ -174,6 +179,17 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
     setError(null);
     void loadAllowances();
   }, [loadAllowances]);
+
+  if (!isConnected || !address) {
+    return (
+      <div className={cn("space-y-4", className)}>
+        <div className="rounded-xl border border-line bg-surface p-8 text-center">
+          <p className="text-[14px] font-medium text-ink">Connect your wallet</p>
+          <p className="text-[12px] text-ink-3 mt-1">Connect your wallet to manage allowances</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderAllowanceCard = (entry: AllowanceEntry) => {
     const isExp = isExpired(entry.expirationDate);
