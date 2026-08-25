@@ -83,28 +83,52 @@ describe("Dashboard", () => {
       expect(screen.getByTestId("screen-wallet")).toBeInTheDocument();
     });
 
-    it("initialises to defaultSection when provided", () => {
+    it("initialises to defaultSection when provided", async () => {
       render(<Dashboard defaultSection="soroban" />);
-      expect(screen.getByTestId("screen-soroban")).toBeInTheDocument();
+      expect(await screen.findByTestId("screen-soroban")).toBeInTheDocument();
       expect(screen.queryByTestId("screen-wallet")).not.toBeInTheDocument();
     });
 
-    it("changes the rendered screen when a nav item is clicked", () => {
+    it("changes the rendered screen when a nav item is clicked", async () => {
       render(<Dashboard />);
       fireEvent.click(screen.getByRole("button", { name: "transactions" }));
 
-      expect(screen.getByTestId("screen-transactions")).toBeInTheDocument();
-      expect(screen.queryByTestId("screen-wallet")).not.toBeInTheDocument();
+      expect(
+        await screen.findByTestId("screen-transactions"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("screen-wrapper-wallet"),
+      ).toHaveAttribute("hidden");
     });
 
-    it("still reports navigation through onSectionChange", () => {
+    it("does not instantiate a screen before it has been visited", () => {
+      render(<Dashboard />);
+      expect(
+        screen.queryByTestId("screen-wrapper-soroban"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("keeps a previously visited screen mounted (but hidden) after navigating away", async () => {
+      render(<Dashboard />);
+      fireEvent.click(screen.getByRole("button", { name: "soroban" }));
+      expect(await screen.findByTestId("screen-soroban")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "wallet" }));
+      expect(screen.getByTestId("screen-wallet")).toBeInTheDocument();
+      // Soroban stays mounted so its in-progress form state survives.
+      expect(
+        screen.getByTestId("screen-wrapper-soroban"),
+      ).toHaveAttribute("hidden");
+    });
+
+    it("still reports navigation through onSectionChange", async () => {
       const onSectionChange = vi.fn();
       render(<Dashboard onSectionChange={onSectionChange} />);
 
       fireEvent.click(screen.getByRole("button", { name: "network" }));
 
       expect(onSectionChange).toHaveBeenCalledWith("network");
-      expect(screen.getByTestId("screen-network")).toBeInTheDocument();
+      expect(await screen.findByTestId("screen-network")).toBeInTheDocument();
     });
   });
 
@@ -129,16 +153,21 @@ describe("Dashboard", () => {
       expect(onSectionChange).toHaveBeenCalledWith("soroban");
       // The parent owns the state, so the view is unchanged until it updates.
       expect(screen.getByTestId("screen-transactions")).toBeInTheDocument();
-      expect(screen.queryByTestId("screen-soroban")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("screen-wrapper-soroban"),
+      ).not.toBeInTheDocument();
     });
 
-    it("follows the parent when activeSection changes", () => {
+    it("follows the parent when activeSection changes", async () => {
       const { rerender } = render(<Dashboard activeSection="wallet" />);
       expect(screen.getByTestId("screen-wallet")).toBeInTheDocument();
 
       rerender(<Dashboard activeSection="network" />);
-      expect(screen.getByTestId("screen-network")).toBeInTheDocument();
-      expect(screen.queryByTestId("screen-wallet")).not.toBeInTheDocument();
+      expect(await screen.findByTestId("screen-network")).toBeInTheDocument();
+      // Wallet stays mounted (hidden) so its state survives navigation.
+      expect(
+        screen.getByTestId("screen-wrapper-wallet"),
+      ).toHaveAttribute("hidden");
     });
 
     it("ignores defaultSection when activeSection is set", () => {
