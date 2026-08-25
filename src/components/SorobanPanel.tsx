@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -114,8 +114,19 @@ export function SorobanPanel({
     setState("idle");
   }, [contractId]);
 
+  const isArgsJsonValid = useMemo(() => {
+    if (!args.trim()) return true;
+    try {
+      JSON.parse(args);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [args]);
+
   const canInvoke =
     Boolean(isConnected && contractId.trim() && method.trim()) &&
+    isArgsJsonValid &&
     state !== "loading";
 
   async function doInvoke() {
@@ -334,9 +345,20 @@ export function SorobanPanel({
                   }
                 }}
                 disabled={state === "loading"}
-                rows={3}
-                className="w-full resize-y rounded-lg border border-line bg-surface-2 px-4 py-3 text-[13px] font-mono text-ink placeholder:text-ink-4 outline-none focus:border-line-2 focus:ring-1 focus:ring-brand-dim transition-colors disabled:opacity-40"
+                rows={4}
+                aria-invalid={args.trim() !== "" && !isArgsJsonValid}
+                aria-describedby={
+                  args.trim() !== "" && !isArgsJsonValid
+                    ? "soroban-args-error"
+                    : undefined
+                }
+                className="w-full resize-y min-h-[80px] rounded-lg border border-line bg-surface-2 px-4 py-3 text-[13px] font-mono text-ink placeholder:text-ink-4 outline-none focus:border-line-2 focus:ring-1 focus:ring-brand-dim transition-colors disabled:opacity-40"
               />
+              {args.trim() !== "" && !isArgsJsonValid && (
+                <p id="soroban-args-error" className="text-[11px] text-red">
+                  Invalid JSON in arguments
+                </p>
+              )}
             </div>
 
             {state !== "idle" && (
