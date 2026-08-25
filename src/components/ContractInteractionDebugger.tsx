@@ -235,20 +235,32 @@ export function ContractInteractionDebugger({
         : null,
       timestamp: new Date().toISOString(),
     };
-    let active = true;
-    const timerId = window.setTimeout(() => {
-      if (!active) return;
-      setHistory((current) => addDebugHistory(entry, current));
-    }, 0);
-    return () => {
-      active = false;
-      window.clearTimeout(timerId);
-    };
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHistory((current) => addDebugHistory(entry, current));
   }, [args, attempts, contractId, method, preparedCall, result, simulation, state, txHash]);
 
   const handleCopy = async (key: string, value: string) => {
     await copyToClipboard(value);
     setCopiedKey(key);
+    if (contractId && method) {
+      const entry: DebuggerEntry = {
+        contractId,
+        method,
+        args,
+        preparedCall,
+        simulation,
+        attempts,
+        result: txHash || result
+          ? {
+              txHash: txHash ?? undefined,
+              status: state === "success" ? "submitted" : state === "error" ? "failed" : "pending",
+              summary: typeof result === "string" ? result : result ? JSON.stringify(result) : undefined,
+            }
+          : null,
+        timestamp: new Date().toISOString(),
+      };
+      setHistory((current) => addDebugHistory(entry, current));
+    }
     window.setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 1600);
   };
 
