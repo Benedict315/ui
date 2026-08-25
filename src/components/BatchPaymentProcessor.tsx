@@ -1,6 +1,4 @@
 import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
   CancelCircleIcon,
   CheckmarkCircle01Icon,
   CircleDotIcon,
@@ -12,20 +10,17 @@ import {
   LoaderIcon,
   PauseIcon,
   PlayIcon,
-  RefreshCwIcon,
-  RotateCwIcon,
-  SettingsIcon,
   UploadIcon,
   XCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
-import { type BatchEntry, BatchEntryResult, BatchProgress,BatchResult, getClient } from "@/lib/client";
+import { type BatchEntry, BatchEntryResult, BatchProgress, getClient } from "@/lib/client";
 import { cn, truncateAddress } from "@/lib/utils";
 
 const STATUS_BADGE: Record<BatchEntryResult["status"], { variant: "default" | "warning" | "primary" | "success" | "error"; label: string }> = {
@@ -127,7 +122,7 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
   const [currentView, setCurrentView] = useState<"upload" | "results" | "progress">("upload");
   const pollRef = useRef<number | null>(null);
 
-  const csvTemplateBlob = useMemo(() => new Blob([generateCSVTemplate()], { type: "text/csv" }), []);
+
 
   const clearState = useCallback(() => {
     setFileEntries(null);
@@ -203,7 +198,7 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
   }, []);
 
   const downloadCSVReport = useCallback(
-    (reportEntries: BatchEntryResult[], totalFee: string) => {
+    (reportEntries: BatchEntryResult[], _totalFee: string) => {
       const header = "address,amount,status,txHash,error,retryCount";
       const rows = reportEntries.map(
         (r) =>
@@ -266,7 +261,7 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
     setCurrentView("progress");
 
     try {
-      const { data, error, batchId: bid } = await getClient().batch.submitBatch({
+      const { error, batchId: bid } = await getClient().batch.submitBatch({
         entries: fileEntries,
         sourceAccount: address,
         asset: defaultAsset,
@@ -280,6 +275,15 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
       }
 
       setBatchId(bid);
+      setProgress({
+        batchId: bid,
+        total: fileEntries.length,
+        completed: 0,
+        failed: 0,
+        status: "processing",
+        percentage: 0,
+      });
+
       setResults(
         fileEntries.map((e) => ({
           address: e.address,
@@ -314,15 +318,15 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
 
   const handleCancel = useCallback(async () => {
     if (!batchId) return;
+    await getClient().batch.cancelBatch(batchId);
     if (pollRef.current) {
       window.clearInterval(pollRef.current);
       pollRef.current = null;
     }
     setIsProcessing(false);
     setIsPaused(false);
-    await getClient().batch.cancelBatch(batchId);
-    clearState();
-  }, [batchId, clearState]);
+    setCurrentView("results");
+  }, [batchId]);
 
   const handleRetry = useCallback(async (index: number) => {
     if (!batchId || !results) return;
@@ -350,7 +354,6 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
         if (!prev) return prev;
         const updated = [...prev];
         let changed = false;
-        data.completed;
         const completedCount = data.completed;
         for (let i = 0; i < updated.length; i++) {
           if (i < completedCount && updated[i].status === "queued") {
@@ -385,15 +388,6 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
   const totalEntries = results?.length ?? fileEntries?.length ?? 0;
   const percentage = progress?.percentage ?? (totalEntries > 0 ? Math.round((successfulCount / totalEntries) * 100) : 0);
   const etaSeconds = progress?.etaSeconds ?? 0;
-
-  const statusCounts = useMemo(() => {
-    if (!results) return null;
-    const counts: Record<string, number> = {};
-    results.forEach((r) => {
-      counts[r.status] = (counts[r.status] ?? 0) + 1;
-    });
-    return counts;
-  }, [results]);
 
   const hasFile = fileEntries !== null;
   const isValid = hasFile && fileErrors.length === 0;

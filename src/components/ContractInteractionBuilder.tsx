@@ -1,11 +1,11 @@
 import { Copy01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 
-const SOROBAN_TYPES = [
+export const SOROBAN_TYPES = [
   "address",
   "bool",
   "bytes",
@@ -184,8 +184,8 @@ function renderArgInput(
 
 export function ContractInteractionBuilder({
   className,
-  contractSpec: externalSpec,
-  onParamsReady,
+  spec: externalSpec,
+  onInvoke: _onInvoke,
 }: ContractInteractionBuilderProps) {
   const titleId = useId();
   const [contractId, setContractId] = useState(
@@ -194,27 +194,27 @@ export function ContractInteractionBuilder({
   const [contractError, setContractError] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string>("");
   const [argValues, setArgValues] = useState<Record<string, string>>({});
-  const [xdrPreview, setXdrPreview] = useState("");
 
-  useEffect(() => {
+  const [prevExternalSpec, setPrevExternalSpec] = useState(externalSpec);
+  if (prevExternalSpec !== externalSpec) {
+    setPrevExternalSpec(externalSpec);
     if (externalSpec) {
       setContractId(externalSpec.contractId);
     }
-  }, [externalSpec]);
+  }
 
   const activeMethod = useMemo(() => {
     if (!externalSpec || !selectedMethod) return undefined;
     return externalSpec.methods.find((m) => m.name === selectedMethod);
   }, [externalSpec, selectedMethod]);
 
-  useEffect(() => {
-    const preview = buildXdrPreview(
+  const xdrPreview = useMemo(() => {
+    return buildXdrPreview(
       contractId,
       selectedMethod,
       argValues,
       activeMethod,
     );
-    setXdrPreview(preview);
   }, [contractId, selectedMethod, argValues, activeMethod]);
 
   const handleContractIdChange = useCallback(
@@ -282,7 +282,6 @@ export function ContractInteractionBuilder({
     activeMethod,
     argValues,
     xdrPreview,
-    onParamsReady,
   ]);
 
   const allArgsFilled = activeMethod

@@ -471,7 +471,7 @@ function AssetFilter({
         if (!listRef.current) return;
         const rows = listRef.current.querySelectorAll("[data-asset-row]");
         const row = rows[index] as HTMLElement | undefined;
-        if (row) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        if (row) row.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
       };
 
       const clamp = (i: number) => Math.max(0, Math.min(i, filtered.length - 1));

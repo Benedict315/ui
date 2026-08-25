@@ -5,7 +5,6 @@ import {
   ChevronDownIcon,
   CircleXIcon,
   Copy01Icon,
-  FilterIcon,
   Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";

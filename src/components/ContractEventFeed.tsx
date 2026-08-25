@@ -265,8 +265,11 @@ export function ContractEventFeed({
     setError(null);
     setLastUpdatedAt(null);
     setNewEventIds(new Set());
-    prevEventIdsRef.current = null;
   }
+
+  useEffect(() => {
+    prevEventIdsRef.current = null;
+  }, [contractId]);
 
   const load = useCallback(async () => {
     if (!contractId.trim()) return;
@@ -303,6 +306,8 @@ export function ContractEventFeed({
       setEvents(newData);
       setError(null);
       setLastUpdatedAt(Date.now());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load events");
     } finally {
       setLoading(false);
     }

@@ -105,13 +105,17 @@ export function SorobanPanel({
   const [abiError, setAbiError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const argsRef = useRef(args);
-  argsRef.current = args;
 
-  // Clear result and error when contractId changes
   useEffect(() => {
-    setResult(null);
-    setError(null);
-    setState("idle");
+    argsRef.current = args;
+  });
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setResult(null);
+      setError(null);
+      setState("idle");
+    });
   }, [contractId]);
 
   const canInvoke =

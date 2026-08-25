@@ -1,8 +1,5 @@
 import {
   ArrowDown01Icon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  CheckmarkCircle01Icon,
   ChevronDownIcon,
   ClockIcon,
   Delete01Icon,
@@ -57,8 +54,6 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
   const [processing, setProcessing] = useState<Record<string, 'increase' | 'decrease' | 'revoke' | null>>({});
 
   const loadAllowances = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
       const sourceAccount = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34KZVN";
       const { data, error: err } = await getClient().allowance.getAllowances(sourceAccount);
@@ -75,8 +70,28 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
   }, []);
 
   useEffect(() => {
-    void loadAllowances();
-  }, [loadAllowances]);
+    let active = true;
+    const sourceAccount = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34KZVN";
+    getClient()
+      .allowance.getAllowances(sourceAccount)
+      .then(({ data, error: err }) => {
+        if (!active) return;
+        if (err) {
+          setError(err);
+        } else {
+          setAllowances(data ?? []);
+        }
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!active) return;
+        setError(e instanceof Error ? e.message : "Failed to load allowances");
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleIncrease = async (entry: AllowanceEntry) => {
     const key = `${entry.asset}-${entry.spender}`;
@@ -90,7 +105,7 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
         amount: "100.00",
       };
 
-      const { data, error: err } = await getClient().allowance.approveAllowance(params);
+      const { error: err } = await getClient().allowance.approveAllowance(params);
       if (err) {
         setError(err);
         return;
@@ -116,7 +131,7 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
         amount: newAmount,
       };
 
-      const { data, error: err } = await getClient().allowance.approveAllowance(params);
+      const { error: err } = await getClient().allowance.approveAllowance(params);
       if (err) {
         setError(err);
         return;
@@ -141,7 +156,7 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
         spender: entry.spender,
       };
 
-      const { data, error: err } = await getClient().allowance.revokeAllowance(params);
+      const { error: err } = await getClient().allowance.revokeAllowance(params);
       if (err) {
         setError(err);
         return;
@@ -158,7 +173,7 @@ export function AllowanceManager({ className }: AllowanceManagerProps) {
   const handleRetry = useCallback(() => {
     setError(null);
     void loadAllowances();
-  }, []);
+  }, [loadAllowances]);
 
   const renderAllowanceCard = (entry: AllowanceEntry) => {
     const isExp = isExpired(entry.expirationDate);

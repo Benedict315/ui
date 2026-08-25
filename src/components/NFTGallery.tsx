@@ -224,8 +224,9 @@ function SendNftDialog({ nft, open, onClose }: SendNftDialogProps) {
   const [success, setSuccess] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
 
-  // Reset state when dialog opens/closes
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
     if (!open) {
       setRecipient("");
       setRecipientError("");
@@ -233,7 +234,7 @@ function SendNftDialog({ nft, open, onClose }: SendNftDialogProps) {
       setSuccess(false);
       setTxError(null);
     }
-  }, [open]);
+  }
 
   const validate = () => {
     if (!recipient.trim()) { setRecipientError("Recipient address is required"); return false; }
@@ -345,7 +346,9 @@ function ListForSaleDialog({ nft, open, onClose }: ListForSaleDialogProps) {
   const [success, setSuccess] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
     if (!open) {
       setPrice("");
       setPriceError("");
@@ -353,7 +356,7 @@ function ListForSaleDialog({ nft, open, onClose }: ListForSaleDialogProps) {
       setSuccess(false);
       setTxError(null);
     }
-  }, [open]);
+  }
 
   const validate = () => {
     const n = parseFloat(price);
@@ -470,13 +473,20 @@ function BulkSendDialog({ nfts, open, onClose, onSuccess }: BulkSendDialogProps)
   const [txError, setTxError] = useState<string | null>(null);
   const abortRef = useRef(false);
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
     if (!open) {
       setRecipient("");
       setRecipientError("");
       setLoading(false);
       setProgress(0);
       setTxError(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!open) {
       abortRef.current = false;
     }
   }, [open]);

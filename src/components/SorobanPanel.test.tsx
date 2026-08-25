@@ -1,6 +1,4 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { act,fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -224,14 +222,7 @@ describe("SorobanPanel", () => {
       return screen.getByPlaceholderText(/paste contract abi/i);
     }
 
-    /** Helper: click the "Load" button inside the ABI section (not the toggle). */
-    async function clickAbiLoadButton() {
-      // The ABI section has a button with exact text "Load" (not "Load ABI")
-      const buttons = screen.getAllByRole("button");
-      const loadBtn = buttons.find((b) => b.textContent === "Load");
-      if (!loadBtn) throw new Error("Load button not found");
-      fireEvent.click(loadBtn);
-    }
+
 
     it("toggles the ABI paste section when clicking Load ABI", async () => {
       render(<SorobanPanel contractId="C123" onContractIdChange={() => {}} />);

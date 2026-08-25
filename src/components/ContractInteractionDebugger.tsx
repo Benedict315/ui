@@ -5,7 +5,6 @@ import { JsonView } from "react-json-view-lite";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
 
 type DebuggerState = "idle" | "loading" | "success" | "error";
 
@@ -170,13 +169,35 @@ function collectDiffEntries(before: unknown, after: unknown, basePath = ""): Dif
     return entries;
   }
 
-  return [{
-    path: basePath || "value",
-    beforeValue: before,
-    afterValue: after,
-    beforeType: describeValue(before),
-    afterType: describeValue(after),
-  }];
+  if (
+    typeof before !== "object" ||
+    typeof after !== "object" ||
+    before === null ||
+    after === null
+  ) {
+    return [{ path: prefix || "root", before, after }];
+  }
+
+  const entries: StateDiffEntry[] = [];
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  for (const k of keys) {
+    const bVal = (before as Record<string, unknown>)[k];
+    const aVal = (after as Record<string, unknown>)[k];
+    const path = prefix ? `${prefix}.${k}` : k;
+    if (bVal !== aVal) {
+      if (
+        typeof bVal === "object" &&
+        typeof aVal === "object" &&
+        bVal !== null &&
+        aVal !== null
+      ) {
+        entries.push(...collectDiffEntries(bVal, aVal, path));
+      } else {
+        entries.push({ path, before: bVal, after: aVal });
+      }
+    }
+  }
+  return entries;
 }
 
 export function ContractInteractionDebugger({
@@ -186,7 +207,7 @@ export function ContractInteractionDebugger({
   state = "idle",
   result,
   txHash,
-  error,
+  error: _error,
   stateBefore,
   stateAfter,
 }: ContractInteractionDebuggerProps) {
@@ -209,12 +230,12 @@ export function ContractInteractionDebugger({
 
   const attempts = useMemo(() => {
     return [
-      { id: "attempt-1", timestamp: new Date().toISOString(), retryCount: 0, status: state === "success" ? "submitted" : state === "error" ? "failed" : "pending", hash: txHash ?? undefined },
+      { id: "attempt-1", timestamp: new Date().toISOString(), retryCount: 0, status: state === "success" ? "submitted" : state === "error" ? "failed" : "pending", hash: txHash },
     ];
   }, [state, txHash]);
 
   const stateDiffEntries = useMemo(() => {
-    if (typeof stateBefore === "undefined" || typeof stateAfter === "undefined") return [];
+    if (stateBefore === undefined || stateAfter === undefined) return [];
     return collectDiffEntries(stateBefore, stateAfter);
   }, [stateAfter, stateBefore]);
 
@@ -229,14 +250,22 @@ export function ContractInteractionDebugger({
       attempts,
       result: txHash || result
         ? {
-            txHash: txHash ?? undefined,
+            txHash: txHash,
             status: state === "success" ? "submitted" : state === "error" ? "failed" : "pending",
             summary: typeof result === "string" ? result : result ? JSON.stringify(result) : undefined,
           }
         : null,
       timestamp: new Date().toISOString(),
     };
-    setHistory((current) => addDebugHistory(entry, current));
+    let active = true;
+    const timerId = window.setTimeout(() => {
+      if (!active) return;
+      setHistory((current) => addDebugHistory(entry, current));
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(timerId);
+    };
   }, [args, attempts, contractId, method, preparedCall, result, simulation, state, txHash]);
 
   const handleCopy = async (key: string, value: string) => {
