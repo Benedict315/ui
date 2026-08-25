@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
 import { getClient, type NetworkInfo, type TxResult } from "@/lib/client";
-import { cn, truncateAddress } from "@/lib/utils";
+import { cn, truncateAddress, validateStellarAddress } from "@/lib/utils";
 
 import {
   TransactionConfirmModal,
@@ -94,7 +94,7 @@ export function TransactionPanel({
       ? asset
       : assetOptions[0].asset;
 
-  const isDestValid = /^G[A-Z2-7]{55}$/.test(dest.trim());
+  const isDestValid = validateStellarAddress(dest);
   const isSelfPayment = dest.trim() === address;
   const parsedAmount = parseFloat(amount);
   const isAmountValid = !isNaN(parsedAmount) && parsedAmount >= 0.0000001;
@@ -105,10 +105,17 @@ export function TransactionPanel({
   const decimalPlaces = amount.includes(".") ? amount.split(".")[1]?.length ?? 0 : 0;
   const isDecimalPrecisionValid = decimalPlaces <= 7;
 
-  // Check if user has sufficient balance for the selected asset
+  // Check if user has sufficient balance for the selected asset. XLM must
+  // keep a 1 XLM minimum reserve, so only that much is spendable.
   const selectedAssetBalance = assetOptions.find((b) => b.asset === selectedAsset);
+  const XLM_MINIMUM_RESERVE = 1;
+  const availableBalance = selectedAssetBalance
+    ? selectedAsset === "XLM"
+      ? Math.max(0, parseFloat(selectedAssetBalance.balance) - XLM_MINIMUM_RESERVE)
+      : parseFloat(selectedAssetBalance.balance)
+    : undefined;
   const insufficientBalance =
-    selectedAssetBalance && parsedAmount > parseFloat(selectedAssetBalance.balance);
+    availableBalance !== undefined && parsedAmount > availableBalance;
 
   const canSubmit =
     isConnected &&
@@ -321,7 +328,9 @@ export function TransactionPanel({
               error={
                 destDirty
                   ? !isDestValid
-                    ? "Invalid Stellar address"
+                    ? !dest.trim().startsWith("G")
+                      ? "Stellar address must start with 'G'"
+                      : "Stellar address must be 56 characters"
                     : isSelfPayment
                       ? "Destination is the same as your wallet address"
                       : undefined
@@ -369,7 +378,9 @@ export function TransactionPanel({
                         : !isDecimalPrecisionValid
                           ? "Maximum 7 decimal places allowed"
                           : insufficientBalance
-                            ? `Insufficient balance. Maximum: ${selectedAssetBalance?.balance ?? "0"}`
+                            ? selectedAsset === "XLM"
+                              ? `Amount exceeds available balance (${availableBalance?.toFixed(7) ?? "0"} XLM after minimum reserve)`
+                              : `Insufficient balance. Maximum: ${selectedAssetBalance?.balance ?? "0"}`
                             : undefined
                   : undefined
               }

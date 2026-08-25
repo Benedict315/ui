@@ -155,21 +155,21 @@ describe("TransactionPanel", () => {
     const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
     // Initially no error should be visible
-    expect(screen.queryByText("Invalid Stellar address")).not.toBeInTheDocument();
+    expect(screen.queryByText("Stellar address must be 56 characters")).not.toBeInTheDocument();
 
     // Type invalid address
     fireEvent.change(destInput, { target: { value: "GDEF" } });
     fireEvent.change(amountInput, { target: { value: "10" } });
 
     // Validation error should show up because field is dirty and invalid
-    expect(screen.getByText("Invalid Stellar address")).toBeInTheDocument();
+    expect(screen.getByText("Stellar address must be 56 characters")).toBeInTheDocument();
     // Submit button should be disabled because canSubmit is false
     expect(submitBtn).toBeDisabled();
 
     // Type valid address
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(destInput, { target: { value: validDest } });
-    expect(screen.getByText("Invalid Stellar address")).toHaveClass("opacity-0");
+    expect(screen.getByText("Stellar address must be 56 characters")).toHaveClass("opacity-0");
     expect(submitBtn).not.toBeDisabled();
   });
 

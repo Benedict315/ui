@@ -139,8 +139,9 @@ describe("SorobanPanel", () => {
       "Arguments (JSON array)",
     ) as HTMLTextAreaElement;
 
-    expect(textarea.rows).toBe(3);
+    expect(textarea.rows).toBe(4);
     expect(textarea.className).toContain("resize-y");
+    expect(textarea.className).toContain("min-h-[80px]");
 
     fireEvent.input(textarea, {
       target: { value: "[\n1,\n2,\n3,\n4\n]" },
