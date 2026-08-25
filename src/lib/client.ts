@@ -373,9 +373,11 @@ export type BatchProgress = {
   batchId: string;
   completed: number;
   total: number;
+  failed?: number;
   percentage: number;
-  etaSeconds: number;
-  currentStatus: BatchEntryResult["status"];
+  etaSeconds?: number;
+  currentStatus?: BatchEntryResult["status"];
+  status?: "idle" | "processing" | "paused" | "completed" | "error" | "cancelled" | string;
 };
 
 // ─── NFT Types ────────────────────────────────────────────────────────────────
@@ -463,37 +465,6 @@ export type TimelineFilter = {
   dateFrom?: string;
   dateTo?: string;
   searchQuery?: string;
-};
-
-export type BatchEntry = {
-  address: string;
-  amount: string;
-  memo?: string;
-};
-
-export type BatchEntryResult = {
-  address: string;
-  amount: string;
-  status: "queued" | "signing" | "submitted" | "confirmed" | "failed";
-  txHash?: string;
-  error?: string;
-};
-
-export type BatchProgress = {
-  batchId: string;
-  total: number;
-  completed: number;
-  failed?: number;
-  status: "idle" | "processing" | "paused" | "completed" | "error" | "cancelled";
-  percentage: number;
-};
-
-export type BatchResult = {
-  batchId: string;
-  totalEntries: number;
-  successfulEntries: number;
-  failedEntries: number;
-  results: BatchEntryResult[];
 };
 
 export type TimelineParams = {

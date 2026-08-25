@@ -5,7 +5,7 @@ import {
   ChevronDownIcon,
   CircleXIcon,
   Copy01Icon,
-  Filter01Icon,
+  FilterIcon,
   Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -360,7 +360,7 @@ export function ActivityTimeline({ className }: { className?: string }) {
             )}
             aria-label="Toggle filters"
           >
-            <HugeiconsIcon icon={Filter01Icon} size={13} strokeWidth={1.5} />
+            <HugeiconsIcon icon={FilterIcon} size={13} strokeWidth={1.5} />
             Filters
             {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-brand" />}
           </button>

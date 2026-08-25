@@ -196,7 +196,7 @@ function DefaultAssetRow({
         "group flex w-full items-center gap-3 px-4 py-2 text-left transition-colors",
         isFocused ? "bg-surface-2" : "hover:bg-surface-2",
       )}
-      onClick={() => onSelect(asset)}
+      onClick={() => onSelect?.(asset)}
       data-asset-row={getAssetKey(asset)}
     >
       <button

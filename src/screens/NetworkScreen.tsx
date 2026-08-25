@@ -159,7 +159,7 @@ export function NetworkScreen() {
                 </div>
                 {isSwitching ? (
                   <HugeiconsIcon
-                    icon={Loader01Icon}
+                    icon={Loading01Icon}
                     size={20}
                     color="currentColor"
                     className="text-brand animate-spin"

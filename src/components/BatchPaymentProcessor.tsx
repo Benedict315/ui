@@ -584,9 +584,9 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
                         entry.status === "confirmed"
                           ? CheckmarkCircle01Icon
                           : entry.status === "failed"
-                            ? XCircleIcon
+                            ? CircleXIcon
                             : entry.status === "signing"
-                              ? LoaderIcon
+                              ? Loading01Icon
                               : CircleDotIcon
                       }
                       size={12}

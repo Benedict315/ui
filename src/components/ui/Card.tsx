@@ -31,6 +31,7 @@ interface BaseProps {
   children?: ReactNode;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Card = forwardRef(function Card(
   { as, className, children, ...props }: any,
   ref: any,
@@ -48,6 +49,7 @@ export const Card = forwardRef(function Card(
 }) as PolymorphicComponent<"div", BaseProps>;
 Card.displayName = "Card";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const CardHeader = forwardRef(function CardHeader(
   { as, className, children, ...props }: any,
   ref: any,
@@ -85,6 +87,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
 );
 CardTitle.displayName = "CardTitle";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const CardDescription = forwardRef(function CardDescription(
   { as, className, children, ...props }: any,
   ref: any,
@@ -107,6 +110,7 @@ interface CardContentOwnProps extends BaseProps {
   noPadding?: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const CardContent = forwardRef(function CardContent(
   {
     as,
@@ -130,6 +134,7 @@ export const CardContent = forwardRef(function CardContent(
 }) as PolymorphicComponent<"div", CardContentOwnProps>;
 CardContent.displayName = "CardContent";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const CardFooter = forwardRef(function CardFooter(
   { as, className, children, ...props }: any,
   ref: any,

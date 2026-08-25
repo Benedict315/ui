@@ -28,7 +28,7 @@ export function BudgetScreen() {
     "monthly",
   );
   const [budgetLimit, setBudgetLimit] = useState(1500);
-  const [currentSpent, setCurrentSpent] = useState(1280);
+  const [currentSpent] = useState(1280);
   const [warningThreshold, setWarningThreshold] = useState(80); // 80% default
   const [lockTransactions, setLockTransactions] = useState(false);
 
