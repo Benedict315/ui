@@ -34,6 +34,18 @@ export function validateStellarAddress(address: string): boolean {
   return /^G[A-Z2-7]{55}$/.test(address.trim());
 }
 
+const STROOPS_PER_XLM = 10_000_000;
+
+/**
+ * Convert a stroop amount (the smallest Stellar unit) to an XLM string
+ * formatted to 7 decimal places. Returns "0.0000000" for invalid input.
+ */
+export function toXLM(stroops: string): string {
+  const n = parseInt(stroops, 10);
+  if (Number.isNaN(n)) return (0).toFixed(7);
+  return (n / STROOPS_PER_XLM).toFixed(7);
+}
+
 export function friendlyError(message: string): string {
   const normalizedMessage = message.trim().toLowerCase();
 

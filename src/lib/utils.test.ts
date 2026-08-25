@@ -1,6 +1,6 @@
 import { describe, expect,it } from "vitest";
 
-import { truncateAddress } from "./utils";
+import { toXLM,truncateAddress } from "./utils";
 
 describe("truncateAddress", () => {
   it("truncates standard ASCII strings correctly", () => {
@@ -62,5 +62,31 @@ describe("truncateAddress", () => {
 
   it("handles null-like falsy input gracefully", () => {
     expect(truncateAddress("" as string)).toBe("");
+  });
+});
+
+describe("toXLM", () => {
+  it("converts stroops to XLM with 7 decimal places", () => {
+    expect(toXLM("10000000")).toBe("1.0000000");
+  });
+
+  it("converts a small stroop amount", () => {
+    expect(toXLM("100")).toBe("0.0000100");
+  });
+
+  it("converts a fractional stroop amount", () => {
+    expect(toXLM("12345678")).toBe("1.2345678");
+  });
+
+  it("returns zero for invalid input", () => {
+    expect(toXLM("not-a-number")).toBe("0.0000000");
+  });
+
+  it("returns zero for empty input", () => {
+    expect(toXLM("")).toBe("0.0000000");
+  });
+
+  it("handles zero stroops", () => {
+    expect(toXLM("0")).toBe("0.0000000");
   });
 });
