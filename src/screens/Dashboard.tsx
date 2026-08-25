@@ -1,18 +1,41 @@
-import { type ComponentType, useCallback, useState } from "react";
+import { type ComponentType, lazy, Suspense, useCallback, useState } from "react";
 
 import { NetworkBanner } from "@/components/NetworkBanner";
 import { type NavSection, Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { AccountScreen } from "@/screens/AccountScreen";
-import { BudgetScreen } from "@/screens/BudgetScreen";
-import { ChartingScreen } from "@/screens/ChartingScreen";
-import { NetworkScreen } from "@/screens/NetworkScreen";
-import { NFTScreen } from "@/screens/NFTScreen";
-import { RecoveryScreen } from "@/screens/RecoveryScreen";
-import { SorobanScreen } from "@/screens/SorobanScreen";
-import { TransactionsScreen } from "@/screens/TransactionsScreen";
 import { WalletScreen } from "@/screens/WalletScreen";
-import { YieldFarmingScreen } from "@/screens/YieldFarmingScreen";
+
+// Screens that are less likely to be the entry point are code-split so the
+// initial bundle only pays for what's visited.
+const BudgetScreen = lazy(() =>
+  import("@/screens/BudgetScreen").then((m) => ({ default: m.BudgetScreen })),
+);
+const ChartingScreen = lazy(() =>
+  import("@/screens/ChartingScreen").then((m) => ({ default: m.ChartingScreen })),
+);
+const NetworkScreen = lazy(() =>
+  import("@/screens/NetworkScreen").then((m) => ({ default: m.NetworkScreen })),
+);
+const NFTScreen = lazy(() =>
+  import("@/screens/NFTScreen").then((m) => ({ default: m.NFTScreen })),
+);
+const RecoveryScreen = lazy(() =>
+  import("@/screens/RecoveryScreen").then((m) => ({ default: m.RecoveryScreen })),
+);
+const SorobanScreen = lazy(() =>
+  import("@/screens/SorobanScreen").then((m) => ({ default: m.SorobanScreen })),
+);
+const TransactionsScreen = lazy(() =>
+  import("@/screens/TransactionsScreen").then((m) => ({
+    default: m.TransactionsScreen,
+  })),
+);
+const YieldFarmingScreen = lazy(() =>
+  import("@/screens/YieldFarmingScreen").then((m) => ({
+    default: m.YieldFarmingScreen,
+  })),
+);
 
 const SCREENS: Record<NavSection, ComponentType> = {
   wallet: WalletScreen,
@@ -43,6 +66,7 @@ export interface DashboardProps {
 }
 
 export function Dashboard({
+  maxContentWidth = "700px",
   activeSection,
   onSectionChange,
   defaultSection = "wallet",
@@ -54,6 +78,17 @@ export function Dashboard({
 
   const active = isControlled ? activeSection : internalActive;
 
+  // Screens keep their mounted state once actually shown (e.g. a half-typed
+  // Soroban form) instead of being torn down every time navigation moves
+  // away. Tracked off `active` (what actually rendered), not the nav click,
+  // so controlled mode only mounts a screen once the parent confirms it.
+  const [visited, setVisited] = useState<Set<NavSection>>(
+    () => new Set([active]),
+  );
+  if (!visited.has(active)) {
+    setVisited((prev) => new Set(prev).add(active));
+  }
+
   const handleNavigate = useCallback(
     (section: NavSection) => {
       // In controlled mode the parent decides what renders next; only report.
@@ -62,8 +97,6 @@ export function Dashboard({
     },
     [isControlled, onSectionChange],
   );
-
-  const ActiveScreen = SCREENS[active] ?? SCREENS.wallet;
 
   return (
     <div className="flex h-screen overflow-hidden bg-base">
@@ -85,7 +118,20 @@ export function Dashboard({
             className="mx-auto px-6 py-8 sm:px-10 sm:py-10 min-h-[300px]"
             style={{ maxWidth: maxContentWidth }}
           >
-            <ActiveScreen />
+            {[...visited].map((section) => {
+              const Screen = SCREENS[section];
+              return (
+                <div
+                  key={section}
+                  hidden={section !== active}
+                  data-testid={`screen-wrapper-${section}`}
+                >
+                  <Suspense fallback={null}>
+                    <Screen />
+                  </Suspense>
+                </div>
+              );
+            })}
           </div>
         </main>
       </div>

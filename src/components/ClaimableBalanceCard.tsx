@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import { useSorokit } from "@/context/useSorokit";
 import type { ClaimableBalance } from "@/lib/client";
 import { getClient } from "@/lib/client";
@@ -205,17 +206,22 @@ export function ClaimableBalanceCard({ confirmThreshold }: ClaimableBalanceCardP
       </div>
 
       {loading ? (
-        <div className="px-5 py-5 flex flex-col gap-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="flex items-center justify-between gap-4">
-              <div className="flex flex-col gap-2 flex-1">
-                <div className="h-4 w-28 rounded bg-surface-2 animate-pulse" />
-                <div className="h-3 w-36 rounded bg-surface-2 animate-pulse" />
-              </div>
-              <div className="h-8 w-16 rounded-lg bg-surface-2 animate-pulse" />
+        <SkeletonCard
+          className="rounded-none border-0"
+          structure={
+            <div className="px-5 py-5 flex flex-col gap-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-2 flex-1">
+                    <div className="h-4 w-28 rounded bg-surface-2 animate-pulse" />
+                    <div className="h-3 w-36 rounded bg-surface-2 animate-pulse" />
+                  </div>
+                  <div className="h-8 w-16 rounded-lg bg-surface-2 animate-pulse" />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          }
+        />
       ) : error ? (
         <p className="text-[13px] text-red text-center py-10">{error}</p>
       ) : balances.length === 0 ? (

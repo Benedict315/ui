@@ -45,8 +45,8 @@ describe("FeeEstimator", () => {
     });
     expect(screen.getByText("Base Fee")).toBeInTheDocument();
     expect(screen.getByText("Recommended")).toBeInTheDocument();
-    expect(screen.getByText("(≈ 0.00001 XLM)")).toBeInTheDocument();
-    expect(screen.getByText("(≈ 0.00005 XLM)")).toBeInTheDocument();
+    expect(screen.getByText("(≈ 0.0000100 XLM)")).toBeInTheDocument();
+    expect(screen.getByText("(≈ 0.0000500 XLM)")).toBeInTheDocument();
   });
 
   it("renders the error message when the client returns an error", async () => {

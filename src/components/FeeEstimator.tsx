@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { getClient } from "@/lib/client";
-import { cn } from "@/lib/utils";
+import { cn, toXLM } from "@/lib/utils";
 
 export interface FeeData {
   baseFee: string;
@@ -184,9 +184,7 @@ export function FeeCell({
         <span className="text-[10px] text-ink-3">{unit}</span>
       </div>
       <span className="text-[10px] text-ink-3">
-        {Number.isNaN(parseInt(value, 10))
-          ? "(≈ — XLM)"
-          : `(≈ ${parseInt(value, 10) / 10_000_000} XLM)`}
+        {Number.isNaN(parseInt(value, 10)) ? "(≈ — XLM)" : `(≈ ${toXLM(value)} XLM)`}
       </span>
     </div>
   );
