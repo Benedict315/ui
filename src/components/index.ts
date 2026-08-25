@@ -20,6 +20,11 @@
 import "../styles.css";
 
 // UI primitives
+//
+// Card, Separator, and SkeletonCard are adopted primitives (not raw div +
+// Tailwind) — see SwapSimulator/RecoveryScreen/ChartingScreen/YieldFarmingScreen
+// /BudgetScreen for Card, WalletConnectModal for Separator, and
+// ClaimableBalanceCard for SkeletonCard.
 export { Badge } from "./ui/Badge";
 export type { ButtonGroupProps } from "./ui/Button";
 export { Button, ButtonGroup } from "./ui/Button";
@@ -34,6 +39,7 @@ export {
 export { InfoCell } from "./ui/InfoCell";
 export { Input } from "./ui/Input";
 export { LabelledValue } from "./ui/LabelledValue";
+export { Separator } from "./ui/Separator";
 export { AssetRowSkeleton, Skeleton, SkeletonCard, SkeletonRow } from "./ui/Skeleton";
 
 // Error handling
