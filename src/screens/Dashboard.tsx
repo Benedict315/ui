@@ -43,6 +43,7 @@ export interface DashboardProps {
 }
 
 export function Dashboard({
+  maxContentWidth = "700px",
   activeSection,
   onSectionChange,
   defaultSection = "wallet",

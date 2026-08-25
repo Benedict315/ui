@@ -169,35 +169,13 @@ function collectDiffEntries(before: unknown, after: unknown, basePath = ""): Dif
     return entries;
   }
 
-  if (
-    typeof before !== "object" ||
-    typeof after !== "object" ||
-    before === null ||
-    after === null
-  ) {
-    return [{ path: prefix || "root", before, after }];
-  }
-
-  const entries: StateDiffEntry[] = [];
-  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
-  for (const k of keys) {
-    const bVal = (before as Record<string, unknown>)[k];
-    const aVal = (after as Record<string, unknown>)[k];
-    const path = prefix ? `${prefix}.${k}` : k;
-    if (bVal !== aVal) {
-      if (
-        typeof bVal === "object" &&
-        typeof aVal === "object" &&
-        bVal !== null &&
-        aVal !== null
-      ) {
-        entries.push(...collectDiffEntries(bVal, aVal, path));
-      } else {
-        entries.push({ path, before: bVal, after: aVal });
-      }
-    }
-  }
-  return entries;
+  return [{
+    path: basePath || "root",
+    beforeValue: before,
+    afterValue: after,
+    beforeType: describeValue(before),
+    afterType: describeValue(after),
+  }];
 }
 
 export function ContractInteractionDebugger({
@@ -230,7 +208,7 @@ export function ContractInteractionDebugger({
 
   const attempts = useMemo(() => {
     return [
-      { id: "attempt-1", timestamp: new Date().toISOString(), retryCount: 0, status: state === "success" ? "submitted" : state === "error" ? "failed" : "pending", hash: txHash },
+      { id: "attempt-1", timestamp: new Date().toISOString(), retryCount: 0, status: state === "success" ? "submitted" : state === "error" ? "failed" : "pending", hash: txHash ?? undefined },
     ];
   }, [state, txHash]);
 
@@ -250,7 +228,7 @@ export function ContractInteractionDebugger({
       attempts,
       result: txHash || result
         ? {
-            txHash: txHash,
+            txHash: txHash ?? undefined,
             status: state === "success" ? "submitted" : state === "error" ? "failed" : "pending",
             summary: typeof result === "string" ? result : result ? JSON.stringify(result) : undefined,
           }

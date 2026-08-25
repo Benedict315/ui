@@ -20,6 +20,7 @@ type AssetTab = "XLM" | string;
 
 interface AccountBalanceChartProps {
   className?: string;
+  title?: string;
   /** Balance history data per asset. Falls back to mock data if empty. */
   balanceHistory?: AssetBalance[];
 }
@@ -208,6 +209,7 @@ function LineChart({
 
 export function AccountBalanceChart({
   className,
+  title = "Account Balance History",
   balanceHistory,
 }: AccountBalanceChartProps) {
   const titleId = useId();

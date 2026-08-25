@@ -165,7 +165,7 @@ export type {
   DelegationChangeResult,
   RewardEvent,
   RewardScheduleEntry,
-  SortDirection,
+  SortDirection as StakingSortDirection,
   Validator,
   ValidatorFilter,
   ValidatorSortField,

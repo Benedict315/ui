@@ -31,9 +31,9 @@ interface BaseProps {
   children?: ReactNode;
 }
 
-export const Card = forwardRef(function Card<E extends ElementType = "div">(
-  { as, className, children, ...props }: PolymorphicProps<E, BaseProps>,
-  ref: PolymorphicRef<E>,
+export const Card = forwardRef(function Card(
+  { as, className, children, ...props }: any,
+  ref: any,
 ) {
   const Component = (as ?? "div") as ElementType;
   return (
@@ -48,11 +48,9 @@ export const Card = forwardRef(function Card<E extends ElementType = "div">(
 }) as PolymorphicComponent<"div", BaseProps>;
 Card.displayName = "Card";
 
-export const CardHeader = forwardRef(function CardHeader<
-  E extends ElementType = "div",
->(
-  { as, className, children, ...props }: PolymorphicProps<E, BaseProps>,
-  ref: PolymorphicRef<E>,
+export const CardHeader = forwardRef(function CardHeader(
+  { as, className, children, ...props }: any,
+  ref: any,
 ) {
   const Component = (as ?? "div") as ElementType;
   return (
@@ -87,11 +85,9 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
 );
 CardTitle.displayName = "CardTitle";
 
-export const CardDescription = forwardRef(function CardDescription<
-  E extends ElementType = "p",
->(
-  { as, className, children, ...props }: PolymorphicProps<E, BaseProps>,
-  ref: PolymorphicRef<E>,
+export const CardDescription = forwardRef(function CardDescription(
+  { as, className, children, ...props }: any,
+  ref: any,
 ) {
   const Component = (as ?? "p") as ElementType;
   return (
@@ -111,17 +107,15 @@ interface CardContentOwnProps extends BaseProps {
   noPadding?: boolean;
 }
 
-export const CardContent = forwardRef(function CardContent<
-  E extends ElementType = "div",
->(
+export const CardContent = forwardRef(function CardContent(
   {
     as,
     className,
     children,
     noPadding,
     ...props
-  }: PolymorphicProps<E, CardContentOwnProps>,
-  ref: PolymorphicRef<E>,
+  }: any,
+  ref: any,
 ) {
   const Component = (as ?? "div") as ElementType;
   return (
@@ -136,11 +130,9 @@ export const CardContent = forwardRef(function CardContent<
 }) as PolymorphicComponent<"div", CardContentOwnProps>;
 CardContent.displayName = "CardContent";
 
-export const CardFooter = forwardRef(function CardFooter<
-  E extends ElementType = "div",
->(
-  { as, className, children, ...props }: PolymorphicProps<E, BaseProps>,
-  ref: PolymorphicRef<E>,
+export const CardFooter = forwardRef(function CardFooter(
+  { as, className, children, ...props }: any,
+  ref: any,
 ) {
   const Component = (as ?? "div") as ElementType;
   return (

@@ -49,11 +49,11 @@ export interface ContractSpec {
   methods: ContractMethod[];
 }
 
-interface ContractInteractionBuilderProps {
+export interface ContractInteractionBuilderProps {
   className?: string;
-  /** Pre-populated contract spec. When provided, the component uses this instead of fetching. */
+  spec?: ContractSpec;
   contractSpec?: ContractSpec;
-  /** Called with the constructed XDR/params when ready */
+  onInvoke?: (contractId: string, method: string, args: unknown[]) => void;
   onParamsReady?: (params: {
     contractId: string;
     method: string;
@@ -184,9 +184,12 @@ function renderArgInput(
 
 export function ContractInteractionBuilder({
   className,
-  spec: externalSpec,
-  onInvoke: _onInvoke,
+  spec: externalSpecProp,
+  contractSpec,
+  onInvoke,
+  onParamsReady,
 }: ContractInteractionBuilderProps) {
+  const externalSpec = externalSpecProp ?? contractSpec;
   const titleId = useId();
   const [contractId, setContractId] = useState(
     externalSpec?.contractId ?? "",
@@ -205,7 +208,7 @@ export function ContractInteractionBuilder({
 
   const activeMethod = useMemo(() => {
     if (!externalSpec || !selectedMethod) return undefined;
-    return externalSpec.methods.find((m) => m.name === selectedMethod);
+    return externalSpec.methods.find((m: ContractMethod) => m.name === selectedMethod);
   }, [externalSpec, selectedMethod]);
 
   const xdrPreview = useMemo(() => {
@@ -229,10 +232,10 @@ export function ContractInteractionBuilder({
     (method: string) => {
       setSelectedMethod(method);
       if (externalSpec) {
-        const methodDef = externalSpec.methods.find((m) => m.name === method);
+        const methodDef = externalSpec.methods.find((m: ContractMethod) => m.name === method);
         if (methodDef) {
           const initial: Record<string, string> = {};
-          methodDef.args.forEach((arg) => {
+          methodDef.args.forEach((arg: ContractMethodArg) => {
             initial[arg.name] = "";
           });
           setArgValues(initial);
@@ -268,7 +271,7 @@ export function ContractInteractionBuilder({
   const handleGenerateParams = useCallback(() => {
     if (!contractId || !selectedMethod) return;
     const args = activeMethod
-      ? activeMethod.args.map((arg) => argValues[arg.name] ?? "")
+      ? activeMethod.args.map((arg: ContractMethodArg) => argValues[arg.name] ?? "")
       : Object.values(argValues);
     onParamsReady?.({
       contractId,
@@ -276,16 +279,19 @@ export function ContractInteractionBuilder({
       args,
       xdr: xdrPreview,
     });
+    onInvoke?.(contractId, selectedMethod, args);
   }, [
     contractId,
     selectedMethod,
     activeMethod,
     argValues,
     xdrPreview,
+    onParamsReady,
+    onInvoke,
   ]);
 
   const allArgsFilled = activeMethod
-    ? activeMethod.args.every((arg) => argValues[arg.name]?.trim())
+    ? activeMethod.args.every((arg: ContractMethodArg) => argValues[arg.name]?.trim())
     : true;
 
   return (
@@ -320,7 +326,6 @@ export function ContractInteractionBuilder({
             value={contractId}
             onChange={(e) => handleContractIdChange(e.target.value)}
             placeholder="C…"
-            invalid={!!contractError}
             aria-invalid={!!contractError || undefined}
             aria-describedby={contractError ? "contract-id-error" : undefined}
           />
@@ -350,7 +355,7 @@ export function ContractInteractionBuilder({
               className="h-9 w-full rounded-lg border border-line bg-surface px-3 text-[13px] text-ink focus:outline-none focus:ring-1 focus:ring-brand"
             >
               <option value="">Select a method…</option>
-              {externalSpec.methods.map((method) => (
+              {externalSpec.methods.map((method: ContractMethod) => (
                 <option key={method.name} value={method.name}>
                   {method.name}
                   {method.description ? ` — ${method.description}` : ""}
@@ -365,7 +370,7 @@ export function ContractInteractionBuilder({
             <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-4">
               Arguments
             </span>
-            {activeMethod.args.map((arg) => (
+            {activeMethod.args.map((arg: ContractMethodArg) => (
               <div key={arg.name} className="flex flex-col gap-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[12px] font-medium text-ink-2">

@@ -173,7 +173,7 @@ interface DefaultAssetRowProps {
   asset: AssetItem;
   isFavorite: boolean;
   onFavoriteToggle: (asset: AssetItem) => void;
-  onSelect: (asset: AssetItem) => void;
+  onSelect?: (asset: AssetItem) => void;
   isFocused: boolean;
 }
 
@@ -500,7 +500,7 @@ function AssetFilter({
         case "Enter":
           e.preventDefault();
           if (filtered[focusedIndex]) {
-            onSelect(filtered[focusedIndex]);
+            onSelect?.(filtered[focusedIndex]);
           }
           return;
         default:
@@ -790,5 +790,4 @@ function AssetFilter({
 }
 
 export { AssetFilter };
-export type { AssetItem, AssetMeta, SortKey, VerifiedFilter };
 

@@ -1,9 +1,8 @@
-import { Loader01Icon } from "@hugeicons/core-free-icons";
+import { Copy01Icon, Loading01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
-import { InfoCell } from "@/components/ui/InfoCell";
 import { useSorokit } from "@/context/useSorokit";
 import type { NetworkName } from "@/lib/client";
 import { cn } from "@/lib/utils";
@@ -271,7 +270,7 @@ function InfoCell({
           >
             {probe === "testing" ? (
               <HugeiconsIcon
-                icon={Loader01Icon}
+                icon={Loading01Icon}
                 size={12}
                 color="currentColor"
                 strokeWidth={2}

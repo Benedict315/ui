@@ -5,6 +5,7 @@ import {
   ChevronDownIcon,
   CircleXIcon,
   Copy01Icon,
+  Filter01Icon,
   Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -449,7 +450,7 @@ export function ActivityTimeline({ className }: { className?: string }) {
       ) : error ? (
         <div className="flex items-start gap-3 px-5 py-4">
           <div className="w-8 h-8 rounded-full bg-error-dim flex items-center justify-center shrink-0 mt-0.5">
-            <HugeiconsIcon icon={XCircleIcon} size={16} color="currentColor" strokeWidth={1.5} className="text-red" />
+            <HugeiconsIcon icon={CircleXIcon} size={16} color="currentColor" strokeWidth={1.5} className="text-red" />
           </div>
           <div>
             <p className="text-[13px] font-semibold text-ink">Failed to load activity</p>

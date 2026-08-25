@@ -2,6 +2,7 @@ import type {
   AccountData,
   AllowanceEntry,
   Balance,
+  GasEstimate,
   GasPriceData,
   GroupedTransaction,
   InvokeParams,
@@ -555,6 +556,25 @@ export function createMockClient(
         mode: "increase" | "decrease" | "revoke";
       }) => ({
         data: { baseFee: "100", recommended: "1000" },
+        error: null,
+      }),
+    },
+    batch: {
+      submitBatch: async () => ({
+        data: null,
+        error: null,
+        batchId: "batch-mock-123",
+      }),
+      getBatchStatus: async () => ({
+        data: null,
+        error: null,
+      }),
+      cancelBatch: async () => ({
+        data: true,
+        error: null,
+      }),
+      retryEntry: async () => ({
+        data: null,
         error: null,
       }),
     },
