@@ -25,6 +25,15 @@ export function safeFormat(balance: string): string {
   });
 }
 
+/**
+ * Validate a Stellar public address: must start with 'G' and be 56
+ * characters of base32 (RFC 4648, no padding) — the same charset the
+ * StrKey checksum encoding uses.
+ */
+export function validateStellarAddress(address: string): boolean {
+  return /^G[A-Z2-7]{55}$/.test(address.trim());
+}
+
 export function friendlyError(message: string): string {
   const normalizedMessage = message.trim().toLowerCase();
 
