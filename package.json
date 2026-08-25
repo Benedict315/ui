@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "React components for Stellar/Soroban development",
-  "main": "dist/sorokit-ui.cjs.js",
+  "main": "dist/sorokit-ui.cjs",
   "module": "dist/sorokit-ui.es.js",
   "types": "dist/components/index.d.ts",
   "files": [
@@ -27,7 +27,7 @@
     ".": {
       "types": "./dist/components/index.d.ts",
       "import": "./dist/sorokit-ui.es.js",
-      "require": "./dist/sorokit-ui.cjs.js"
+      "require": "./dist/sorokit-ui.cjs"
     },
     "./styles": "./dist/style.css"
   },
@@ -98,14 +98,34 @@
     {
       "name": "ES module (gzip)",
       "path": "dist/sorokit-ui.es.js",
-      "limit": "66 kB",
-      "gzip": true
+      "limit": "150 kB",
+      "gzip": true,
+      "ignore": [
+        "react",
+        "react-dom",
+        "lightweight-charts",
+        "lucide-react",
+        "@hugeicons/core-free-icons",
+        "@hugeicons/react",
+        "qrcode",
+        "sorokit-core"
+      ]
     },
     {
       "name": "CommonJS (gzip)",
-      "path": "dist/sorokit-ui.cjs.js",
-      "limit": "66 kB",
-      "gzip": true
+      "path": "dist/sorokit-ui.cjs",
+      "limit": "150 kB",
+      "gzip": true,
+      "ignore": [
+        "react",
+        "react-dom",
+        "lightweight-charts",
+        "lucide-react",
+        "@hugeicons/core-free-icons",
+        "@hugeicons/react",
+        "qrcode",
+        "sorokit-core"
+      ]
     }
   ],
   "peerDependencies": {

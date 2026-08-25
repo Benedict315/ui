@@ -25,15 +25,15 @@ export default defineConfig({
     lib: {
       entry: path.resolve(__dirname, 'src/components/index.ts'),
       name: 'SorokitUI',
-      fileName: (format) => `sorokit-ui.${format === 'es' ? 'es' : 'cjs'}.js`,
+      fileName: (format) => `sorokit-ui.${format === 'es' ? 'es.js' : 'cjs'}`,
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
-      external: [
-        'react',
-        'react-dom',
-        'react/jsx-runtime',
-      ],
+      external: (id) =>
+        !id.startsWith('.') &&
+        !id.startsWith('/') &&
+        !id.startsWith('@/') &&
+        !id.startsWith('\0'),
       output: {
         globals: {
           react: 'React',
@@ -41,7 +41,7 @@ export default defineConfig({
         },
       },
     },
-    minify: false,
+    minify: 'esbuild',
     sourcemap: true,
     // Preserve specific directory structure
     outDir: 'dist',
