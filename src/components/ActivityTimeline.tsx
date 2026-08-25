@@ -301,6 +301,9 @@ export function ActivityTimeline({ className }: { className?: string }) {
         setTotal(t);
         setError(null);
       })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load activity");
+      })
       .finally(() => {
         setLoading(false);
       });
@@ -410,6 +413,7 @@ export function ActivityTimeline({ className }: { className?: string }) {
               <Input
                 id="at-search"
                 placeholder="Search by address or transaction hash..."
+                aria-label="Search by address or transaction hash"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => {

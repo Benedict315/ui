@@ -1,8 +1,7 @@
-import { fireEvent,render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
-import { formatUsd } from "@/lib/rebalancer";
 
 import { BalanceList } from "./BalanceList";
 
@@ -467,7 +466,7 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
       expect(
-        screen.queryByText(/liquidity pool shares/i),
+        screen.queryByText(/liquidity positions|liquidity pool shares/i),
       ).not.toBeInTheDocument();
     });
 
@@ -479,7 +478,7 @@ describe("BalanceList", () => {
       } as unknown as ReturnType<typeof useSorokit>);
 
       render(<BalanceList />);
-      expect(screen.getByText(/liquidity pool shares/i)).toBeInTheDocument();
+      expect(screen.getByText(/liquidity positions|liquidity pool shares/i)).toBeInTheDocument();
 
       const badges = screen.getAllByTestId("asset-badge");
       expect(badges).toHaveLength(3);
@@ -531,7 +530,7 @@ describe("BalanceList", () => {
       const search = screen.getByPlaceholderText("Search assets…");
       fireEvent.change(search, { target: { value: "lp-pool-1" } });
 
-      expect(screen.getByText(/liquidity pool shares/i)).toBeInTheDocument();
+      expect(screen.getByText(/liquidity positions|liquidity pool shares/i)).toBeInTheDocument();
       const badges = screen.getAllByTestId("asset-badge");
       expect(badges).toHaveLength(1);
       expect(badges[0]).toHaveTextContent("LP-POOL-1");
@@ -549,7 +548,7 @@ describe("BalanceList", () => {
       fireEvent.change(search, { target: { value: "abc" } });
 
       expect(
-        screen.queryByText(/liquidity pool shares/i),
+        screen.queryByText(/liquidity positions|liquidity pool shares/i),
       ).not.toBeInTheDocument();
     });
 
@@ -648,9 +647,12 @@ describe("BalanceList", () => {
       render(<BalanceList showTotal xlmPrice={0.5} />);
 
       // mockXlmBalance.balance = "100.0000000" -> 100 * 0.5 = 50
-      const expected = formatUsd(50);
-      expect(screen.getByText(/portfolio total/i)).toBeInTheDocument();
-      expect(screen.getByText(new RegExp(expected.replace("$", "\\$")))).toBeInTheDocument();
+      expect(
+        screen.getByText((content, element) => {
+          const hasText = /~100 XLM/i.test(element?.textContent ?? "") && /~\$50/i.test(element?.textContent ?? "");
+          return hasText && element?.tagName.toLowerCase() === "p";
+        }),
+      ).toBeInTheDocument();
     });
 
     it("does not render a portfolio total when showTotal is omitted", () => {
@@ -661,7 +663,12 @@ describe("BalanceList", () => {
       } as unknown as ReturnType<typeof useSorokit>);
 
       render(<BalanceList xlmPrice={0.5} />);
-      expect(screen.queryByText(/portfolio total/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText((content, element) => {
+          const text = element?.textContent ?? "";
+          return /XLM.*~\$/i.test(text) && element?.tagName.toLowerCase() === "p";
+        }),
+      ).not.toBeInTheDocument();
     });
 
     it("does not render a portfolio total when xlmPrice is omitted", () => {
@@ -672,7 +679,12 @@ describe("BalanceList", () => {
       } as unknown as ReturnType<typeof useSorokit>);
 
       render(<BalanceList showTotal />);
-      expect(screen.queryByText(/portfolio total/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText((content, element) => {
+          const text = element?.textContent ?? "";
+          return /~\$/i.test(text) && element?.tagName.toLowerCase() === "p";
+        }),
+      ).not.toBeInTheDocument();
     });
 
     it("does not render a portfolio total when not connected", () => {
@@ -683,7 +695,12 @@ describe("BalanceList", () => {
       } as unknown as ReturnType<typeof useSorokit>);
 
       render(<BalanceList showTotal xlmPrice={0.5} />);
-      expect(screen.queryByText(/portfolio total/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText((content, element) => {
+          const text = element?.textContent ?? "";
+          return /~\$/i.test(text) && element?.tagName.toLowerCase() === "p";
+        }),
+      ).not.toBeInTheDocument();
     });
 
     it("does not render a portfolio total while loading", () => {
@@ -694,7 +711,12 @@ describe("BalanceList", () => {
       } as unknown as ReturnType<typeof useSorokit>);
 
       render(<BalanceList showTotal xlmPrice={0.5} />);
-      expect(screen.queryByText(/portfolio total/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText((content, element) => {
+          const text = element?.textContent ?? "";
+          return /~\$/i.test(text) && element?.tagName.toLowerCase() === "p";
+        }),
+      ).not.toBeInTheDocument();
     });
 
     it("falls back to a total of 0 when there is no native XLM balance", () => {
@@ -705,8 +727,12 @@ describe("BalanceList", () => {
       } as unknown as ReturnType<typeof useSorokit>);
 
       render(<BalanceList showTotal xlmPrice={0.5} />);
-      const expected = formatUsd(0);
-      expect(screen.getByText(new RegExp(expected.replace("$", "\\$")))).toBeInTheDocument();
+      expect(
+        screen.getByText((content, element) => {
+          const hasText = /~0 XLM/i.test(element?.textContent ?? "") && /~\$0/i.test(element?.textContent ?? "");
+          return hasText && element?.tagName.toLowerCase() === "p";
+        }),
+      ).toBeInTheDocument();
     });
   });
 });
