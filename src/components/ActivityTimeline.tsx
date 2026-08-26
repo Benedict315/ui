@@ -301,6 +301,9 @@ export function ActivityTimeline({ className }: { className?: string }) {
         setTotal(t);
         setError(null);
       })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load activity");
+      })
       .finally(() => {
         setLoading(false);
       });
@@ -360,7 +363,7 @@ export function ActivityTimeline({ className }: { className?: string }) {
             )}
             aria-label="Toggle filters"
           >
-            <HugeiconsIcon icon={Filter01Icon} size={13} strokeWidth={1.5} />
+            <HugeiconsIcon icon={FilterIcon} size={13} strokeWidth={1.5} />
             Filters
             {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-brand" />}
           </button>
@@ -410,6 +413,7 @@ export function ActivityTimeline({ className }: { className?: string }) {
               <Input
                 id="at-search"
                 placeholder="Search by address or transaction hash..."
+                aria-label="Search by address or transaction hash"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -450,7 +454,7 @@ export function ActivityTimeline({ className }: { className?: string }) {
       ) : error ? (
         <div className="flex items-start gap-3 px-5 py-4">
           <div className="w-8 h-8 rounded-full bg-error-dim flex items-center justify-center shrink-0 mt-0.5">
-            <HugeiconsIcon icon={XCircleIcon} size={16} color="currentColor" strokeWidth={1.5} className="text-red" />
+            <HugeiconsIcon icon={CircleXIcon} size={16} color="currentColor" strokeWidth={1.5} className="text-red" />
           </div>
           <div>
             <p className="text-[13px] font-semibold text-ink">Failed to load activity</p>

@@ -231,7 +231,7 @@ export function TransactionFeeCalculator({
           <p className="text-[12px] text-red px-5 py-4">{error}</p>
         ) : feeData ? (
           <div>
-            {feeData.map((row, i) => (
+            {feeData.map((row) => (
               <FeeRow
                 key={row.label}
                 label={row.label}

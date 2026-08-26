@@ -1,31 +1,26 @@
 import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
   CancelCircleIcon,
   CheckmarkCircle01Icon,
   CircleDotIcon,
+  CircleXIcon,
   ClockIcon,
   CloudDownloadIcon,
   DownloadIcon,
   FileSpreadsheetIcon,
   HashIcon,
-  LoaderIcon,
+  Loading01Icon,
   PauseIcon,
   PlayIcon,
-  RefreshCwIcon,
-  RotateCwIcon,
-  SettingsIcon,
   UploadIcon,
-  XCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
-import { type BatchEntry, BatchEntryResult, BatchProgress,BatchResult, getClient } from "@/lib/client";
+import { type BatchEntry, type BatchEntryResult, type BatchProgress, getClient } from "@/lib/client";
 import { cn, truncateAddress } from "@/lib/utils";
 
 const STATUS_BADGE: Record<BatchEntryResult["status"], { variant: "default" | "warning" | "primary" | "success" | "error"; label: string }> = {
@@ -127,7 +122,7 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
   const [currentView, setCurrentView] = useState<"upload" | "results" | "progress">("upload");
   const pollRef = useRef<number | null>(null);
 
-  const csvTemplateBlob = useMemo(() => new Blob([generateCSVTemplate()], { type: "text/csv" }), []);
+
 
   const clearState = useCallback(() => {
     setFileEntries(null);
@@ -192,7 +187,9 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
       if (!file) return;
       const input = document.createElement("input");
       input.type = "file";
-      input.files = [file];
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
       handleFileUpload({ target: input } as unknown as React.ChangeEvent<HTMLInputElement>);
     },
     [handleFileUpload],
@@ -203,7 +200,7 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
   }, []);
 
   const downloadCSVReport = useCallback(
-    (reportEntries: BatchEntryResult[], totalFee: string) => {
+    (reportEntries: BatchEntryResult[], _totalFee: string) => {
       const header = "address,amount,status,txHash,error,retryCount";
       const rows = reportEntries.map(
         (r) =>
@@ -266,7 +263,7 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
     setCurrentView("progress");
 
     try {
-      const { data, error, batchId: bid } = await getClient().batch.submitBatch({
+      const { error, batchId: bid } = await getClient().batch.submitBatch({
         entries: fileEntries,
         sourceAccount: address,
         asset: defaultAsset,
@@ -280,6 +277,15 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
       }
 
       setBatchId(bid);
+      setProgress({
+        batchId: bid,
+        total: fileEntries.length,
+        completed: 0,
+        failed: 0,
+        status: "processing",
+        percentage: 0,
+      });
+
       setResults(
         fileEntries.map((e) => ({
           address: e.address,
@@ -314,15 +320,15 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
 
   const handleCancel = useCallback(async () => {
     if (!batchId) return;
+    await getClient().batch.cancelBatch(batchId);
     if (pollRef.current) {
       window.clearInterval(pollRef.current);
       pollRef.current = null;
     }
     setIsProcessing(false);
     setIsPaused(false);
-    await getClient().batch.cancelBatch(batchId);
-    clearState();
-  }, [batchId, clearState]);
+    setCurrentView("results");
+  }, [batchId]);
 
   const handleRetry = useCallback(async (index: number) => {
     if (!batchId || !results) return;
@@ -350,7 +356,6 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
         if (!prev) return prev;
         const updated = [...prev];
         let changed = false;
-        data.completed;
         const completedCount = data.completed;
         for (let i = 0; i < updated.length; i++) {
           if (i < completedCount && updated[i].status === "queued") {
@@ -386,15 +391,6 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
   const percentage = progress?.percentage ?? (totalEntries > 0 ? Math.round((successfulCount / totalEntries) * 100) : 0);
   const etaSeconds = progress?.etaSeconds ?? 0;
 
-  const statusCounts = useMemo(() => {
-    if (!results) return null;
-    const counts: Record<string, number> = {};
-    results.forEach((r) => {
-      counts[r.status] = (counts[r.status] ?? 0) + 1;
-    });
-    return counts;
-  }, [results]);
-
   const hasFile = fileEntries !== null;
   const isValid = hasFile && fileErrors.length === 0;
 
@@ -418,7 +414,7 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
             onClick={() => document.getElementById("batch-file-input")?.click()}
             className="border-2 border-dashed border-line rounded-xl p-8 flex flex-col items-center gap-3 text-center cursor-pointer hover:border-brand hover:bg-brand-dim/30 transition-colors"
           >
-            <UploadIcon size={32} className="text-ink-3" strokeWidth={1.5} />
+            <HugeiconsIcon icon={UploadIcon} size={32} className="text-ink-3" strokeWidth={1.5} />
             <div>
               <p className="text-[13px] font-medium text-ink">Drop a CSV or JSON file here</p>
               <p className="text-[11px] text-ink-3 mt-1">or click to browse — supports .csv and .json</p>
@@ -431,7 +427,7 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-medium text-ink flex items-center gap-2">
-                <FileSpreadsheetIcon size={14} strokeWidth={1.5} />
+                <HugeiconsIcon icon={FileSpreadsheetIcon} size={14} strokeWidth={1.5} />
                 {fileName}
               </span>
               <Button variant="ghost" size="sm" onClick={clearState}>
@@ -566,7 +562,7 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
 
             {batchId && (
               <div className="flex items-center gap-2 text-[11px] text-ink-3">
-                <HashIcon size={12} strokeWidth={1.5} />
+                <HugeiconsIcon icon={HashIcon} size={12} strokeWidth={1.5} />
                 Batch ID: {truncateAddress(batchId, 8, 6)}
               </div>
             )}
@@ -588,9 +584,9 @@ export function BatchPaymentProcessor({ className, defaultAsset = "XLM" }: Batch
                         entry.status === "confirmed"
                           ? CheckmarkCircle01Icon
                           : entry.status === "failed"
-                            ? XCircleIcon
+                            ? CircleXIcon
                             : entry.status === "signing"
-                              ? LoaderIcon
+                              ? Loading01Icon
                               : CircleDotIcon
                       }
                       size={12}

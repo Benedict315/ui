@@ -381,9 +381,10 @@ export function TransactionHistoryTable({
     };
   }, [address]);
 
-   
   useEffect(() => {
-    setPage((prev) => (prev !== 1 ? 1 : prev));
+    queueMicrotask(() => {
+      setPage((prev) => (prev !== 1 ? 1 : prev));
+    });
   }, [filters]);
 
   // Toggle sort

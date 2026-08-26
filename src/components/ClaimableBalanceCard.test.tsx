@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -224,7 +224,7 @@ describe("ClaimableBalanceCard", () => {
   });
 
   describe("confirmThreshold dialog", () => {
-    function setupThresholdTest(amount: string, threshold: string) {
+    function setupThresholdTest(amount: string, _threshold: string) {
       mockConnected();
       vi.mocked(getClient).mockReturnValue({
         account: {

@@ -56,7 +56,7 @@ export function NetworkBanner({
   if (!network) return null;
   if (active === "network") return null;
 
-  const cfg = CONFIG[network.name] ?? CONFIG.custom;
+  const cfg = CONFIG[network.name as keyof typeof CONFIG] ?? CONFIG.custom;
   if (!alwaysShow && !cfg.show) return null;
 
   const label = cfg.label ?? network.name;

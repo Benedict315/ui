@@ -320,6 +320,7 @@ export type NetworkInfo = {
   passphrase: string;
   rpcUrl: string;
   horizonUrl: string;
+  ledger?: number;
   status?: "online" | "degraded" | "offline" | string;
 };
 
@@ -372,9 +373,11 @@ export type BatchProgress = {
   batchId: string;
   completed: number;
   total: number;
+  failed?: number;
   percentage: number;
-  etaSeconds: number;
-  currentStatus: BatchEntryResult["status"];
+  etaSeconds?: number;
+  currentStatus?: BatchEntryResult["status"];
+  status?: "idle" | "processing" | "paused" | "completed" | "error" | "cancelled" | string;
 };
 
 // ─── NFT Types ────────────────────────────────────────────────────────────────

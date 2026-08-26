@@ -18,6 +18,7 @@ const safeDefaults: SorokitState = {
   network: null,
   switchNetwork: async () => {},
   error: null,
+  errorHistory: [],
   clearError: () => {},
 };
 

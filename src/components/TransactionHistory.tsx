@@ -242,11 +242,12 @@ export function TransactionHistory({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-   
   useEffect(() => {
-    setPage((prev) => {
-      const stored = readStoredPage(address);
-      return prev !== stored ? stored : prev;
+    queueMicrotask(() => {
+      setPage((prev) => {
+        const stored = readStoredPage(address);
+        return prev !== stored ? stored : prev;
+      });
     });
   }, [address]);
 

@@ -70,7 +70,6 @@ export function GasOptimizer({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [customMultiplier, setCustomMultiplier] = useState(1);
-  const [scenarioLoading, setScenarioLoading] = useState(false);
   const [scenarioError, setScenarioError] = useState<string | null>(null);
 
   const loadGasData = useCallback(async () => {
@@ -105,7 +104,6 @@ export function GasOptimizer({
 
   const loadScenarios = useCallback(async () => {
     if (!estimate) return;
-    setScenarioLoading(true);
     setScenarioError(null);
     try {
       const { data, error: err } = await getClient().transaction.getFeeScenarios({
@@ -123,8 +121,6 @@ export function GasOptimizer({
       }
     } catch (e) {
       setScenarioError(e instanceof Error ? e.message : "Failed to load scenarios");
-    } finally {
-      setScenarioLoading(false);
     }
   }, [estimate, operations]);
 
@@ -148,7 +144,14 @@ export function GasOptimizer({
 
   useEffect(() => {
     if (!estimate) return;
-    void loadScenarios();
+    let active = true;
+    const timerId = window.setTimeout(() => {
+      if (active) void loadScenarios();
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(timerId);
+    };
   }, [estimate, loadScenarios]);
 
   const handleMultiplierChange = (value: number) => {
@@ -343,7 +346,7 @@ function OperationBreakdown({ breakdown }: { breakdown: OperationGasBreakdown[] 
   );
 }
 
-function FeeScenarios({ scenarios, multiplier }: { scenarios: FeeScenario[]; multiplier: number }) {
+function FeeScenarios({ scenarios, multiplier: _multiplier }: { scenarios: FeeScenario[]; multiplier: number }) {
   const [activeScenario, setActiveScenario] = useState<string>("average");
 
   return (
