@@ -68,6 +68,7 @@ describe("SorobanInvokeButton", () => {
 
     const button = screen.getByRole("button");
     expect(button.textContent).toContain("Invoking transfer…");
+    expect(button).toBeDisabled();
 
     await act(async () => {
       resolveInvoke!({ data: { ok: true }, error: null, status: "success" });
@@ -135,6 +136,22 @@ describe("SorobanInvokeButton", () => {
     await waitFor(() => expect(onSuccess).toHaveBeenCalledWith({ txHash: "abc" }));
   });
 
+  it("passes the invocation params to the client", async () => {
+    const invokeContract = vi.fn().mockResolvedValue({
+      data: { txHash: "abc" },
+      error: null,
+      status: "success",
+    });
+    vi.mocked(getClient).mockReturnValue({
+      soroban: { invokeContract },
+    } as unknown as SorokitClient);
+
+    render(<SorobanInvokeButton params={PARAMS} />);
+    fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
+
+    await waitFor(() => expect(invokeContract).toHaveBeenCalledWith(PARAMS));
+  });
+
   it("calls onError with the error message on a failed invocation", async () => {
     const onError = vi.fn();
     mockInvokeContract({ data: null, error: "Simulation failed", status: "error" });
@@ -153,6 +170,7 @@ describe("SorobanInvokeButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
 
     await waitFor(() => expect(screen.getByText("Done")).toBeInTheDocument());
+    expect(screen.getByText(/"result": 1/)).toBeInTheDocument();
   });
 
   it("shows Failed badge on error", async () => {
@@ -171,6 +189,19 @@ describe("SorobanInvokeButton", () => {
 
     await waitFor(() => screen.getByText("Failed"));
     expect(screen.getByText(/something went wrong while invoking/i)).toBeInTheDocument();
+  });
+
+  it("clears the success result when reset is clicked", async () => {
+    mockInvokeContract({ data: { txHash: "abc" }, error: null, status: "success" });
+    render(<SorobanInvokeButton params={PARAMS} />);
+    fireEvent.click(screen.getByRole("button", { name: "transfer()" }));
+
+    await waitFor(() => expect(screen.getByText("Done")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Reset invocation result" }));
+
+    expect(screen.queryByText("Done")).not.toBeInTheDocument();
+    expect(screen.queryByText("Result")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "transfer()" })).toBeEnabled();
   });
 
   it("hides the result block when showResult is false", async () => {

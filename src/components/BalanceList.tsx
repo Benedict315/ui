@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 
 import { AssetBadge } from "@/components/AssetBadge";
 import { Badge } from "@/components/ui/Badge";
@@ -48,22 +48,31 @@ const sortLabels: Record<SortMode, string> = {
   alpha: "A-Z",
 };
 
-function AssetRow({
+const AssetRow = memo(function AssetRow({
   b,
-  onClick,
+  onAssetClick,
+  detailRef,
 }: {
   b: Balance;
-  onClick?: () => void;
+  onAssetClick?: (balance: Balance) => void;
+  detailRef?: React.RefObject<HTMLElement | null>;
 }) {
   const isZeroBalance = Number(b.balance) === 0;
+  const onClick = useCallback(() => {
+    onAssetClick?.(b);
+    requestAnimationFrame(() => {
+      detailRef?.current?.focus();
+    });
+  }, [b, detailRef, onAssetClick]);
+  const hasClickHandler = Boolean(onAssetClick);
 
   return (
     <div
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onClick={onClick}
+      role={hasClickHandler ? "button" : undefined}
+      tabIndex={hasClickHandler ? 0 : undefined}
+      onClick={hasClickHandler ? onClick : undefined}
       onKeyDown={
-        onClick
+        hasClickHandler
           ? (e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
@@ -75,7 +84,7 @@ function AssetRow({
       className={cn(
         "flex items-center justify-between px-5 py-4 border-b border-line last:border-0",
         isZeroBalance && "opacity-50",
-        onClick && "cursor-pointer hover:bg-surface-2 transition-colors",
+        hasClickHandler && "cursor-pointer hover:bg-surface-2 transition-colors",
       )}
     >
       <AssetBadge balance={b} />
@@ -94,7 +103,7 @@ function AssetRow({
       </div>
     </div>
   );
-}
+});
 
 export interface BalanceListProps {
   onAssetClick?: (balance: Balance) => void;
@@ -120,40 +129,43 @@ export function BalanceList({
 
   const skeletonCount = balances.length > 0 ? balances.length : 3;
 
-  const filtered = search
-    ? balances.filter((b) =>
-        getAssetCode(b).toLowerCase().includes(search.toLowerCase()),
-      )
-    : balances;
-
-  const regularBalances = filtered.filter(
-    (b) => b.assetType !== "liquidity_pool_shares",
-  );
-  const lpBalances = filtered.filter(
-    (b) => b.assetType === "liquidity_pool_shares",
+  const filtered = useMemo(
+    () =>
+      search
+        ? balances.filter((b) =>
+            getAssetCode(b).toLowerCase().includes(search.toLowerCase()),
+          )
+        : balances,
+    [balances, search],
   );
 
-  const sorted = sortBalances(regularBalances, sortMode);
-  const sortedLp = sortBalances(lpBalances, sortMode);
+  const { sorted, sortedLp } = useMemo(() => {
+    const regularBalances = filtered.filter(
+      (b) => b.assetType !== "liquidity_pool_shares",
+    );
+    const lpBalances = filtered.filter(
+      (b) => b.assetType === "liquidity_pool_shares",
+    );
+    return {
+      sorted: sortBalances(regularBalances, sortMode),
+      sortedLp: sortBalances(lpBalances, sortMode),
+    };
+  }, [filtered, sortMode]);
 
   // Approximate — only native XLM balances are summed since other assets
   // have no price feed available here.
-  const xlmTotal = balances
-    .filter((b) => b.assetType === "native")
-    .reduce((sum, b) => sum + Number(b.balance), 0);
+  const xlmTotal = useMemo(
+    () =>
+      balances
+        .filter((b) => b.assetType === "native")
+        .reduce((sum, b) => sum + Number(b.balance), 0),
+    [balances],
+  );
 
   const cycleSort = () => {
     setSortMode((m) =>
       m === "default" ? "balance-desc" : m === "balance-desc" ? "alpha" : "default",
     );
-  };
-
-  const handleAssetClick = (b: Balance) => {
-    onAssetClick?.(b);
-    // Move focus to the detail view if a ref is provided
-    requestAnimationFrame(() => {
-      detailRef?.current?.focus();
-    });
   };
 
   return (
@@ -230,7 +242,8 @@ export function BalanceList({
                 <AssetRow
                   key={b.asset}
                   b={b}
-                  onClick={onAssetClick ? () => handleAssetClick(b) : undefined}
+                  onAssetClick={onAssetClick}
+                  detailRef={detailRef}
                 />
               ))}
             </div>
@@ -246,7 +259,8 @@ export function BalanceList({
                 <AssetRow
                   key={b.asset}
                   b={b}
-                  onClick={onAssetClick ? () => handleAssetClick(b) : undefined}
+                  onAssetClick={onAssetClick}
+                  detailRef={detailRef}
                 />
               ))}
             </div>

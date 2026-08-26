@@ -125,21 +125,30 @@ describe("NetworkBanner", () => {
     ).toHaveTextContent("You are on custom-net — transactions use test funds only");
   });
 
-  it("renders the mainnet banner when alwaysShow={true}", () => {
-    mockNetwork(MAINNET_NETWORK);
-    const { container } = render(<NetworkBanner alwaysShow={true} />);
+  it("merges per-network config overrides with the defaults", async () => {
+    renderWithNetwork(
+      "testnet",
+      <NetworkBanner config={{ testnet: { label: "Staging" } }} />,
+    );
+    expect(await screen.findByText(/staging/i)).toBeInTheDocument();
+    expect(screen.getByText(/test funds only/i)).toBeInTheDocument();
+  });
 
-    expect(screen.getByText("Mainnet")).toBeInTheDocument();
-    expect(screen.getByText(/You are on/i)).toHaveTextContent("You are on Mainnet");
-    expect(
-      screen.queryByText(/transactions use test funds only/i),
-    ).not.toBeInTheDocument();
+  it("shows a generic non-mainnet banner for unknown networks", async () => {
+    renderWithNetwork("private-testnet" as NetworkName);
+    expect(await screen.findByText(/private-testnet/i)).toBeInTheDocument();
+    expect(screen.getByText(/test funds only/i)).toBeInTheDocument();
+  });
 
-    const dot = container.querySelector(".rounded-full");
-    expect(dot).toHaveClass("bg-green");
-
-    const textSpan = container.querySelector(".text-green");
-    expect(textSpan).toBeInTheDocument();
+  it("does not render when active section is 'network'", async () => {
+    const { client, container } = renderWithNetwork(
+      "testnet",
+      <NetworkBanner active="network" />,
+    );
+    await waitFor(() => {
+      expect(client.network.getNetwork).toHaveBeenCalled();
+    });
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("merges custom className when supplied", () => {
