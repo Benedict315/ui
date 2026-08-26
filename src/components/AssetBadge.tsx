@@ -1,7 +1,7 @@
 import type { Balance } from "@/lib/client";
 import { cn, truncateAddress } from "@/lib/utils";
 
-const ASSET_COLORS: Record<string, { bg: string; text: string }> = {
+export const ASSET_COLORS: Record<string, { bg: string; text: string }> = {
   XLM: { bg: "bg-[rgba(20,184,166,0.12)]", text: "text-teal" },
   USDC: { bg: "bg-[rgba(86,69,212,0.12)]", text: "text-brand" },
   USDT: { bg: "bg-success-dim-strong", text: "text-green" },
@@ -9,8 +9,22 @@ const ASSET_COLORS: Record<string, { bg: string; text: string }> = {
   ETH: { bg: "bg-[rgba(168,85,247,0.12)]", text: "text-purple" },
 };
 
-function getAssetColor(code: string) {
-  return ASSET_COLORS[code] ?? { bg: "bg-surface-2", text: "text-ink-2" };
+export function getAssetColor(
+  code: string,
+  colorMap?: Record<string, { bg: string; text: string }>,
+) {
+  if (colorMap) {
+    if (colorMap[code]) return colorMap[code];
+    const lower = code.toLowerCase();
+    const matchedKey = Object.keys(colorMap).find(
+      (k) => k.toLowerCase() === lower,
+    );
+    if (matchedKey && colorMap[matchedKey]) return colorMap[matchedKey];
+  }
+  return (
+    ASSET_COLORS[code] ??
+    ASSET_COLORS[code.toUpperCase()] ?? { bg: "bg-surface-2", text: "text-ink-2" }
+  );
 }
 
 /**
@@ -24,7 +38,7 @@ export function isKnownAsset(code: string): boolean {
   return KNOWN_ASSETS.has(code.toUpperCase());
 }
 
-interface AssetBadgeProps {
+export interface AssetBadgeProps {
   balance: Balance;
   showIssuer?: boolean;
   /**
@@ -35,6 +49,8 @@ interface AssetBadgeProps {
   size?: "sm" | "md" | "lg";
   /** Makes the badge an interactive button — e.g. for asset selection. */
   onClick?: () => void;
+  /** Custom color map merged with default ASSET_COLORS */
+  colorMap?: Record<string, { bg: string; text: string }>;
   className?: string;
 }
 
@@ -44,6 +60,7 @@ export function AssetBadge({
   showIssuerForUnknown,
   size = "md",
   onClick,
+  colorMap,
   className,
 }: AssetBadgeProps) {
   const isLpShares = balance.assetType === "liquidity_pool_shares";
@@ -53,8 +70,8 @@ export function AssetBadge({
       ? "XLM"
       : (balance.assetCode ?? balance.asset);
   const { bg, text } = isLpShares
-    ? { bg: "bg-surface-2", text: "text-ink-2" }
-    : getAssetColor(code);
+    ? (colorMap?.[code] ?? colorMap?.LP ?? { bg: "bg-surface-2", text: "text-ink-2" })
+    : getAssetColor(code, colorMap);
 
   const iconSize =
     size === "sm"
@@ -70,9 +87,13 @@ export function AssetBadge({
         : "text-[13px]";
   const subSize = size === "sm" ? "text-[10px]" : "text-[11px]";
 
-  // A large circle looks sparse with two characters, so show the full short
-  // code (capped at 4) at lg.
-  const iconLabel = size === "lg" ? code.slice(0, 4) : code.slice(0, 2);
+  // Show full code for 1-3 char codes (e.g. XLM, ETH, BTC), 4 chars at lg for longer codes, and 2 chars otherwise.
+  const iconLabel =
+    code.length <= 3
+      ? code
+      : size === "lg"
+        ? code.slice(0, 4)
+        : code.slice(0, 2);
 
   // showIssuerForUnknown narrows showIssuer: known assets never show it.
   const issuerVisible = showIssuerForUnknown
@@ -135,15 +156,19 @@ export function AssetBadge({
   );
 }
 
+export interface AssetPillProps {
+  assetCode: string;
+  colorMap?: Record<string, { bg: string; text: string }>;
+  className?: string;
+}
+
 /** Inline pill version — just the code with colored dot */
 export function AssetPill({
   assetCode,
+  colorMap,
   className,
-}: {
-  assetCode: string;
-  className?: string;
-}) {
-  const { bg, text } = getAssetColor(assetCode);
+}: AssetPillProps) {
+  const { bg, text } = getAssetColor(assetCode, colorMap);
   return (
     <span
       className={cn(
