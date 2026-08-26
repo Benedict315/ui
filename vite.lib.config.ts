@@ -41,7 +41,7 @@ export default defineConfig({
         },
       },
     },
-    minify: 'esbuild',
+    minify: false,
     sourcemap: true,
     // Preserve specific directory structure
     outDir: 'dist',
