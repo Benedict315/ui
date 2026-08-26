@@ -71,6 +71,7 @@ export function NetworkBanner({
     ...BANNER_CONFIG[network.name],
     ...config?.[network.name],
   };
+  const cfg = CONFIG[network.name as keyof typeof CONFIG] ?? CONFIG.custom;
   if (!alwaysShow && !cfg.show) return null;
 
   const label = cfg.label ?? network.name;

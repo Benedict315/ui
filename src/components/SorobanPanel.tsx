@@ -105,13 +105,19 @@ export function SorobanPanel({
   const [abiError, setAbiError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const argsRef = useRef(args);
-  argsRef.current = args;
 
-  // Clear result and error when contractId changes
   useEffect(() => {
-    setResult(null);
-    setError(null);
-    setState("idle");
+    argsRef.current = args;
+  });
+
+  const prevContractIdRef = useRef(contractId);
+  useEffect(() => {
+    if (prevContractIdRef.current !== contractId) {
+      prevContractIdRef.current = contractId;
+      setResult(null);
+      setError(null);
+      setState("idle");
+    }
   }, [contractId]);
 
   const isArgsJsonValid = useMemo(() => {
@@ -187,22 +193,27 @@ export function SorobanPanel({
           addContractToHistory(contractId.trim(), prev),
         );
       }
-    } catch (e) {
-      if (!signal.aborted) {
-        const message = e instanceof Error ? e.message : "Unknown error";
-        setError(message);
-        setState("error");
-      }
+    } catch (e: unknown) {
+      if (signal.aborted) return;
+      const message =
+        e instanceof Error
+          ? e.message
+          : typeof e === "string"
+            ? e
+            : "An unexpected error occurred while invoking the contract.";
+      setError(message);
+      setState("error");
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (state === "loading") return;
     doInvoke();
   }
 
-  function handleClick() {
+  function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
     if (state === "loading") return;
     doInvoke();
   }
@@ -230,7 +241,6 @@ export function SorobanPanel({
         return;
       }
       setAbiMethods(methods);
-      setAbiOpen(false);
     } catch {
       setAbiError("Invalid JSON — check the format and try again");
     }
