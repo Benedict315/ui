@@ -74,6 +74,10 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
   }, [active, onNavigate]);
 
   function handleNav(id: NavSection) {
+    if (active === id) {
+      onClose();
+      return;
+    }
     localStorage.setItem("sorokit-active-nav", id);
     onNavigate(id);
     onClose();
@@ -156,27 +160,6 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
           "lg:relative lg:translate-x-0 lg:z-auto",
         )}
       >
-        {/* Logo */}
-        <button
-          type="button"
-          onClick={() => onNavigate("wallet")}
-          className="flex items-center gap-3 px-5 h-[var(--sorokit-nav-height)] border-b border-line shrink-0 text-left cursor-pointer"
-        >
-          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center shrink-0">
-            <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
-              <path
-                d="M2 6C2 3.79 3.79 2 6 2C8.21 2 10 3.79 10 6C10 8.21 8.21 10 6 10"
-                stroke="white"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              <path
-                d="M6 10C4.9 10 4 9.1 4 8C4 6.9 4.9 6 6 6"
-                stroke="white"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              <circle cx="6" cy="6" r="1" fill="white" />
         {/* Logo + collapse toggle */}
         <div className="flex items-center justify-between px-3 h-[60px] border-b border-line shrink-0">
           <button
@@ -255,7 +238,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
                   icon={item.icon}
                   size={16}
                   color="currentColor"
-                  strokeWidth={active === item.id ? 2 : 1.5}
+                  strokeWidth={1.5}
                   className={cn(
                     "shrink-0",
                     active === item.id ? "text-brand" : "",

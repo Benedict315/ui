@@ -5,7 +5,7 @@ import {
   CheckmarkCircle01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -137,7 +137,7 @@ function explorerTxUrl(
   return `https://stellar.expert/explorer/${segment}/tx/${hash}`;
 }
 
-export function TxRow({
+export const TxRow = memo(function TxRow({
   tx,
   networkName,
 }: {
@@ -217,7 +217,7 @@ export function TxRow({
       </div>
     </RowWrapper>
   );
-}
+});
 
 type StatusFilter = "all" | "success" | "failed";
 
@@ -244,10 +244,10 @@ export function TransactionHistory({
 
    
   useEffect(() => {
-    setPage((prev) => {
-      const stored = readStoredPage(address);
-      return prev !== stored ? stored : prev;
-    });
+    const timerId = window.setTimeout(() => {
+      setPage(readStoredPage(address));
+    }, 0);
+    return () => window.clearTimeout(timerId);
   }, [address]);
 
   useEffect(() => {
@@ -286,15 +286,19 @@ export function TransactionHistory({
     storePage(address, nextPage);
   }
 
-  const filteredTxs = txs.filter((tx) => {
-    if (statusFilter === "success" && !tx.successful) return false;
-    if (statusFilter === "failed" && tx.successful) return false;
-    if (multiOpOnly && tx.operationCount <= 1) return false;
-    if (startDate && new Date(tx.createdAt) < new Date(startDate)) return false;
-    if (endDate && new Date(tx.createdAt) > new Date(endDate + "T23:59:59"))
-      return false;
-    return true;
-  });
+  const filteredTxs = useMemo(
+    () =>
+      txs.filter((tx) => {
+        if (statusFilter === "success" && !tx.successful) return false;
+        if (statusFilter === "failed" && tx.successful) return false;
+        if (multiOpOnly && tx.operationCount <= 1) return false;
+        if (startDate && new Date(tx.createdAt) < new Date(startDate)) return false;
+        if (endDate && new Date(tx.createdAt) > new Date(endDate + "T23:59:59"))
+          return false;
+        return true;
+      }),
+    [endDate, multiOpOnly, startDate, statusFilter, txs],
+  );
 
   const feeTotal = totalFeeStroops(filteredTxs);
 

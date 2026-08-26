@@ -18,12 +18,6 @@ function AppContent() {
     sectionForPath(window.location.pathname),
   );
 
-  // Deep link / refresh: the URL is the source of truth, so drop any section
-  // Sidebar would otherwise restore from its own localStorage persistence.
-  useEffect(() => {
-    localStorage.removeItem('sorokit-active-nav');
-  }, []);
-
   // Browser back/forward.
   useEffect(() => {
     const onPopState = () => setSection(sectionForPath(window.location.pathname));
