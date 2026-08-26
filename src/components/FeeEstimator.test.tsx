@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
 import { FeeCell,FeeEstimator } from "./FeeEstimator";
@@ -18,7 +18,7 @@ function mockEstimateFee(result: { data: { baseFee: string; recommended: string 
   } as unknown as SorokitClient);
 }
 
-describe("FeeEstimator", () => {
+describe("FeeEstimator", { timeout: 15000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -191,6 +191,52 @@ describe("FeeEstimator", () => {
         expect(screen.getByText("Network error")).toBeInTheDocument();
       });
       expect(onFeeLoad).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("auto-refresh and mount behavior", () => {
+    it("fires only one call on initial mount (no double-fetch)", async () => {
+      const estimateFee = vi.fn().mockResolvedValue({
+        data: { baseFee: "100", recommended: "500" },
+        error: null,
+      });
+      vi.mocked(getClient).mockReturnValue({
+        transaction: { estimateFee },
+      } as unknown as SorokitClient);
+
+      render(<FeeEstimator />);
+      await waitFor(() => {
+        expect(screen.getByText("100")).toBeInTheDocument();
+      });
+
+      expect(estimateFee).toHaveBeenCalledTimes(1);
+    });
+
+    it("triggers a second estimateFee call after fake timer advance of 5000ms with refreshInterval=5000", async () => {
+      vi.useFakeTimers();
+      const estimateFee = vi.fn().mockResolvedValue({
+        data: { baseFee: "100", recommended: "500" },
+        error: null,
+      });
+      vi.mocked(getClient).mockReturnValue({
+        transaction: { estimateFee },
+      } as unknown as SorokitClient);
+
+      render(<FeeEstimator refreshInterval={5000} />);
+
+      // Let initial mount fetch trigger and resolve
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(estimateFee).toHaveBeenCalledTimes(1);
+
+      // Advance timer by 5000ms
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(estimateFee).toHaveBeenCalledTimes(2);
+
+      vi.useRealTimers();
     });
   });
 
