@@ -66,7 +66,8 @@ export { AssetFilter, AssetFilterSkeleton } from "./AssetFilter";
 export { AddressDisplay } from "./AddressDisplay";
 
 // Network
-export { NetworkBanner } from "./NetworkBanner";
+export type { BannerConfig } from "./NetworkBanner";
+export { BANNER_CONFIG, NetworkBanner } from "./NetworkBanner";
 export { NetworkSwitcher } from "./NetworkSwitcher";
 
 // Allowances

@@ -89,6 +89,21 @@ describe("NetworkBanner", () => {
     expect(await screen.findByText(/localnet/i)).toBeInTheDocument();
   });
 
+  it("merges per-network config overrides with the defaults", async () => {
+    renderWithNetwork(
+      "testnet",
+      <NetworkBanner config={{ testnet: { label: "Staging" } }} />,
+    );
+    expect(await screen.findByText(/staging/i)).toBeInTheDocument();
+    expect(screen.getByText(/test funds only/i)).toBeInTheDocument();
+  });
+
+  it("shows a generic non-mainnet banner for unknown networks", async () => {
+    renderWithNetwork("private-testnet" as NetworkName);
+    expect(await screen.findByText(/private-testnet/i)).toBeInTheDocument();
+    expect(screen.getByText(/test funds only/i)).toBeInTheDocument();
+  });
+
   it("does not render when active section is 'network'", async () => {
     const { client, container } = renderWithNetwork(
       "testnet",
