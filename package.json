@@ -41,6 +41,8 @@
     "test:coverage": "vitest --coverage",
     "test:exports": "tsc -p tsconfig.test-exports.json",
     "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
     "type-check": "tsc --noEmit",
     "size": "npm run build && size-limit"
   },
