@@ -10,8 +10,19 @@ vi.mock("@/context/useSorokit", () => ({
 }));
 
 vi.mock("@/components/AssetBadge", () => ({
-  AssetBadge: ({ balance }: { balance: { asset: string } }) => (
-    <span data-testid="asset-badge">{balance.asset}</span>
+  AssetBadge: ({
+    balance,
+    showIssuerSuffix,
+  }: {
+    balance: { asset: string; assetIssuer?: string };
+    showIssuerSuffix?: boolean;
+  }) => (
+    <span data-testid="asset-badge">
+      {balance.asset}
+      {showIssuerSuffix && balance.assetIssuer
+        ? ` (${balance.assetIssuer.slice(0, 4)}...${balance.assetIssuer.slice(-4)})`
+        : ""}
+    </span>
   ),
 }));
 
@@ -44,6 +55,13 @@ const mockUsdcBalance = {
   assetType: "credit_alphanum4" as const,
   assetCode: "USDC",
   assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+};
+const mockUsdcBalance2 = {
+  asset: "USDC",
+  balance: "30.0000000",
+  assetType: "credit_alphanum4" as const,
+  assetCode: "USDC",
+  assetIssuer: "GB6USDTISSUERABCDEFGHIJKLMNOPQRSTUVWXYZ12345",
 };
 const mockLpBalance = {
   asset: "LP-POOL-1",
@@ -733,6 +751,80 @@ describe("BalanceList", () => {
           return hasText && element?.tagName.toLowerCase() === "p";
         }),
       ).toBeInTheDocument();
+    });
+  });
+
+  // ── Multi-issuer tokens (#577) ──────────────────────────────────────────────
+  describe("multi-issuer tokens (#577)", () => {
+    it("renders multiple balances with the same asset code from different issuers without duplicate key warning", () => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockXlmBalance, mockUsdcBalance, mockUsdcBalance2],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+
+      const badges = screen.getAllByTestId("asset-badge");
+      expect(badges).toHaveLength(3);
+
+      const duplicateKeyWarnings = consoleErrorSpy.mock.calls.filter((call) =>
+        call.some(
+          (arg) =>
+            typeof arg === "string" &&
+            (arg.includes("Each child in a list should have a unique \"key\" prop") ||
+              arg.includes("Encountered two children with the same key")),
+        ),
+      );
+      expect(duplicateKeyWarnings).toHaveLength(0);
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("visually distinguishes same-code assets from different issuers by passing showIssuerSuffix", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockUsdcBalance, mockUsdcBalance2],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+
+      const badges = screen.getAllByTestId("asset-badge");
+      expect(badges).toHaveLength(2);
+      expect(badges[0]).toHaveTextContent("USDC (GA5Z...KZVN)");
+      expect(badges[1]).toHaveTextContent("USDC (GB6U...2345)");
+    });
+
+    it("does not show issuer suffix when asset code is unique in the balance list", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockXlmBalance, mockUsdcBalance, mockAbcBalance],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+
+      const badges = screen.getAllByTestId("asset-badge");
+      expect(badges).toHaveLength(3);
+      expect(badges[0]).toHaveTextContent(/^XLM$/);
+      expect(badges[1]).toHaveTextContent(/^ABC$/);
+      expect(badges[2]).toHaveTextContent(/^USDC$/);
+    });
+
+    it("renders native XLM balance correctly alongside multi-issuer tokens", () => {
+      vi.mocked(useSorokit).mockReturnValue({
+        balances: [mockXlmBalance, mockUsdcBalance, mockUsdcBalance2],
+        isLoadingAccount: false,
+        isConnected: true,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      render(<BalanceList />);
+
+      const badges = screen.getAllByTestId("asset-badge");
+      expect(badges[0]).toHaveTextContent("XLM");
     });
   });
 });
