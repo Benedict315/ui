@@ -3,15 +3,11 @@ import { beforeEach,describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
 import type { SorokitClient, Transaction } from "@/lib/client";
-import { getClient } from "@/lib/client";
 
 import { TransactionHistory } from "./TransactionHistory";
 
 vi.mock("@/context/useSorokit", () => ({
   useSorokit: vi.fn(),
-}));
-vi.mock("@/lib/client", () => ({
-  getClient: vi.fn(),
 }));
 
 const ADDRESS = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
@@ -27,12 +23,14 @@ function makeTx(i: number): Transaction {
   };
 }
 
+const mockClient = {
+  transaction: {
+    getHistory: vi.fn().mockResolvedValue({ data: [], error: null, total: 0 }),
+  },
+} as unknown as SorokitClient;
+
 function mockGetHistory(txs: Transaction[], total: number) {
-  vi.mocked(getClient).mockReturnValue({
-    transaction: {
-      getHistory: vi.fn().mockResolvedValue({ data: txs, error: null, total }),
-    },
-  } as unknown as SorokitClient);
+  mockClient.transaction.getHistory = vi.fn().mockResolvedValue({ data: txs, error: null, total });
 }
 
 describe("TransactionHistory", () => {
@@ -40,9 +38,11 @@ describe("TransactionHistory", () => {
     vi.clearAllMocks();
     sessionStorage.clear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockClient.transaction.getHistory = vi.fn().mockResolvedValue({ data: [], error: null, total: 0 });
     vi.mocked(useSorokit).mockReturnValue({
       address: ADDRESS,
       isConnected: true,
+      client: mockClient,
     } as unknown as ReturnType<typeof useSorokit>);
   });
 
@@ -55,9 +55,6 @@ describe("TransactionHistory", () => {
       address: null,
       isConnected: false,
     } as unknown as ReturnType<typeof useSorokit>);
-    vi.mocked(getClient).mockReturnValue({
-      transaction: { getHistory: vi.fn() },
-    } as unknown as SorokitClient);
 
     render(<TransactionHistory />);
     expect(screen.getByText(/connect your wallet/i)).toBeInTheDocument();
@@ -68,6 +65,7 @@ describe("TransactionHistory", () => {
       address: ADDRESS,
       isConnected: true,
       network: { name: "testnet" },
+      client: mockClient,
     } as unknown as ReturnType<typeof useSorokit>);
     mockGetHistory([], 0);
     const { container } = render(<TransactionHistory />);
@@ -134,9 +132,7 @@ describe("TransactionHistory", () => {
       error: null,
       total: 25,
     });
-    vi.mocked(getClient).mockReturnValue({
-      transaction: { getHistory },
-    } as unknown as SorokitClient);
+    mockClient.transaction.getHistory = getHistory;
 
     render(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
@@ -159,9 +155,7 @@ describe("TransactionHistory", () => {
       error: null,
       total: 25,
     });
-    vi.mocked(getClient).mockReturnValue({
-      transaction: { getHistory },
-    } as unknown as SorokitClient);
+    mockClient.transaction.getHistory = getHistory;
 
     render(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
@@ -177,9 +171,7 @@ describe("TransactionHistory", () => {
       error: null,
       total: 25,
     });
-    vi.mocked(getClient).mockReturnValue({
-      transaction: { getHistory },
-    } as unknown as SorokitClient);
+    mockClient.transaction.getHistory = getHistory;
 
     const { unmount } = render(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
@@ -219,9 +211,7 @@ describe("TransactionHistory", () => {
       error: null,
       total: 15,
     });
-    vi.mocked(getClient).mockReturnValue({
-      transaction: { getHistory },
-    } as unknown as SorokitClient);
+    mockClient.transaction.getHistory = getHistory;
 
     render(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
@@ -243,9 +233,7 @@ describe("TransactionHistory", () => {
       error: null,
       total: 25,
     });
-    vi.mocked(getClient).mockReturnValue({
-      transaction: { getHistory },
-    } as unknown as SorokitClient);
+    mockClient.transaction.getHistory = getHistory;
 
     render(<TransactionHistory />);
     act(() => { vi.advanceTimersByTime(0); });
@@ -275,6 +263,7 @@ describe("TransactionHistory", () => {
         address: ADDRESS,
         isConnected: true,
         network: { name: "testnet" },
+        client: mockClient,
       } as unknown as ReturnType<typeof useSorokit>);
       const tx = makeTx(0);
       mockGetHistory([tx], 1);
@@ -297,6 +286,7 @@ describe("TransactionHistory", () => {
         address: ADDRESS,
         isConnected: true,
         network: { name: "mainnet" },
+        client: mockClient,
       } as unknown as ReturnType<typeof useSorokit>);
       const tx = makeTx(0);
       mockGetHistory([tx], 1);
@@ -316,6 +306,7 @@ describe("TransactionHistory", () => {
         address: ADDRESS,
         isConnected: true,
         network: { name: "futurenet" },
+        client: mockClient,
       } as unknown as ReturnType<typeof useSorokit>);
       const tx = makeTx(0);
       mockGetHistory([tx], 1);
@@ -566,6 +557,84 @@ describe("TransactionHistory", () => {
       expect(bars[0]).toHaveAttribute("title", "0 transactions");
       expect((bars[6] as HTMLElement).style.height).toBe("100%");
       expect((bars[5] as HTMLElement).style.height).toBe("50%");
+    });
+  });
+
+  describe("loading skeleton and error state", () => {
+    it("renders 5 placeholder rows during initial fetch", async () => {
+      let resolveGetHistory: (v: { data: Transaction[]; error: null; total: number }) => void;
+      const getHistory = vi.fn().mockImplementation(
+        () => new Promise((resolve) => { resolveGetHistory = resolve; }),
+      );
+      mockClient.transaction.getHistory = getHistory;
+
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      // 5 skeleton placeholder rows should be visible while loading
+      const skeletons = document.querySelectorAll(".animate-pulse");
+      expect(skeletons.length).toBeGreaterThanOrEqual(5);
+
+      // Resolve the fetch so loading ends
+      await act(async () => {
+        resolveGetHistory!({ data: [], error: null, total: 0 });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    });
+
+    it("renders the error message when getHistory returns an error", async () => {
+      mockClient.transaction.getHistory = vi.fn().mockResolvedValue({
+        data: null,
+        error: "Network request failed",
+        total: 0,
+      });
+
+      render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      await waitFor(() => {
+        expect(screen.getByText("Network request failed")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("address change resets to page 1", () => {
+    it("resets to page 1 when the wallet address changes", async () => {
+      const getHistory = vi.fn().mockResolvedValue({
+        data: Array.from({ length: PAGE_SIZE }, (_, i) => makeTx(i)),
+        error: null,
+        total: 25,
+      });
+      mockClient.transaction.getHistory = getHistory;
+
+      const { rerender } = render(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => screen.getByText("Next"));
+
+      // Navigate to page 2
+      fireEvent.click(screen.getByRole("button", { name: /next/i }));
+      act(() => { vi.advanceTimersByTime(0); });
+      await waitFor(() => {
+        expect(screen.getByText(/page 2 of 3/i)).toBeInTheDocument();
+      });
+
+      getHistory.mockClear();
+
+      // Change the address via the mocked hook
+      const NEW_ADDRESS = "GNEWADDRESS12345678901234567890123456789012345678901234";
+      vi.mocked(useSorokit).mockReturnValue({
+        address: NEW_ADDRESS,
+        isConnected: true,
+        client: mockClient,
+      } as unknown as ReturnType<typeof useSorokit>);
+
+      rerender(<TransactionHistory />);
+      act(() => { vi.advanceTimersByTime(0); });
+
+      // Should fetch page 1 for the new address
+      await waitFor(() => {
+        expect(getHistory).toHaveBeenCalledWith(NEW_ADDRESS, 1, PAGE_SIZE);
+      });
     });
   });
 });
