@@ -14,7 +14,7 @@ import { getClient, type TxResult } from "@/lib/client";
 type State = "idle" | "loading" | "success" | "error";
 
 export function TransactionPanel() {
-  const { address, isConnected } = useSorokit();
+  const { address, isConnected, balances } = useSorokit();
   const [dest, setDest] = useState("");
   const [destDirty, setDestDirty] = useState(false);
   const [amount, setAmount] = useState("");
@@ -29,11 +29,17 @@ export function TransactionPanel() {
   const parsedAmount = parseFloat(amount);
   const isAmountValid = !isNaN(parsedAmount) && parsedAmount >= 0.0000001;
 
+  // Get XLM balance from balances array
+  const xlmBalance = balances.find((b) => b.asset === "XLM")?.balance || "0";
+  const xlmBalanceNumber = parseFloat(xlmBalance);
+  const hasSufficientBalance = !isNaN(parsedAmount) && parsedAmount <= xlmBalanceNumber;
+
   const canSubmit =
     isConnected &&
     isDestValid &&
     amount.trim() !== "" &&
-    isAmountValid;
+    isAmountValid &&
+    hasSufficientBalance;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -169,6 +175,7 @@ export function TransactionPanel() {
               type="number"
               placeholder="0.00"
               min="0.0000001"
+              max={xlmBalanceNumber || undefined}
               step="0.0000001"
               value={amount}
               onChange={(e) => {
@@ -183,7 +190,9 @@ export function TransactionPanel() {
                       ? "Amount must be greater than 0"
                       : parsedAmount < 0.0000001
                         ? "Minimum amount is 0.0000001 XLM"
-                        : undefined
+                        : !hasSufficientBalance
+                          ? "Insufficient balance"
+                          : undefined
                   : undefined
               }
               disabled={state === "loading"}

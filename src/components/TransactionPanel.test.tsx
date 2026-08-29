@@ -20,6 +20,7 @@ describe("TransactionPanel", () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: "GABC",
       isConnected: true,
+      balances: [{ asset: "XLM", balance: "100" }],
     } as unknown as ReturnType<typeof useSorokit>);
   });
 
@@ -116,7 +117,8 @@ describe("TransactionPanel", () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: null,
       isConnected: true,
-    });
+      balances: [{ asset: "XLM", balance: "100" }],
+    } as unknown as ReturnType<typeof useSorokit>);
 
     render(<TransactionPanel />);
 
@@ -138,7 +140,8 @@ describe("TransactionPanel", () => {
     vi.mocked(useSorokit).mockReturnValue({
       address: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
       isConnected: true,
-    });
+      balances: [{ asset: "XLM", balance: "100" }],
+    } as unknown as ReturnType<typeof useSorokit>);
 
     render(<TransactionPanel />);
 
@@ -179,5 +182,64 @@ describe("TransactionPanel", () => {
       "opacity-0",
     );
     expect(submitBtn).not.toBeDisabled();
+  });
+
+  it("shows insufficient balance error when amount exceeds XLM balance", async () => {
+    vi.mocked(useSorokit).mockReturnValue({
+      address: "GABC",
+      isConnected: true,
+      balances: [{ asset: "XLM", balance: "10" }],
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<TransactionPanel />);
+
+    const destInput = screen.getByLabelText("Destination Address");
+    const amountInput = screen.getByLabelText("Amount (XLM)");
+    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+
+    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    fireEvent.change(destInput, { target: { value: validDest } });
+
+    // Type amount exceeding balance (10 XLM)
+    fireEvent.change(amountInput, { target: { value: "15" } });
+
+    expect(screen.getByText("Insufficient balance")).toBeInTheDocument();
+    expect(submitBtn).toBeDisabled();
+
+    // Type amount within balance
+    fireEvent.change(amountInput, { target: { value: "5" } });
+    expect(screen.getByText("Insufficient balance")).toHaveClass("opacity-0");
+    expect(submitBtn).not.toBeDisabled();
+  });
+
+  it("allows submission when amount is within XLM balance", async () => {
+    const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: "txhash123", ledger: 100 }, error: null });
+
+    vi.mocked(getClient).mockReturnValue({
+      transaction: {
+        submit: mockSubmit,
+      },
+    } as unknown as ReturnType<typeof getClient>);
+
+    vi.mocked(useSorokit).mockReturnValue({
+      address: "GABC",
+      isConnected: true,
+      balances: [{ asset: "XLM", balance: "100" }],
+    } as unknown as ReturnType<typeof useSorokit>);
+
+    render(<TransactionPanel />);
+
+    const destInput = screen.getByLabelText("Destination Address");
+    const amountInput = screen.getByLabelText("Amount (XLM)");
+    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+
+    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    fireEvent.change(destInput, { target: { value: validDest } });
+    fireEvent.change(amountInput, { target: { value: "50" } });
+
+    expect(submitBtn).not.toBeDisabled();
+    fireEvent.click(submitBtn);
+
+    expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
   });
 });
