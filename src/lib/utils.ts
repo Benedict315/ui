@@ -5,12 +5,45 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Truncate a Stellar address or tx hash for display */
+/**
+ * Truncate a Stellar address, Soroban contract ID (C…), or tx hash for display.
+ * Contract IDs are 56 characters like account addresses and truncate the same way.
+ */
 export function truncateAddress(address: string | null | undefined, start = 6, end = 4): string {
   if (!address) return "";
   const chars = Array.from(address);
   if (chars.length <= start + end) return address;
   return `${chars.slice(0, start).join("")}...${chars.slice(-end).join("")}`;
+}
+
+export function safeFormat(balance: string): string {
+  const n = parseFloat(balance);
+  if (!balance || isNaN(n)) return "0.00";
+  return n.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  });
+}
+
+/**
+ * Validate a Stellar public address: must start with 'G' and be 56
+ * characters of base32 (RFC 4648, no padding) — the same charset the
+ * StrKey checksum encoding uses.
+ */
+export function validateStellarAddress(address: string): boolean {
+  return /^G[A-Z2-7]{55}$/.test(address.trim());
+}
+
+const STROOPS_PER_XLM = 10_000_000;
+
+/**
+ * Convert a stroop amount (the smallest Stellar unit) to an XLM string
+ * formatted to 7 decimal places. Returns "0.0000000" for invalid input.
+ */
+export function toXLM(stroops: string): string {
+  const n = parseInt(stroops, 10);
+  if (Number.isNaN(n)) return (0).toFixed(7);
+  return (n / STROOPS_PER_XLM).toFixed(7);
 }
 
 export function friendlyError(message: string): string {

@@ -1,18 +1,31 @@
 /**
- * Deterministic mock data generation for reproducible tests
- * Uses seeded random number generator for consistent snapshots
+ * Deterministic mock data generation for reproducible tests.
+ * Uses a seeded LCG random number generator for consistent snapshots.
+ *
+ * Design: each high-level generator (generateMockHistory, generateMockEvents)
+ * resets the internal seed before running so that calling them in any order
+ * always produces the same output. The low-level generateHex / generateEventId /
+ * generateTransactionHash methods DO advance the seed sequentially; only use
+ * them directly when you need a continuous sequence.
  */
 
 export class DeterministicMockData {
+  private initialSeed: number;
   private seed: number;
 
   constructor(seedValue: number = 12345) {
+    this.initialSeed = seedValue;
     this.seed = seedValue;
   }
 
+  /** Reset the seed back to its initial value. */
+  reset(): void {
+    this.seed = this.initialSeed;
+  }
+
   /**
-   * Seeded pseudo-random number generator (Linear Congruential Generator)
-   * Same seed always produces same sequence
+   * Seeded pseudo-random number generator (Linear Congruential Generator).
+   * Same seed always produces the same sequence.
    */
   private seededRandom(): number {
     this.seed = (this.seed * 9301 + 49297) % 233280;
@@ -20,15 +33,13 @@ export class DeterministicMockData {
   }
 
   /**
-   * Generate deterministic hex string
-   * @param length - Length of hex string
-   * @returns Reproducible hex string
+   * Generate a deterministic lowercase hex string.
+   * @param length - Number of hex characters to generate.
    */
   generateHex(length: number = 64): string {
     let result = '';
     for (let i = 0; i < length; i++) {
-      const hex = Math.floor(this.seededRandom() * 16).toString(16);
-      result += hex;
+      result += Math.floor(this.seededRandom() * 16).toString(16);
     }
     return result;
   }
@@ -85,5 +96,5 @@ export class DeterministicMockData {
 	}
 }
 
-// Export singleton with fixed seed for consistent test data
+/** Singleton with a fixed seed for consistent test data across imports. */
 export const deterministicMock = new DeterministicMockData(12345);

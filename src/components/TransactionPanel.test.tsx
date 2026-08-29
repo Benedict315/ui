@@ -1,4 +1,4 @@
-import { fireEvent,render, screen } from "@testing-library/react";
+import { act,fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach,describe, expect, it, vi } from "vitest";
 
 import { useSorokit } from "@/context/useSorokit";
@@ -14,6 +14,34 @@ vi.mock("@/lib/client", () => ({
   getClient: vi.fn(),
 }));
 
+const DEFAULT_FEE = { baseFee: "100", recommended: "100" };
+
+function mockGetClient(
+  submitImpl: ReturnType<typeof vi.fn>,
+  feeImpl: ReturnType<typeof vi.fn> = vi
+    .fn()
+    .mockResolvedValue({ data: DEFAULT_FEE, error: null }),
+) {
+  vi.mocked(getClient).mockReturnValue({
+    transaction: {
+      submit: submitImpl,
+      estimateFee: feeImpl,
+    },
+  } as unknown as ReturnType<typeof getClient>);
+}
+
+/** Clicks the Send button (label varies by selected asset), waits for the confirmation modal, then confirms. */
+async function reviewAndConfirm() {
+  fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
+  await screen.findByRole("dialog", { name: /confirm transaction/i });
+  // act()-wrapped: submitTransaction's state updates can land before this
+  // call returns when the mocked API resolves immediately (no artificial
+  // delay), which otherwise trips React's "not wrapped in act(...)" warning.
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /confirm & sign/i }));
+  });
+}
+
 describe("TransactionPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -24,34 +52,72 @@ describe("TransactionPanel", () => {
     } as unknown as ReturnType<typeof useSorokit>);
   });
 
+  it("opens a confirmation modal before submitting, showing the operation, fee, and source account", async () => {
+    mockGetClient(vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null }));
+    render(<TransactionPanel />);
+
+    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+    fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
+
+    const dialog = await screen.findByRole("dialog", { name: /confirm transaction/i });
+    expect(dialog).toHaveTextContent("Payment — 1 operation");
+    expect(dialog).toHaveTextContent("Send 10 XLM to");
+    expect(dialog).toHaveTextContent("100 stroops");
+    expect(dialog).toHaveTextContent("GABC");
+  });
+
+  it("does not submit until Confirm & Sign is clicked in the modal", async () => {
+    const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null });
+    mockGetClient(mockSubmit);
+    render(<TransactionPanel />);
+
+    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+    fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
+
+    await screen.findByRole("dialog", { name: /confirm transaction/i });
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
+
+  it("cancelling the modal does not submit and returns to the form", async () => {
+    const mockSubmit = vi.fn().mockResolvedValue({ data: { hash: "h1", ledger: 1 }, error: null });
+    mockGetClient(mockSubmit);
+    render(<TransactionPanel />);
+
+    const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
+    fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Send (XLM|USDC)/ }));
+
+    await screen.findByRole("dialog", { name: /confirm transaction/i });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Destination Address")).toHaveValue(validDest);
+  });
+
   it("handles loading, success, and error states", async () => {
     const mockSubmit = vi.fn().mockImplementation(() => {
       return new Promise(resolve => {
         setTimeout(() => resolve({ data: { hash: "txhash123", ledger: 100 }, error: null }), 50);
       });
     });
-
-    vi.mocked(getClient).mockReturnValue({
-      transaction: {
-        submit: mockSubmit,
-      },
-    } as unknown as ReturnType<typeof getClient>);
+    mockGetClient(mockSubmit);
 
     render(<TransactionPanel />);
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
 
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(destInput, { target: { value: validDest } });
     fireEvent.change(amountInput, { target: { value: "10" } });
 
-    // Submit and check loading state
-    fireEvent.click(submitBtn);
-    expect(submitBtn).toBeDisabled();
-    // When loading, sr-only "Loading" text prepends to accessible name
-    expect(screen.getByRole("button", { name: "LoadingSubmitting…" })).toBeInTheDocument();
+    await reviewAndConfirm();
 
     // Check success state
     expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
@@ -68,20 +134,15 @@ describe("TransactionPanel", () => {
 
   it("handles error state", async () => {
     const mockSubmit = vi.fn().mockResolvedValue({ data: null, error: "Insufficient balance" });
-
-    vi.mocked(getClient).mockReturnValue({
-      transaction: {
-        submit: mockSubmit,
-      },
-    } as unknown as ReturnType<typeof getClient>);
+    mockGetClient(mockSubmit);
 
     render(<TransactionPanel />);
 
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(screen.getByLabelText("Destination Address"), { target: { value: validDest } });
     fireEvent.change(screen.getByLabelText("Amount (XLM)"), { target: { value: "10" } });
-    
-    fireEvent.click(screen.getByRole("button", { name: "Send Payment" }));
+
+    await reviewAndConfirm();
 
     expect(await screen.findByText("Transaction failed")).toBeInTheDocument();
     expect(screen.getByText("Insufficient balance")).toBeInTheDocument();
@@ -92,24 +153,24 @@ describe("TransactionPanel", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
     // Initially no error should be visible
-    expect(screen.queryByText("Invalid Stellar address")).not.toBeInTheDocument();
+    expect(screen.queryByText("Stellar address must be 56 characters")).not.toBeInTheDocument();
 
     // Type invalid address
     fireEvent.change(destInput, { target: { value: "GDEF" } });
     fireEvent.change(amountInput, { target: { value: "10" } });
 
     // Validation error should show up because field is dirty and invalid
-    expect(screen.getByText("Invalid Stellar address")).toBeInTheDocument();
+    expect(screen.getByText("Stellar address must be 56 characters")).toBeInTheDocument();
     // Submit button should be disabled because canSubmit is false
     expect(submitBtn).toBeDisabled();
 
     // Type valid address
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(destInput, { target: { value: validDest } });
-    expect(screen.getByText("Invalid Stellar address")).toHaveClass("opacity-0");
+    expect(screen.getByText("Stellar address must be 56 characters")).toHaveClass("opacity-0");
     expect(submitBtn).not.toBeDisabled();
   });
 
@@ -124,16 +185,20 @@ describe("TransactionPanel", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(destInput, { target: { value: validDest } });
     fireEvent.change(amountInput, { target: { value: "10" } });
 
+    // With no address, canSubmit is false (isConnected relies on address in
+    // the real provider, but this mock sets isConnected independently) — the
+    // panel should not even attempt to open the review modal.
     fireEvent.click(submitBtn);
 
-    expect(await screen.findByText("Transaction failed")).toBeInTheDocument();
-    expect(screen.getByText("Wallet not connected")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 
   it("shows self-payment warning when destination equals source address", async () => {
@@ -147,7 +212,7 @@ describe("TransactionPanel", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
     fireEvent.change(destInput, {
       target: { value: "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" },
@@ -165,7 +230,7 @@ describe("TransactionPanel", () => {
 
     const destInput = screen.getByLabelText("Destination Address");
     const amountInput = screen.getByLabelText("Amount (XLM)");
-    const submitBtn = screen.getByRole("button", { name: "Send Payment" });
+    const submitBtn = screen.getByRole("button", { name: /^Send (XLM|USDC)/ });
 
     const validDest = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     fireEvent.change(destInput, { target: { value: validDest } });

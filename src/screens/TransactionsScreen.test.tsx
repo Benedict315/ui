@@ -17,9 +17,38 @@ vi.mock("@/lib/client", () => ({
 
 function mockClient() {
   vi.mocked(getClient).mockReturnValue({
+    network: {
+      getNetwork: vi.fn(),
+      switchNetwork: vi.fn(),
+      getGasPrice: vi.fn().mockReturnValue(new Promise(() => {})),
+    },
     transaction: {
       estimateFee: vi.fn().mockReturnValue(new Promise(() => {})),
+      estimateDetailedFee: vi.fn().mockReturnValue(new Promise(() => {})),
+      getFeeScenarios: vi.fn(),
       submit: vi.fn().mockReturnValue(new Promise(() => {})),
+      getStatus: vi.fn(),
+      getHistory: vi.fn(),
+    },
+    wallet: {
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      getAddress: vi.fn(),
+    },
+    account: {
+      getAccount: vi.fn(),
+      getBalances: vi.fn(),
+      getClaimableBalances: vi.fn(),
+      claimBalance: vi.fn(),
+    },
+    soroban: {
+      invokeContract: vi.fn(),
+      getEvents: vi.fn(),
+    },
+    nft: {
+      getNfts: vi.fn(),
+      sendNft: vi.fn(),
+      listNftForSale: vi.fn(),
     },
   } as unknown as SorokitClient);
 }
@@ -64,9 +93,26 @@ describe("TransactionsScreen", () => {
     expect(feeIndex).toBeLessThan(txIndex);
   });
 
-  it("renders FeeEstimator and TransactionPanel in the same screen", () => {
+  it("renders ActivityTimeline with its section title", () => {
     render(<TransactionsScreen />);
-    expect(screen.getByText("Network Fee")).toBeInTheDocument();
-    expect(screen.getAllByText("Send Payment")[0]).toBeInTheDocument();
+    expect(screen.getByText("Activity Timeline")).toBeInTheDocument();
+  });
+
+  it("renders ActivityTimeline below TransactionPanel in the DOM", () => {
+    const { container } = render(<TransactionsScreen />);
+
+    const allHeadings = Array.from(container.querySelectorAll("h3"));
+    const feeHeading = screen.getByText("Network Fee");
+    const panelHeading = screen.getAllByText("Send Payment").find(
+      (el) => el.tagName === "H3",
+    );
+    const timelineHeading = screen.getByText("Activity Timeline");
+
+    const feeIndex = allHeadings.indexOf(feeHeading as HTMLHeadingElement);
+    const panelIndex = panelHeading ? allHeadings.indexOf(panelHeading as HTMLHeadingElement) : -1;
+    const timelineIndex = allHeadings.indexOf(timelineHeading as HTMLHeadingElement);
+
+    expect(feeIndex).toBeLessThan(panelIndex);
+    expect(panelIndex).toBeLessThan(timelineIndex);
   });
 });
