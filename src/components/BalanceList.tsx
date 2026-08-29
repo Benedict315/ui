@@ -14,6 +14,17 @@ function getAssetCode(balance: Balance) {
   return balance.assetType === "native" ? "XLM" : balance.assetCode ?? balance.asset;
 }
 
+/**
+ * Composite React key for a balance row: `asset` alone collides for two
+ * balances with the same code but different issuers (e.g. two USDC
+ * balances from different issuers), silently dropping re-renders and
+ * mixing up row state (issue #524). `assetIssuer` is undefined for native
+ * XLM and for liquidity-pool-share balances, hence the "native" fallback.
+ */
+export function balanceKey(balance: Balance): string {
+  return `${getAssetCode(balance)}-${balance.assetIssuer ?? "native"}`;
+}
+
 function compareBalances(a: Balance, b: Balance) {
   const aIsXlm = a.assetType === "native";
   const bIsXlm = b.assetType === "native";
