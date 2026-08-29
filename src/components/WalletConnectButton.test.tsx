@@ -92,6 +92,7 @@ describe("WalletConnectButton", () => {
       address: fullAddress,
       connectWallet: mockConnect,
       clearError: mockClearError,
+      network: { name: "testnet" },
     }));
 
     render(<WalletConnectButton />);
@@ -118,20 +119,23 @@ describe("WalletConnectButton", () => {
     expect(mockClearError).toHaveBeenCalledTimes(1);
   });
 
-  it("renders disconnect loading state when isDisconnecting is true", () => {
+  it("renders disconnect loading state when isDisconnecting is true", async () => {
     const mockDisconnect = vi.fn();
     vi.mocked(useSorokit).mockReturnValue(mockUseSorokit({
       isConnected: true,
       address: "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ",
       disconnectWallet: mockDisconnect,
       isDisconnecting: true,
+      network: { name: "testnet" },
     }));
 
     render(<WalletConnectButton />);
-    // Click the wallet button to open the dropdown with disconnect option
+    // Click the wallet button to open the Radix dropdown
     fireEvent.click(screen.getByRole("button", { name: /wallet connected/i }));
-    expect(screen.getByText("Disconnecting…")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /disconnect/i })).toBeDisabled();
+    await waitFor(() => {
+      expect(screen.getByText("Disconnecting…")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("menuitem", { name: /disconnect/i })).toHaveAttribute("aria-disabled", "true");
   });
 
   it("clears the error banner after a successful connect clears the error", () => {
@@ -153,6 +157,7 @@ describe("WalletConnectButton", () => {
       address: "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ",
       error: null,
       clearError: mockClearError,
+      network: { name: "testnet" },
     }));
     rerender(<WalletConnectButton />);
     expect(screen.queryByText("Previous error")).not.toBeInTheDocument();
