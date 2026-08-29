@@ -89,4 +89,23 @@ describe("mock-client", () => {
     expect(res.data).toHaveLength(MOCK_HISTORY.length);
     expect(res.total).toBe(MOCK_HISTORY.length);
   });
+
+  it("verifies getHistory returns distinct pages via the page parameter", async () => {
+    const { createMockClient } = await import("./mock-client");
+    const { MOCK_HISTORY } = await import("./mock-client");
+    const client = createMockClient();
+
+    const limit = 2;
+    const page1 = await client.transaction.getHistory("address", 1, limit);
+    const page2 = await client.transaction.getHistory("address", 2, limit);
+
+    expect(page1.data?.length).toBe(limit);
+    expect(page2.data?.length).toBe(limit);
+    expect(page1.data?.map((tx) => tx.hash)).not.toEqual(
+      page2.data?.map((tx) => tx.hash),
+    );
+    expect(page1.data?.[0].hash).toBe(MOCK_HISTORY[0].hash);
+    expect(page2.data?.[0].hash).toBe(MOCK_HISTORY[limit].hash);
+    expect(page1.total).toBe(MOCK_HISTORY.length);
+  });
 });

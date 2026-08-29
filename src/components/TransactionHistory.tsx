@@ -5,7 +5,7 @@ import {
   CheckmarkCircle01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -241,17 +241,18 @@ export function TransactionHistory({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Reset pagination and any previous address's results as soon as the
+  // connected address changes, so a stale page number or stale rows never
+  // briefly show for the new address before its own fetch resolves. Skipped
+  // on the initial mount — the useState initializers already cover that
+  // case, and re-running here would just enqueue a redundant extra render.
+  const previousAddressRef = useRef(address);
   useEffect(() => {
-    const timerId = window.setTimeout(() => {
-      setPage(readStoredPage(address));
-    }, 0);
-    return () => window.clearTimeout(timerId);
-    queueMicrotask(() => {
-      setPage((prev) => {
-        const stored = readStoredPage(address);
-        return prev !== stored ? stored : prev;
-      });
-    });
+    if (previousAddressRef.current === address) return;
+    previousAddressRef.current = address;
+    setPage(readStoredPage(address));
+    setTotal(0);
+    setTxs([]);
   }, [address]);
 
   useEffect(() => {

@@ -266,7 +266,7 @@ export function createMockClient(
       getAccount: async () => ({
         data: MOCK_ACCOUNT,
         error: null,
-        status: "success",
+        status: "success" as const,
       }),
       getBalances: async () => ({ data: MOCK_BALANCES, error: null }),
       getClaimableBalances: async () => ({ data: [], error: null }),
@@ -280,7 +280,7 @@ export function createMockClient(
           successful: true,
         },
         error: null,
-        status: "success",
+        status: "success" as const,
       }),
       getStatus: async () => ({ data: "success" as TxStatus, error: null }),
       getHistory: async (
@@ -407,12 +407,12 @@ export function createMockClient(
       invokeContract: async (_params: InvokeParams) => ({
         data: null,
         error: null,
-        status: "success",
+        status: "success" as const,
       }),
       simulateContract: async (_params: InvokeParams) => ({
         data: { simulated: true, result: "simulated-output" },
         error: null,
-        status: "success",
+        status: "success" as const,
       }),
       getEvents: async (
         _contractId: string,
@@ -544,7 +544,7 @@ export function createMockClient(
           successful: true,
         },
         error: null,
-        status: "success",
+        status: "success" as const,
       }),
       revokeAllowance: async (_params: {
         sourceAccount: string;
@@ -557,7 +557,7 @@ export function createMockClient(
           successful: true,
         },
         error: null,
-        status: "success",
+        status: "success" as const,
       }),
       estimateAllowanceFee: async (_params: {
         asset: string;
