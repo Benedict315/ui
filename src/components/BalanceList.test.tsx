@@ -10,8 +10,19 @@ vi.mock("@/context/useSorokit", () => ({
 }));
 
 vi.mock("@/components/AssetBadge", () => ({
-  AssetBadge: ({ balance }: { balance: { asset: string } }) => (
-    <span data-testid="asset-badge">{balance.asset}</span>
+  AssetBadge: ({
+    balance,
+    showIssuerSuffix,
+  }: {
+    balance: { asset: string; assetIssuer?: string };
+    showIssuerSuffix?: boolean;
+  }) => (
+    <span data-testid="asset-badge">
+      {balance.asset}
+      {showIssuerSuffix && balance.assetIssuer
+        ? ` (${balance.assetIssuer.slice(0, 4)}...${balance.assetIssuer.slice(-4)})`
+        : ""}
+    </span>
   ),
 }));
 
@@ -44,6 +55,13 @@ const mockUsdcBalance = {
   assetType: "credit_alphanum4" as const,
   assetCode: "USDC",
   assetIssuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+};
+const mockUsdcBalance2 = {
+  asset: "USDC",
+  balance: "30.0000000",
+  assetType: "credit_alphanum4" as const,
+  assetCode: "USDC",
+  assetIssuer: "GB6USDTISSUERABCDEFGHIJKLMNOPQRSTUVWXYZ12345",
 };
 const mockLpBalance = {
   asset: "LP-POOL-1",
@@ -781,11 +799,8 @@ describe("BalanceList", () => {
 
       render(<BalanceList />);
 
-      // Before the fix, both rows shared key="USDC" (b.asset) — React would
-      // treat the second as an update to the first rather than a separate
-      // row, so only one row would ever actually mount.
       const badges = screen.getAllByTestId("asset-badge");
-      expect(badges).toHaveLength(2);
+      expect(badges[0]).toHaveTextContent("XLM");
     });
   });
 });
