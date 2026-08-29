@@ -201,7 +201,7 @@ export function TransactionPanel() {
               label="Memo (optional)"
               placeholder="Text memo"
               value={memo}
-              onChange={(e) => setMemo(e.target.value)}
+              onChange={(e) => setMemo(e.target.value || "")}
               disabled={state === "loading"}
             />
           </form>
