@@ -44,6 +44,7 @@ export interface TransactionPanelProps {
   defaultAmount?: string;
   defaultMemo?: string;
   previewMode?: boolean;
+  decimals?: number;
   onSuccess?: (result: TxResult) => void;
   onError?: (error: string) => void;
   className?: string;
@@ -54,6 +55,7 @@ export function TransactionPanel({
   defaultAmount = "",
   defaultMemo = "",
   previewMode = true,
+  decimals = 7,
   onSuccess,
   onError,
   className,
@@ -120,7 +122,10 @@ export function TransactionPanel({
   const isDestValid = validateStellarAddress(dest);
   const isSelfPayment = dest.trim() === address;
   const parsedAmount = parseFloat(amount);
-  const isAmountValid = !isNaN(parsedAmount) && parsedAmount >= 0.0000001;
+  const amountStr = amount.trim();
+  const decimalParts = amountStr.includes(".") ? amountStr.split(".")[1] : "";
+  const exceedsDecimals = decimalParts.length > decimals;
+  const isAmountValid = !isNaN(parsedAmount) && parsedAmount >= 0.0000001 && !exceedsDecimals;
   const isMemoIdValid =
     memoType !== "id" || (memo.trim() !== "" && /^\d+$/.test(memo.trim()));
 
@@ -404,7 +409,17 @@ export function TransactionPanel({
               step="0.0000001"
               value={amount}
               onChange={(e) => {
-                setAmount(e.target.value);
+                const val = e.target.value;
+                if (val.includes(".")) {
+                  const parts = val.split(".");
+                  if (parts[1].length > decimals) {
+                    setAmount(parts[0] + "." + parts[1].slice(0, decimals));
+                  } else {
+                    setAmount(val);
+                  }
+                } else {
+                  setAmount(val);
+                }
                 setAmountDirty(true);
               }}
               hint={
@@ -418,13 +433,15 @@ export function TransactionPanel({
                     ? "Amount is required"
                     : isNaN(parsedAmount) || parsedAmount <= 0
                       ? "Amount must be greater than 0"
-                      : parsedAmount < 0.0000001
-                        ? "Minimum amount is 0.0000001 XLM"
-                        : !hasSufficientBalance
-                          ? isSendingXlm && estimatedFeeXlm > 0
-                            ? "Insufficient balance (amount + network fee exceeds available balance)"
-                            : "Insufficient balance"
-                          : undefined
+                      : exceedsDecimals
+                        ? `Amount cannot exceed ${decimals} decimal places`
+                        : parsedAmount < 0.0000001
+                          ? "Minimum amount is 0.0000001 XLM"
+                          : !hasSufficientBalance
+                            ? isSendingXlm && estimatedFeeXlm > 0
+                              ? "Insufficient balance (amount + network fee exceeds available balance)"
+                              : "Insufficient balance"
+                            : undefined
                   : undefined
               }
               disabled={state === "loading"}
@@ -507,6 +524,7 @@ export function TransactionPanel({
             size="md"
             loading={state === "loading" || isBuildingPreview}
             disabled={!canSubmit}
+            data-testid="submit-transaction"
           >
             {state === "loading"
               ? "Submitting…"
