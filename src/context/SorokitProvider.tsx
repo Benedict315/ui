@@ -14,6 +14,14 @@ import { SorokitContext, type SorokitProviderProps } from "./SorokitContext";
 const STORAGE_KEY_NETWORK = "sorokit_network";
 const STORAGE_KEY_CUSTOM_NETWORKS = "sorokit_custom_networks";
 
+export const BUILTIN_NETWORKS: NetworkName[] = [
+  "mainnet",
+  "testnet",
+  "futurenet",
+  "localnet",
+  "custom",
+];
+
 export function SorokitProvider({
   client,
   onError,
@@ -326,6 +334,14 @@ export function SorokitProvider({
 
   const addCustomNetwork = useCallback(
     async (config: NetworkInfo) => {
+      const isBuiltin = BUILTIN_NETWORKS.some(
+        (b) => b.toLowerCase() === config.name.trim().toLowerCase(),
+      );
+      if (isBuiltin) {
+        const msg = `Cannot add custom network with built-in name "${config.name}".`;
+        reportError(msg, "network", "error");
+        throw new Error(msg);
+      }
       setCustomNetworks((prev) => {
         const next = [...prev.filter((n) => n.name !== config.name), config];
         try {
@@ -340,7 +356,7 @@ export function SorokitProvider({
       });
       await switchNetwork(config);
     },
-    [switchNetwork],
+    [reportError, switchNetwork],
   );
 
   const clearError = useCallback(() => {

@@ -1048,5 +1048,50 @@ describe("SorokitProvider", () => {
         "Invalid network: nope",
       );
     });
+
+    it("reports an error and rejects when adding a custom network with a built-in name", async () => {
+      const onError = vi.fn();
+      const TestComponent = () => {
+        const { addCustomNetwork, error } = useSorokit();
+        return (
+          <div>
+            <button
+              onClick={() =>
+                addCustomNetwork?.({
+                  name: "testnet",
+                  rpcUrl: "http://localhost:8000",
+                  passphrase: "test",
+                  horizonUrl: "http://localhost:8000",
+                  status: "online",
+                }).catch(() => {})
+              }
+            >
+              Add Custom
+            </button>
+            <div data-testid="error">{error}</div>
+          </div>
+        );
+      };
+
+      await act(async () => {
+        render(
+          <SorokitProvider client={mockClient} onError={onError}>
+            <TestComponent />
+          </SorokitProvider>,
+        );
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Add Custom"));
+      });
+
+      expect(onError).toHaveBeenCalledWith(
+        'Cannot add custom network with built-in name "testnet".',
+        "network",
+      );
+      expect(screen.getByTestId("error")).toHaveTextContent(
+        'Cannot add custom network with built-in name "testnet".',
+      );
+    });
   });
 });

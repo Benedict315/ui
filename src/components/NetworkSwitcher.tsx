@@ -201,6 +201,17 @@ export function NetworkSwitcher() {
       return;
     }
 
+    const isBuiltinName =
+      STANDARD_NETWORKS.some(
+        (n) => n.name.toLowerCase() === customName.trim().toLowerCase(),
+      ) || customName.trim().toLowerCase() === "custom";
+    if (isBuiltinName) {
+      setFormError(
+        `Cannot add custom network with built-in name "${customName.trim()}".`,
+      );
+      return;
+    }
+
     setFormError("");
     const newConfig: NetworkInfo = {
       name: customName.trim(),
