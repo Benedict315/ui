@@ -6,9 +6,9 @@ import { JsonView } from "react-json-view-lite";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
-type DebuggerState = "idle" | "loading" | "success" | "error";
+export type DebuggerState = "idle" | "loading" | "success" | "error";
 
-interface DebuggerEntry {
+export interface DebuggerEntry {
   contractId: string;
   method: string;
   args: unknown[];
@@ -34,7 +34,7 @@ interface DebuggerEntry {
   timestamp: string;
 }
 
-interface ContractInteractionDebuggerProps {
+export interface ContractInteractionDebuggerProps {
   contractId: string;
   method: string;
   args?: unknown[];
@@ -44,6 +44,8 @@ interface ContractInteractionDebuggerProps {
   error?: string | null;
   stateBefore?: unknown;
   stateAfter?: unknown;
+  history?: DebuggerEntry[];
+  onHistoryChange?: (history: DebuggerEntry[]) => void;
 }
 
 interface DiffEntry {
@@ -62,7 +64,7 @@ const DEBUG_HISTORY_LIMIT = 10;
 // eslint-disable-next-line no-control-regex
 const ANSI_ESCAPE_PATTERN = /\u001b\[[0-9;]*m/g;
 
-function stripAnsi(value: string): string {
+export function stripAnsi(value: string): string {
   return value.replace(ANSI_ESCAPE_PATTERN, "");
 }
 
@@ -79,7 +81,7 @@ function formatTimestamp(value: string): string {
   });
 }
 
-function readDebugHistory(): DebuggerEntry[] {
+export function readDebugHistory(): DebuggerEntry[] {
   try {
     const raw = window.sessionStorage.getItem(DEBUG_HISTORY_KEY);
     if (!raw) return [];
@@ -90,7 +92,7 @@ function readDebugHistory(): DebuggerEntry[] {
   }
 }
 
-function addDebugHistory(entry: DebuggerEntry, current: DebuggerEntry[]): DebuggerEntry[] {
+export function addDebugHistory(entry: DebuggerEntry, current: DebuggerEntry[]): DebuggerEntry[] {
   const next = [entry, ...current.filter((item) => item.timestamp !== entry.timestamp)].slice(0, DEBUG_HISTORY_LIMIT);
   try {
     window.sessionStorage.setItem(DEBUG_HISTORY_KEY, JSON.stringify(next));
@@ -187,6 +189,37 @@ function collectDiffEntries(before: unknown, after: unknown, basePath = ""): Dif
   }];
 }
 
+export function createDebuggerEntry(props: Omit<ContractInteractionDebuggerProps, "history" | "onHistoryChange">): DebuggerEntry {
+  const preparedCall = JSON.stringify({ contractId: props.contractId, method: props.method, args: props.args || [] }, null, 2);
+  const simulation = {
+    gasEstimate: 123456,
+    gasXlm: "0.00123456",
+    baseFee: "100000",
+    totalCostXlm: "0.00133456",
+  };
+  const attempts = [
+    { id: "attempt-1", timestamp: new Date().toISOString(), retryCount: 0, status: props.state === "success" ? "submitted" : props.state === "error" ? "failed" : "pending", hash: props.txHash ?? undefined },
+  ];
+  return {
+    contractId: props.contractId,
+    method: props.method,
+    args: props.args || [],
+    preparedCall,
+    simulation,
+    attempts,
+    result: props.txHash || props.result
+      ? {
+          txHash: props.txHash ?? undefined,
+          status: props.state === "success" ? "submitted" : props.state === "error" ? "failed" : "pending",
+          summary: props.result
+            ? stripAnsi(typeof props.result === "string" ? props.result : JSON.stringify(props.result))
+            : undefined,
+        }
+      : null,
+    timestamp: new Date().toISOString(),
+  };
+}
+
 export function ContractInteractionDebugger({
   contractId,
   method,
@@ -197,10 +230,11 @@ export function ContractInteractionDebugger({
   error,
   stateBefore,
   stateAfter,
+  history = [],
+  onHistoryChange,
 }: ContractInteractionDebuggerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [history, setHistory] = useState<DebuggerEntry[]>(() => readDebugHistory());
 
   const preparedCall = useMemo(() => {
     return JSON.stringify({ contractId, method, args }, null, 2);
@@ -226,53 +260,12 @@ export function ContractInteractionDebugger({
     return collectDiffEntries(stateBefore, stateAfter);
   }, [stateAfter, stateBefore]);
 
-  useEffect(() => {
-    if (!contractId || !method) return;
-    const entry: DebuggerEntry = {
-      contractId,
-      method,
-      args,
-      preparedCall,
-      simulation,
-      attempts,
-      result: txHash || result
-        ? {
-            txHash: txHash ?? undefined,
-            status: state === "success" ? "submitted" : state === "error" ? "failed" : "pending",
-            summary: result
-              ? stripAnsi(typeof result === "string" ? result : JSON.stringify(result))
-              : undefined,
-          }
-        : null,
-      timestamp: new Date().toISOString(),
-    };
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHistory((current) => addDebugHistory(entry, current));
-  }, [args, attempts, contractId, method, preparedCall, result, simulation, state, txHash]);
-
   const handleCopy = async (key: string, value: string) => {
     await copyToClipboard(value);
     setCopiedKey(key);
     if (contractId && method) {
-      const entry: DebuggerEntry = {
-        contractId,
-        method,
-        args,
-        preparedCall,
-        simulation,
-        attempts,
-        result: txHash || result
-          ? {
-              txHash: txHash ?? undefined,
-              status: state === "success" ? "submitted" : state === "error" ? "failed" : "pending",
-              summary: result
-              ? stripAnsi(typeof result === "string" ? result : JSON.stringify(result))
-              : undefined,
-            }
-          : null,
-        timestamp: new Date().toISOString(),
-      };
-      setHistory((current) => addDebugHistory(entry, current));
+      const entry = createDebuggerEntry({ contractId, method, args, state, result, txHash, error, stateBefore, stateAfter });
+      onHistoryChange?.(addDebugHistory(entry, history));
     }
     window.setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 1600);
   };
