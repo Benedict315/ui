@@ -72,27 +72,47 @@ export function SwapExecutionTracker({
   });
 
   const [timeLeft, setTimeLeft] = useState(timeoutSeconds);
+  const [previousStatusProps, setPreviousStatusProps] = useState({
+    statusProp,
+    executedAt,
+    actualOutput,
+  });
+  const [previousCountdownConfig, setPreviousCountdownConfig] = useState({
+    timeoutSeconds,
+    internalStatus,
+  });
 
-  useEffect(() => {
+  if (
+    previousStatusProps.statusProp !== statusProp ||
+    previousStatusProps.executedAt !== executedAt ||
+    previousStatusProps.actualOutput !== actualOutput
+  ) {
+    setPreviousStatusProps({ statusProp, executedAt, actualOutput });
     if (statusProp) {
       setInternalStatus(statusProp);
     } else if (executedAt || actualOutput != null) {
       setInternalStatus("success");
     }
-  }, [statusProp, executedAt, actualOutput]);
+  }
+
+  if (
+    previousCountdownConfig.timeoutSeconds !== timeoutSeconds ||
+    previousCountdownConfig.internalStatus !== internalStatus
+  ) {
+    setPreviousCountdownConfig({ timeoutSeconds, internalStatus });
+    setTimeLeft(timeoutSeconds);
+  }
+
+  const currentStatus = internalStatus;
 
   // Handle timeout countdown for pending states (submitted / confirming)
   useEffect(() => {
-    setTimeLeft(timeoutSeconds);
-  }, [timeoutSeconds, internalStatus]);
-
-  useEffect(() => {
-    const isPending = internalStatus === "submitted" || internalStatus === "confirming";
+    const isPending = currentStatus === "submitted" || currentStatus === "confirming";
     if (!isPending) return;
 
     if (timeLeft <= 0) {
-      setInternalStatus("timeout");
-      return;
+      const timeout = window.setTimeout(() => setInternalStatus("timeout"), 0);
+      return () => window.clearTimeout(timeout);
     }
 
     const timer = setInterval(() => {
@@ -107,9 +127,8 @@ export function SwapExecutionTracker({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [internalStatus, timeLeft]);
+  }, [currentStatus, timeLeft]);
 
-  const currentStatus = internalStatus;
   const isTimedOut = currentStatus === "timeout";
   const isFailed = currentStatus === "failed";
   const isPending = currentStatus === "submitted" || currentStatus === "confirming";
