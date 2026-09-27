@@ -213,4 +213,84 @@ describe("WalletConnectModal", () => {
       });
     });
   });
+
+  // ── Arrow Key Navigation (#746) ───────────
+  describe("Arrow Key Navigation", () => {
+    it("supports arrow key navigation between wallet options", () => {
+      vi.mocked(useSorokit).mockReturnValue(mockUseSorokit());
+      render(<WalletConnectModal open={true} onClose={mockOnClose} />);
+
+      const radioGroup = screen.getByRole("radiogroup");
+      const radios = screen.getAllByRole("radio");
+
+      // Initially first wallet should be checked
+      expect(radios[0]).toHaveAttribute("aria-checked", "true");
+      expect(radios[1]).toHaveAttribute("aria-checked", "false");
+
+      // ArrowDown moves to next wallet
+      fireEvent.keyDown(radioGroup, { key: "ArrowDown" });
+      expect(radios[1]).toHaveFocus();
+
+      // ArrowDown again moves to third wallet
+      fireEvent.keyDown(radioGroup, { key: "ArrowDown" });
+      expect(radios[2]).toHaveFocus();
+
+      // ArrowUp moves back to second wallet
+      fireEvent.keyDown(radioGroup, { key: "ArrowUp" });
+      expect(radios[1]).toHaveFocus();
+    });
+
+    it("wraps around when arrow key navigation reaches the end", () => {
+      vi.mocked(useSorokit).mockReturnValue(mockUseSorokit());
+      render(<WalletConnectModal open={true} onClose={mockOnClose} />);
+
+      const radioGroup = screen.getByRole("radiogroup");
+      const radios = screen.getAllByRole("radio");
+
+      // Move to last wallet
+      fireEvent.keyDown(radioGroup, { key: "ArrowDown" });
+      fireEvent.keyDown(radioGroup, { key: "ArrowDown" });
+      fireEvent.keyDown(radioGroup, { key: "ArrowDown" });
+
+      // Wrap around to first wallet
+      fireEvent.keyDown(radioGroup, { key: "ArrowDown" });
+      expect(radios[0]).toHaveFocus();
+
+      // Wrap backward from first to last
+      fireEvent.keyDown(radioGroup, { key: "ArrowUp" });
+      expect(radios[radios.length - 1]).toHaveFocus();
+    });
+
+    it("selects wallet when Enter is pressed on focused option", async () => {
+      vi.mocked(useSorokit).mockReturnValue(
+        mockUseSorokit({ connectWallet: mockConnect, isConnecting: true }),
+      );
+      render(<WalletConnectModal open={true} onClose={mockOnClose} />);
+
+      const radioGroup = screen.getByRole("radiogroup");
+
+      // Move to second wallet and press Enter
+      fireEvent.keyDown(radioGroup, { key: "ArrowDown" });
+      fireEvent.keyDown(radioGroup, { key: "Enter" });
+
+      expect(mockConnect).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("status")).toHaveTextContent(/waiting for xbull approval/i);
+    });
+
+    it("selects wallet when Space is pressed on focused option", async () => {
+      vi.mocked(useSorokit).mockReturnValue(
+        mockUseSorokit({ connectWallet: mockConnect, isConnecting: true }),
+      );
+      render(<WalletConnectModal open={true} onClose={mockOnClose} />);
+
+      const radioGroup = screen.getByRole("radiogroup");
+
+      // Move to second wallet and press Space
+      fireEvent.keyDown(radioGroup, { key: "ArrowDown" });
+      fireEvent.keyDown(radioGroup, { key: " " });
+
+      expect(mockConnect).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("status")).toHaveTextContent(/waiting for xbull approval/i);
+    });
+  });
 });
