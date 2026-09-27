@@ -44,6 +44,37 @@ describe('ClientAdapter', () => {
       const result = await adapter.getEvents('contract-id', 50);
       expect(result).toBeDefined();
     });
+
+    it('should pass fromLedger parameter to underlying soroban.getEvents when provided', async () => {
+      const getEventsMock = vi.fn().mockResolvedValue([{ id: '1' }]);
+      (adapter as unknown as { userAddress: string }).userAddress = 'GABC...';
+      (adapter as unknown as { soroban: { getEvents: typeof getEventsMock } }).soroban = {
+        getEvents: getEventsMock,
+      };
+
+      const result = await adapter.getEvents('contract-id', 50, 12345);
+      expect(result.status).toBe('success');
+      expect(getEventsMock).toHaveBeenCalledWith({
+        contractId: 'contract-id',
+        limit: 50,
+        fromLedger: 12345,
+      });
+    });
+
+    it('should omit fromLedger from underlying call when omitted', async () => {
+      const getEventsMock = vi.fn().mockResolvedValue([{ id: '1' }]);
+      (adapter as unknown as { userAddress: string }).userAddress = 'GABC...';
+      (adapter as unknown as { soroban: { getEvents: typeof getEventsMock } }).soroban = {
+        getEvents: getEventsMock,
+      };
+
+      const result = await adapter.getEvents('contract-id', 50);
+      expect(result.status).toBe('success');
+      expect(getEventsMock).toHaveBeenCalledWith({
+        contractId: 'contract-id',
+        limit: 50,
+      });
+    });
   });
 
   describe('Disconnect', () => {
