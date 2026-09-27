@@ -31,6 +31,14 @@ export interface SorokitState {
    */
   initialNetwork?: NetworkInfo | null;
   switchNetwork: (network: NetworkName | NetworkInfo) => Promise<void>;
+  /**
+   * True while a `switchNetwork` call is in flight (#537). Components with
+   * network-selection controls read this to disable their options, so two
+   * surfaces (e.g. `NetworkScreen` and `NetworkSwitcher`) can never fire
+   * overlapping switches — the provider also enforces this with an
+   * in-flight guard, making the last call win deterministically.
+   */
+  isSwitchingNetwork?: boolean;
   customNetworks?: NetworkInfo[];
   addCustomNetwork?: (config: NetworkInfo) => Promise<void>;
   /**
