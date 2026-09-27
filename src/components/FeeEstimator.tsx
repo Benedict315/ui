@@ -85,6 +85,9 @@ export function FeeEstimator({
   // Issue #442: generation counter - an estimate that resolves after a newer
   // one started is discarded rather than overwriting fresher data.
   const requestIdRef = useRef(0);
+  // Issue #730: Store interval ID in a ref so it can be cleared unconditionally
+  // on visibility changes and on unmount, even if useIsVisible reports false at unmount time.
+  const intervalIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
     if (!client) return;
@@ -126,24 +129,39 @@ export function FeeEstimator({
     // That means a screen navigated away from is still mounted, just
     // hidden; without this check, a refreshInterval keeps firing network
     // requests for a screen the user can no longer see (#533).
-    if (!isVisible) return;
+    if (!isVisible) {
+      if (intervalIdRef.current !== null) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
+      return;
+    }
 
     const timerId = window.setTimeout(() => {
       void load();
     }, 0);
     if (refreshInterval > 0) {
-      const id = setInterval(() => {
+      intervalIdRef.current = setInterval(() => {
         void load();
       }, refreshInterval);
-      return () => {
-        window.clearTimeout(timerId);
-        clearInterval(id);
-      };
     }
     return () => {
       window.clearTimeout(timerId);
+      if (intervalIdRef.current !== null) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
     };
   }, [load, refreshInterval, isVisible]);
+
+  useEffect(() => {
+    return () => {
+      if (intervalIdRef.current !== null) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
+    };
+  }, []);
 
   const compactContent = fee
     ? `Base: ${fee.baseFee} stroops · Recommended: ${fee.recommended} stroops`
