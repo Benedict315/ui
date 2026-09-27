@@ -228,6 +228,22 @@ export class ClientAdapter {
     this.userAddress = null;
     this.soroban = null;
   }
+
+  /**
+   * Test-only hook: inject a Soroban client without going through the
+   * wallet connect flow. `soroban` is `private` and never assigned in the
+   * constructor today (see #714), so tests that want to exercise the
+   * happy path of `invokeContract` / `getEvents` need a way to set it.
+   *
+   * Not part of the public API. Do not call from application code.
+   *
+   * @internal
+   */
+  __setSorobanForTests(
+    soroban: ClientAdapter['soroban']
+  ): void {
+    this.soroban = soroban;
+  }
 }
 
 // Factory for creating adapters
