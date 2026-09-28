@@ -37,7 +37,7 @@ export function FeeEstimator({
   customFee: customFeeProp,
   onCustomFeeChange,
 }: FeeEstimatorProps) {
-  const { client } = useSorokit();
+  const { client, registerWatcher } = useSorokit();
   const [containerRef, isVisible] = useIsVisible<HTMLDivElement>();
   const [fee, setFee] = useState<FeeData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -154,14 +154,21 @@ export function FeeEstimator({
     };
   }, [load, refreshInterval, isVisible]);
 
+  // Register a cancel callback so `resetTransactionWatchers` can stop polling
+  // on network switch (#715).
   useEffect(() => {
-    return () => {
+    const cancel = () => {
       if (intervalIdRef.current !== null) {
         clearInterval(intervalIdRef.current);
         intervalIdRef.current = null;
       }
     };
-  }, []);
+    const deregister = registerWatcher?.(cancel) ?? (() => {});
+    return () => {
+      deregister();
+      cancel();
+    };
+  }, [registerWatcher]);
 
   const compactContent = fee
     ? `Base: ${fee.baseFee} stroops · Recommended: ${fee.recommended} stroops`
