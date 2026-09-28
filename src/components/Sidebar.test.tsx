@@ -122,14 +122,18 @@ describe("Sidebar", () => {
     expect(navElement).toHaveAttribute("aria-label", "Main navigation");
   });
 
-  it("reads localStorage on mount and pre-selects the saved section", () => {
+  it("reads localStorage on mount for visual selection without navigating", () => {
     localStorage.setItem("sorokit-active-nav", "network");
 
     render(
       <Sidebar active="wallet" onNavigate={onNavigate} open={false} onClose={onClose} />,
     );
 
-    expect(onNavigate).toHaveBeenCalledWith("network");
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /network/i })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     localStorage.removeItem("sorokit-active-nav");
   });
 
@@ -271,4 +275,3 @@ describe("Sidebar", () => {
     });
   });
 });
-
