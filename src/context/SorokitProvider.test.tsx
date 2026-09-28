@@ -9,7 +9,7 @@ import { SorokitProvider } from "./SorokitProvider";
 import { useSorokit } from "./useSorokit";
 
 const TestComponent = () => {
-  const { address, account, balances, connectWallet, disconnectWallet, switchNetwork, refreshAccount, isLoadingAccount, error, errorHistory } = useSorokit();
+  const { address, account, balances, connectWallet, disconnectWallet, switchNetwork, refreshAccount, isLoadingAccount, isDisconnecting, error, walletError, errorHistory } = useSorokit();
 
   return (
     <div>
@@ -17,7 +17,9 @@ const TestComponent = () => {
       <div data-testid="account">{account ? account.sequence : "none"}</div>
       <div data-testid="balances">{balances.length}</div>
       <div data-testid="error">{error || "none"}</div>
+      <div data-testid="walletError">{walletError || "none"}</div>
       <div data-testid="isLoadingAccount">{isLoadingAccount ? "true" : "false"}</div>
+      <div data-testid="isDisconnecting">{isDisconnecting ? "true" : "false"}</div>
       <div data-testid="errorHistoryCount">{errorHistory.length}</div>
       <button onClick={() => connectWallet()}>Connect</button>
       <button onClick={() => disconnectWallet()}>Disconnect</button>
@@ -909,6 +911,52 @@ describe("SorokitProvider", () => {
 
       expect(screen.getByTestId("error")).toHaveTextContent(
         "Failed to disconnect wallet.",
+      );
+    });
+
+    // #720 — regression test. `disconnectWallet()` resets `walletError` to null
+    // and only then reports the failure (SorokitProvider.tsx:268-274). The
+    // existing tests above assert the error survives, but none of them assert it
+    // is still present *after* `isDisconnecting` flips back to false — which is
+    // the window in which a consumer's `clearError()` (run off the
+    // `isDisconnecting` toggle) would wipe it. This pins the ordering so a
+    // future refactor that moves the report before the reset, or into the
+    // `finally` block, fails loudly.
+    it("keeps the disconnect error visible after isDisconnecting returns to false (#720)", async () => {
+      mockClient.wallet.disconnect = vi
+        .fn()
+        .mockRejectedValue(new Error("Wallet extension unavailable"));
+
+      renderWithProvider(<TestComponent />, { client: mockClient });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Connect"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("address")).toHaveTextContent("GABC");
+      });
+
+      // Start from a clean slate so a passing assertion below can only come
+      // from this failure, not from a leftover connect error.
+      expect(screen.getByTestId("error")).toHaveTextContent("none");
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Disconnect"));
+      });
+
+      // The in-flight flag has settled...
+      expect(screen.getByTestId("isDisconnecting")).toHaveTextContent("false");
+
+      // ...and the error is still readable through the merged `error` a
+      // consumer renders, not only on the wallet-specific slot.
+      await waitFor(() => {
+        expect(screen.getByTestId("error")).toHaveTextContent(
+          "Wallet extension unavailable",
+        );
+      });
+      expect(screen.getByTestId("error")).not.toHaveTextContent("none");
+      expect(screen.getByTestId("walletError")).toHaveTextContent(
+        "Wallet extension unavailable",
       );
     });
 
