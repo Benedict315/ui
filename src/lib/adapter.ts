@@ -30,7 +30,7 @@ import type { InvokeParams } from "./client";
 export class ClientAdapter {
   private soroban: {
     invokeContract: (params: InvokeParams) => Promise<unknown>;
-    getEvents: (params: { contractId: string; limit: number }) => Promise<unknown[]>;
+    getEvents: (params: { contractId: string; limit: number; fromLedger?: number }) => Promise<unknown[]>;
   } | null = null;
   private userAddress: string | null = null;
 
@@ -176,7 +176,7 @@ export class ClientAdapter {
   async getEvents(
     contractId: string,
     limit: number = 100,
-    _fromLedger?: number
+    fromLedger?: number
   ): Promise<AdapterResponse<unknown[]>> {
     try {
       if (!this.userAddress) {
@@ -198,6 +198,7 @@ export class ClientAdapter {
       const events = await this.soroban.getEvents({
         contractId,
         limit,
+        ...(fromLedger !== undefined ? { fromLedger } : {}),
       });
 
       return {

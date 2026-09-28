@@ -337,4 +337,31 @@ describe("NetworkBanner", () => {
       expect(banner.style.borderColor).toBe("rgb(30, 41, 59)");
     });
   });
+
+  describe("ResizeObserver teardown (#768)", () => {
+    it("disconnects the ResizeObserver on unmount", () => {
+      const disconnectSpy = vi.fn();
+      const observeSpy = vi.fn();
+      const unobserveSpy = vi.fn();
+
+      const MockResizeObserver = vi.fn().mockImplementation(() => ({
+        observe: observeSpy,
+        unobserve: unobserveSpy,
+        disconnect: disconnectSpy,
+      }));
+
+      vi.stubGlobal("ResizeObserver", MockResizeObserver);
+
+      mockNetwork(TESTNET_NETWORK);
+      const { unmount } = render(<NetworkBanner />);
+
+      expect(MockResizeObserver).toHaveBeenCalled();
+
+      unmount();
+
+      expect(disconnectSpy).toHaveBeenCalledTimes(1);
+
+      vi.unstubAllGlobals();
+    });
+  });
 });
