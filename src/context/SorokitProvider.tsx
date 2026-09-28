@@ -94,6 +94,15 @@ export function SorokitProvider({
   // slower earlier response can't land after a newer one and show stale data.
   const isRefreshingRef = useRef(false);
 
+  // #537 — a single source of truth for "a network switch is in flight".
+  // `NetworkScreen` and `NetworkSwitcher` both read this through the context,
+  // so controls on one surface disable while the other surface started a
+  // switch. The ref additionally hard-blocks overlapping calls inside the
+  // provider itself: a second `switchNetwork` while one is pending resolves
+  // immediately instead of racing the first to `setNetwork`.
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
+  const isSwitchingNetworkRef = useRef(false);
+
   const reportError = useCallback(
     (err: string, source: string, severity: "info" | "error" = "error") => {
       if (source === "account") {
@@ -291,6 +300,14 @@ export function SorokitProvider({
 
   const switchNetwork = useCallback(
     async (param: NetworkName | NetworkInfo) => {
+      // #537 — reject overlapping switches. The last-response-wins race
+      // between concurrent `switchNetwork` calls could leave the UI showing
+      // one network while the active RPC connection pointed at another.
+      if (isSwitchingNetworkRef.current) return;
+      isSwitchingNetworkRef.current = true;
+      setIsSwitchingNetwork(true);
+
+      try {
       resetTransactionWatchers();
       const { data, error } = await clientRef.current.network.switchNetwork(param);
       if (error) {
@@ -327,6 +344,10 @@ export function SorokitProvider({
         setBalances([]);
 
         onNetworkChangeRef.current?.(data);
+      }
+      } finally {
+        isSwitchingNetworkRef.current = false;
+        setIsSwitchingNetwork(false);
       }
     },
     [reportError, resetTransactionWatchers],
@@ -411,6 +432,7 @@ export function SorokitProvider({
       network,
       initialNetwork,
       switchNetwork,
+      isSwitchingNetwork,
       customNetworks,
       addCustomNetwork,
       resetTransactionWatchers,
@@ -437,6 +459,7 @@ export function SorokitProvider({
       network,
       initialNetwork,
       switchNetwork,
+      isSwitchingNetwork,
       customNetworks,
       addCustomNetwork,
       resetTransactionWatchers,
