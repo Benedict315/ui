@@ -103,9 +103,11 @@ describe('ClientAdapter', () => {
 describe('Happy-path flows (issue #814)', () => {
   const TEST_ADDRESS = 'GBAMQXTQ7IQKPZXJKZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQZJQ';
   const CONTRACT_ID = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
+  let adapter: ClientAdapter;
 
   beforeEach(() => {
     vi.unstubAllGlobals();
+    adapter = createClientAdapter();
   });
 
   afterEach(() => {
