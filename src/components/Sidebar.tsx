@@ -69,6 +69,13 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
   const { isConnected } = useSorokit();
   const sidebarRef = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const initialActive = useRef(active);
+
+  const [visualActive, setVisualActive] = useState<NavSection | string>(() => {
+    if (typeof localStorage === "undefined") return active;
+    const saved = localStorage.getItem("sorokit-active-nav");
+    return saved && NAV.some((item) => item.id === saved) ? saved : active;
+  });
 
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof localStorage === "undefined") return false;
@@ -81,11 +88,10 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
   }, [collapsed]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("sorokit-active-nav");
-    if (saved && saved !== active) {
-      onNavigate(saved as NavSection);
-    }
-  }, [active, onNavigate]);
+    if (initialActive.current === active) return;
+    setVisualActive(active);
+    initialActive.current = active;
+  }, [active]);
 
   // Lock background body scroll while mobile navigation drawer is active
   useEffect(() => {
@@ -99,6 +105,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
   }, [open]);
 
   function handleNav(id: NavSection) {
+    setVisualActive(id);
     if (active === id) {
       onClose();
       return;
@@ -254,7 +261,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
           )}
           <div className="flex flex-col gap-0.5">
             {NAV.map((item) => {
-              const activeItem = isItemActive(item.id, active);
+              const activeItem = isItemActive(item.id, visualActive);
               const navButton = (
                 <button
                   key={item.id}
@@ -317,4 +324,3 @@ export function Sidebar({ active, onNavigate, open, onClose }: SidebarProps) {
     </>
   );
 }
-
