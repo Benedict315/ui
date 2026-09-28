@@ -372,7 +372,7 @@ function AssetFilter({
     setNetworkFilter(null);
     setShowFavoritesOnly(false);
     setSortKey("default");
-    setFocusedIndex(-1);
+    setFocusedIndex(0);
     onPageReset?.();
   }, [onPageReset]);
 
@@ -608,11 +608,6 @@ function AssetFilter({
     return [...nets];
   }, [assets]);
 
-  // ── Reset focused index when filtered list changes ─────────────────────────
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setFocusedIndex(0); }, [filtered]);
-
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className={cn("flex flex-col", className)}>
@@ -629,6 +624,7 @@ function AssetFilter({
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
+            setFocusedIndex(0);
             onPageReset?.();
           }}
           onKeyDown={handleKeyDown}
@@ -655,6 +651,7 @@ function AssetFilter({
             type="button"
             onClick={() => {
               setVerifiedFilter(tab.key);
+              setFocusedIndex(0);
               onPageReset?.();
             }}
             className={cn(
@@ -672,6 +669,7 @@ function AssetFilter({
             type="button"
             onClick={() => {
               setShowFavoritesOnly((p) => !p);
+              setFocusedIndex(0);
               onPageReset?.();
             }}
             className={cn(
@@ -707,6 +705,7 @@ function AssetFilter({
             type="button"
             onClick={() => {
               setNetworkFilter(null);
+              setFocusedIndex(0);
               onPageReset?.();
             }}
             className={cn(
@@ -724,6 +723,7 @@ function AssetFilter({
               type="button"
               onClick={() => {
                 setNetworkFilter(net);
+                setFocusedIndex(0);
                 onPageReset?.();
               }}
               className={cn(
@@ -769,6 +769,7 @@ function AssetFilter({
                   onClick={() => {
                     setSortKey(opt.key);
                     setShowSortDropdown(false);
+                    setFocusedIndex(0);
                     onPageReset?.();
                   }}
                   className={cn(

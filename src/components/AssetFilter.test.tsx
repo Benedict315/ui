@@ -328,5 +328,33 @@ describe("AssetFilter", () => {
 
     expect(screen.queryByText("Default")).not.toBeInTheDocument();
   });
+
+    it("resets keyboard focus to index 0 when the filter changes (#721)", () => {
+    renderComponent();
+    const input = screen.getByPlaceholderText(/search/i);
+
+    // Move focus down to a non-zero index
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+
+    // Change the filter (search) — focus should reset to 0
+    fireEvent.change(input, { target: { value: "usd" } });
+
+    const rows = screen.getByRole("listbox").querySelectorAll("[data-asset-row]");
+    expect(rows[0]).toHaveClass("bg-surface-2");
+  });
+
+  it("keeps arrow-key navigation working after typing in the filter (#721)", () => {
+    const onSelect = vi.fn();
+    renderComponent({ onAssetSelect: onSelect });
+    const input = screen.getByPlaceholderText(/search/i);
+
+    fireEvent.change(input, { target: { value: "usdc" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ asset: "USDC" }),
+    );
+  });
 });
 
