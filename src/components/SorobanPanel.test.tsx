@@ -223,6 +223,79 @@ describe("SorobanPanel", () => {
     expect(textarea.style.height).toBe("120px");
   });
 
+  // ── Contract ID history cap and ordering (#815) ────────────────────────
+  describe("contract history — cap and ordering (#815)", () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it("caps stored history at 10 entries, evicting the oldest when an 11th is added", async () => {
+      // Pre-populate localStorage with 10 distinct contract IDs (indices 01–10).
+      const existing = Array.from({ length: 10 }, (_, i) =>
+        `C${"A".repeat(54)}${String(i + 1).padStart(1, "0")}`,
+      );
+      localStorage.setItem(
+        "sorokit-soroban-contract-history",
+        JSON.stringify(existing),
+      );
+
+      // Render with the 11th contract ID already in the input.
+      const eleventh = `C${"B".repeat(55)}`;
+      mockInvokeContract.mockResolvedValueOnce({ data: { ok: true }, error: null });
+      render(
+        <SorobanPanel contractId={eleventh} onContractIdChange={() => {}} />,
+      );
+      fireEvent.change(screen.getByLabelText("Method"), {
+        target: { value: "balance" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: /invoke/i }));
+      await screen.findByText("Result", { selector: "span" });
+
+      const stored: string[] = JSON.parse(
+        localStorage.getItem("sorokit-soroban-contract-history") ?? "[]",
+      );
+      expect(stored).toHaveLength(10);
+      // The oldest entry (index 01) must have been evicted.
+      expect(stored).not.toContain(existing[existing.length - 1]);
+      // The newest entry is first.
+      expect(stored[0]).toBe(eleventh);
+    });
+
+    it("stores the most-recently used contract ID first (newest-first ordering)", async () => {
+      localStorage.clear();
+      const contractA = `C${"A".repeat(55)}`;
+      const contractB = `C${"B".repeat(55)}`;
+
+      // Invoke with A first, then B.
+      mockInvokeContract
+        .mockResolvedValueOnce({ data: { ok: true }, error: null })
+        .mockResolvedValueOnce({ data: { ok: true }, error: null });
+
+      const { rerender } = render(
+        <SorobanPanel contractId={contractA} onContractIdChange={() => {}} />,
+      );
+      fireEvent.change(screen.getByLabelText("Method"), {
+        target: { value: "balance" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: /invoke/i }));
+      await screen.findByText("Result", { selector: "span" });
+
+      // Clear UI state, switch to contract B.
+      fireEvent.click(screen.getByRole("button", { name: /clear/i }));
+      rerender(
+        <SorobanPanel contractId={contractB} onContractIdChange={() => {}} />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: /invoke/i }));
+      await screen.findByText("Result", { selector: "span" });
+
+      const stored: string[] = JSON.parse(
+        localStorage.getItem("sorokit-soroban-contract-history") ?? "[]",
+      );
+      // B was used most recently, so it must appear before A.
+      expect(stored.indexOf(contractB)).toBeLessThan(stored.indexOf(contractA));
+    });
+  });
+
   // ── Contract ID history (#205) ──────────────────────────────────────────
   describe("contract ID history", () => {
     it("shows Simulating… label while loading", async () => {
