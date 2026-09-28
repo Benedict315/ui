@@ -210,6 +210,22 @@ describe("NetworkBanner", () => {
       unmount();
       expect(document.documentElement.style.getPropertyValue("--banner-height")).toBe("0px");
     });
+
+    it("sets --banner-height via fallback when ResizeObserver is unavailable", () => {
+      const originalResizeObserver = global.ResizeObserver;
+      // @ts-ignore
+      global.ResizeObserver = undefined;
+
+      try {
+        mockNetwork(TESTNET_NETWORK);
+        render(<NetworkBanner />);
+        const height = document.documentElement.style.getPropertyValue("--banner-height");
+        expect(height).toBeTruthy();
+        expect(height).toMatch(/^\d+px$/);
+      } finally {
+        global.ResizeObserver = originalResizeObserver;
+      }
+    });
   });
 
   describe("Session dismiss behavior", () => {
