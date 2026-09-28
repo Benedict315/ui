@@ -182,7 +182,7 @@ describe("TransactionPanel", () => {
     await reviewAndConfirm();
 
     expect(await screen.findByText("Transaction failed")).toBeInTheDocument();
-    expect(screen.getByText("Submission rejected by network")).toBeInTheDocument();
+    expect(screen.getByText("Something went wrong while invoking the contract. Please try again.")).toBeInTheDocument();
   });
 
   it("shows validation error for invalid destination address", async () => {
@@ -790,7 +790,7 @@ describe("TransactionPanel", () => {
       await reviewAndConfirm();
 
       expect(await screen.findByText("Transaction failed")).toBeInTheDocument();
-      expect(screen.getByText(ERROR_MSG)).toBeInTheDocument();
+      expect(screen.getByText("Insufficient balance to submit this transaction. Add more XLM and try again.")).toBeInTheDocument();
     });
 
     it("AC5: clicking 'New Transaction' after success resets the form back to idle state", async () => {
@@ -992,7 +992,7 @@ describe("TransactionPanel", () => {
       await reviewAndConfirm();
       await screen.findByText("Transaction failed");
 
-      await waitFor(() => { expect(onError).toHaveBeenCalledWith("Insufficient balance"); });
+      await waitFor(() => { expect(onError).toHaveBeenCalledWith("Insufficient balance to submit this transaction. Add more XLM and try again."); });
       expect(onSuccess).not.toHaveBeenCalled();
     });
 
@@ -1011,7 +1011,7 @@ describe("TransactionPanel", () => {
       await reviewAndConfirm();
       await screen.findByText("Transaction failed");
 
-      await waitFor(() => { expect(onError).toHaveBeenCalledWith("Network unreachable"); });
+      await waitFor(() => { expect(onError).toHaveBeenCalledWith("Something went wrong while invoking the contract. Please try again."); });
       expect(onSuccess).not.toHaveBeenCalled();
     });
 
