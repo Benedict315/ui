@@ -22,6 +22,33 @@ interface BuilderState {
   notes: string;
 }
 
+function isValidSigner(obj: unknown): obj is Signer {
+  if (!obj || typeof obj !== "object") return false;
+  const s = obj as Record<string, unknown>;
+  return (
+    typeof s.id === "string" &&
+    typeof s.address === "string" &&
+    typeof s.weight === "number" &&
+    !Number.isNaN(s.weight) &&
+    typeof s.signed === "boolean"
+  );
+}
+
+function isValidBuilderState(parsed: unknown): parsed is BuilderState {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return false;
+  const s = parsed as Record<string, unknown>;
+  if ("signers" in s && s.signers !== undefined) {
+    if (!Array.isArray(s.signers) || !s.signers.every(isValidSigner)) return false;
+  }
+  if ("threshold" in s && s.threshold !== undefined) {
+    if (typeof s.threshold !== "number" || Number.isNaN(s.threshold)) return false;
+  }
+  if ("xdr" in s && s.xdr !== undefined && typeof s.xdr !== "string") return false;
+  if ("status" in s && s.status !== undefined && typeof s.status !== "string") return false;
+  if ("notes" in s && s.notes !== undefined && typeof s.notes !== "string") return false;
+  return true;
+}
+
 const STORAGE_KEY = "sorokit-multisig-builder-state";
 const memoryStorage = new Map<string, string>();
 
@@ -148,7 +175,18 @@ export function MultiSigTransactionBuilder() {
       return;
     }
     try {
-      const parsed = JSON.parse(raw) as BuilderState;
+      const parsed = JSON.parse(raw);
+      if (!isValidBuilderState(parsed)) {
+        storage.removeItem(STORAGE_KEY);
+        setSigners([createSigner()]);
+        setThreshold(1);
+        setXdr("<tx:xdr:placeholder>");
+        setStatus("Draft");
+        setNotes("");
+        setStep(0);
+        setLoadedMessage("Saved state was corrupt or invalid and has been reset");
+        return;
+      }
       setSigners(parsed.signers ?? [createSigner()]);
       setThreshold(parsed.threshold ?? 1);
       setXdr(parsed.xdr ?? "<tx:xdr:placeholder>");
@@ -157,7 +195,14 @@ export function MultiSigTransactionBuilder() {
       setStep(1);
       setLoadedMessage("Loaded saved transaction");
     } catch {
-      setLoadedMessage("Unable to load saved transaction");
+      storage.removeItem(STORAGE_KEY);
+      setSigners([createSigner()]);
+      setThreshold(1);
+      setXdr("<tx:xdr:placeholder>");
+      setStatus("Draft");
+      setNotes("");
+      setStep(0);
+      setLoadedMessage("Saved state was corrupt or invalid and has been reset");
     }
   }
 
