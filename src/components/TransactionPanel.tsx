@@ -12,6 +12,7 @@ import { useSorokit } from "@/context/useSorokit";
 import { type NetworkInfo, type TxResult } from "@/lib/client";
 import {
   cn,
+  friendlyError,
   truncateAddress,
   truncateToUtf8ByteLength,
   utf8ByteLength,
@@ -185,9 +186,10 @@ export function TransactionPanel({
       });
       if (signal.aborted) return;
       if (err) {
-        setError(err);
+        const message = friendlyError(err);
+        setError(message);
         setState("error");
-        onError?.(err);
+        onError?.(message);
         return;
       }
       setResult(data);
@@ -201,9 +203,10 @@ export function TransactionPanel({
     } catch (e) {
       if (!signal.aborted) {
         const msg = e instanceof Error ? e.message : "Unknown error";
-        setError(msg);
+        const message = friendlyError(msg);
+        setError(message);
         setState("error");
-        onError?.(msg);
+        onError?.(message);
       }
     } finally {
       setPreview(null);
