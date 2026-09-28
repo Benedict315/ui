@@ -1,6 +1,6 @@
 import "react-json-view-lite/dist/index.css";
 
-import { type ReactNode,useEffect, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { JsonView } from "react-json-view-lite";
 
 import { Badge } from "@/components/ui/Badge";

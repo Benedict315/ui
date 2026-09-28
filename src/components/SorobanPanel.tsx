@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
 
-import { ContractInteractionDebugger, type DebuggerEntry, addDebugHistory, createDebuggerEntry, readDebugHistory } from "./ContractInteractionDebugger";
+import { addDebugHistory, ContractInteractionDebugger, createDebuggerEntry, type DebuggerEntry, readDebugHistory } from "./ContractInteractionDebugger";
 
 type State = "idle" | "loading" | "success" | "error";
 
