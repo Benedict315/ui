@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MultiSigTransactionBuilder } from "./MultiSigTransactionBuilder";
 
+vi.mock("@/context/ToastContext", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 describe("MultiSigTransactionBuilder", () => {
   beforeEach(() => {
     const storage = window.localStorage;
@@ -26,6 +30,23 @@ describe("MultiSigTransactionBuilder", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
     expect(screen.getAllByText(/build transaction/i).length).toBeGreaterThan(0);
+  });
+
+  it("shows copy button in step 3 (final confirmation)", () => {
+    render(<MultiSigTransactionBuilder />);
+
+    // Configure signers and move to step 1
+    fireEvent.change(screen.getByLabelText(/signer 1 address/i), { target: { value: "GABC" } });
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+
+    // Move to step 2 (signatures)
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+
+    // Move to step 3 (final confirmation)
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+
+    // Verify copy button exists
+    expect(screen.getByRole("button", { name: /Copy XDR/i })).toBeInTheDocument();
   });
 
   it("saves and loads transactions from localStorage", async () => {

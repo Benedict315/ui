@@ -3,6 +3,8 @@
  * validator list. Controlled: all state lives in the parent via ValidatorFilter.
  */
 
+import { useEffect, useRef, useState } from "react";
+
 import {
   Cancel01Icon,
   FilterHorizontalIcon,
@@ -54,6 +56,31 @@ export function ValidatorSearch({
     patch({ sortDirection: filter.sortDirection === "desc" ? "asc" : "desc" });
   }
 
+  const [localQuery, setLocalQuery] = useState(filter.query);
+  const debounceTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setLocalQuery(filter.query);
+  }, [filter.query]);
+
+  function handleQueryChange(value: string) {
+    setLocalQuery(value);
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = window.setTimeout(() => {
+      patch({ query: value.trim() });
+    }, 300);
+  }
+
+  function handleClearQuery() {
+    setLocalQuery("");
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+    }
+    patch({ query: "" });
+  }
+
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       {/* ── Search bar ──────────────────────────────────────────────────────── */}
@@ -71,12 +98,8 @@ export function ValidatorSearch({
         </span>
         <input
           type="search"
-          value={filter.query}
-          // Trim leading/trailing whitespace before it ever reaches the
-          // filter — pasted validator addresses commonly carry surrounding
-          // whitespace, which would otherwise fail every `includes()` match
-          // in filterValidators().
-          onChange={(e) => patch({ query: e.target.value.trim() })}
+          value={localQuery}
+          onChange={(e) => handleQueryChange(e.target.value)}
           placeholder="Search validators…"
           aria-label="Search validators"
           className={cn(
@@ -84,13 +107,13 @@ export function ValidatorSearch({
             "text-[13px] text-ink placeholder:text-ink-4",
             "outline-none transition-colors",
             "focus:border-line-2 focus:ring-1 focus:ring-brand-dim",
-            filter.query.length > 0 && "pr-9",
+            localQuery.length > 0 && "pr-9",
           )}
         />
-        {filter.query.length > 0 && (
+        {localQuery.length > 0 && (
           <button
             type="button"
-            onClick={() => patch({ query: "" })}
+            onClick={handleClearQuery}
             aria-label="Clear search"
             className={cn(
               "absolute right-2.5 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded",

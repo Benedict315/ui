@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { Copy01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useToast } from "@/context/ToastContext";
 import { cn } from "@/lib/utils";
 
 type Step = 0 | 1 | 2 | 3;
@@ -125,6 +129,7 @@ export function MultiSigTransactionBuilder() {
   const [notes, setNotes] = useState("");
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [loadedMessage, setLoadedMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const { totalWeight, valid } = useMemo(() => validateThreshold(signers, threshold), [signers, threshold]);
 
@@ -328,7 +333,23 @@ export function MultiSigTransactionBuilder() {
               <p className="mt-1 text-[12px] text-ink-3">{notes || "No notes provided."}</p>
             </div>
             <div className="rounded-lg border border-line bg-surface-2 p-4">
-              <p className="text-[12px] font-semibold text-ink">Prepared XDR</p>
+              <div className="flex items-center justify-between">
+                <p className="text-[12px] font-semibold text-ink">Prepared XDR</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-ink-3 hover:text-ink-2 h-auto py-1 px-2 text-[11px]"
+                  onClick={() => {
+                    navigator.clipboard.writeText(xdr).catch(() => {});
+                    showToast("XDR copied to clipboard", "success");
+                  }}
+                  title="Copy XDR"
+                  aria-label="Copy XDR to clipboard"
+                >
+                  <HugeiconsIcon icon={Copy01Icon} size={14} className="mr-1 inline-block" />
+                  Copy
+                </Button>
+              </div>
               <pre className="mt-2 whitespace-pre-wrap break-all text-[12px] font-mono text-ink-2">{xdr}</pre>
             </div>
           </div>

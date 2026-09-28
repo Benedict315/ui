@@ -48,7 +48,7 @@ describe("SorobanPanel", () => {
   describe("invoke mode (default)", () => {
     it("should have invoke button disabled when method is empty", () => {
       render(<SorobanPanel contractId="" onContractIdChange={() => {}} />);
-      expect(screen.getByRole("button", { name: /invoke/i })).toBeDisabled();
+      expect(screen.getByTestId("soroban-submit")).toBeDisabled();
     });
 
     // Issue #581 — the Invoke button must submit the parent form natively
@@ -64,7 +64,7 @@ describe("SorobanPanel", () => {
         target: { value: "balance" },
       });
 
-      const invokeButton = screen.getByRole("button", { name: /invoke/i });
+      const invokeButton = screen.getByTestId("soroban-submit");
       const form = document.querySelector("form");
       expect(invokeButton).toHaveAttribute("type", "submit");
       expect(form).not.toBeNull();
@@ -84,7 +84,7 @@ describe("SorobanPanel", () => {
       fireEvent.change(screen.getByPlaceholderText(/transfer/i), { target: { value: "mint" } });
       fireEvent.change(screen.getByPlaceholderText(/\[.*\]/i), { target: { value: "invalid json {" } });
       rerender(<SorobanPanel contractId="C123" onContractIdChange={setContractId} />);
-      fireEvent.click(screen.getByRole("button", { name: /invoke/i }));
+      fireEvent.click(screen.getByTestId("soroban-submit"));
       expect(await screen.findByText(/Invalid JSON in arguments/i)).toBeInTheDocument();
     });
 
