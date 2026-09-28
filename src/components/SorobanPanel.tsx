@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSorokit } from "@/context/useSorokit";
 
-import { ContractInteractionDebugger } from "./ContractInteractionDebugger";
+import { ContractInteractionDebugger, type DebuggerEntry, addDebugHistory, createDebuggerEntry, readDebugHistory } from "./ContractInteractionDebugger";
 
 type State = "idle" | "loading" | "success" | "error";
 
@@ -98,6 +98,9 @@ export function SorobanPanel({
   const [contractHistory, setContractHistory] = useState<string[]>(() =>
     readContractHistory(),
   );
+  const [debugHistory, setDebugHistory] = useState<DebuggerEntry[]>(() =>
+    readDebugHistory(),
+  );
   const [abiOpen, setAbiOpen] = useState(false);
   const [abiRaw, setAbiRaw] = useState("");
   const [abiMethods, setAbiMethods] = useState<string[]>([]);
@@ -166,6 +169,7 @@ export function SorobanPanel({
         if (err) {
           setError(err);
           setState("error");
+          setDebugHistory((prev) => addDebugHistory(createDebuggerEntry({ contractId: contractId.trim(), method: method.trim(), args: parsedArgs, state: "error", error: err }), prev));
           return;
         }
         setResult(data);
@@ -174,6 +178,7 @@ export function SorobanPanel({
         setContractHistory((prev) =>
           addContractToHistory(contractId.trim(), prev),
         );
+        setDebugHistory((prev) => addDebugHistory(createDebuggerEntry({ contractId: contractId.trim(), method: method.trim(), args: parsedArgs, state: "success", result: data, txHash: extractTxHash(data) }), prev));
       } else {
         const { data, error: err } = await soroban.invokeContract({
           contractId: contractId.trim(),
@@ -185,6 +190,7 @@ export function SorobanPanel({
         if (err) {
           setError(err);
           setState("error");
+          setDebugHistory((prev) => addDebugHistory(createDebuggerEntry({ contractId: contractId.trim(), method: method.trim(), args: parsedArgs, state: "error", error: err }), prev));
           return;
         }
         setResult(data);
@@ -193,6 +199,7 @@ export function SorobanPanel({
         setContractHistory((prev) =>
           addContractToHistory(contractId.trim(), prev),
         );
+        setDebugHistory((prev) => addDebugHistory(createDebuggerEntry({ contractId: contractId.trim(), method: method.trim(), args: parsedArgs, state: "success", result: data, txHash: extractTxHash(data) }), prev));
       }
     } catch (e: unknown) {
       if (signal.aborted) return;
@@ -204,6 +211,7 @@ export function SorobanPanel({
             : "An unexpected error occurred while invoking the contract.";
       setError(message);
       setState("error");
+      setDebugHistory((prev) => addDebugHistory(createDebuggerEntry({ contractId: contractId.trim(), method: method.trim(), args: parseArgsInput(argsRef.current).parsedArgs, state: "error", error: message }), prev));
     }
   }
 
@@ -405,6 +413,8 @@ export function SorobanPanel({
                     result={result}
                     txHash={txHash}
                     error={error}
+                    history={debugHistory}
+                    onHistoryChange={setDebugHistory}
                   />
                 )}
 
