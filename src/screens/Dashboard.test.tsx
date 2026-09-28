@@ -1,7 +1,8 @@
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { NavSection } from "@/components/Sidebar";
+import type { NavSection } from "../components/Sidebar";
 
 import { Dashboard } from "./Dashboard";
 
@@ -89,6 +90,9 @@ vi.mock("@/screens/BudgetScreen", () => ({
 }));
 vi.mock("@/screens/NFTScreen", () => ({
   NFTScreen: stubScreen("nfts"),
+}));
+vi.mock("@/components/GovernanceDashboard", () => ({
+  GovernanceDashboard: stubScreen("governance"),
 }));
 
 describe("Dashboard", () => {

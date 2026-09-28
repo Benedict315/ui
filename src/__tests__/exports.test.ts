@@ -8,6 +8,7 @@ describe('Public exports surface', () => {
     expect(exports.AddressDisplay).toBeTypeOf('function');
     expect(exports.AssetPill).toBeTypeOf('function');
     expect(exports.ContractEventFeed).toBeTypeOf('function');
+    expect(exports.GovernanceDashboard).toBeTypeOf('function');
   });
 
   it('re-exports public types from client', () => {
@@ -19,6 +20,10 @@ describe('Public exports surface', () => {
       contractEvent: exports.ContractEvent;
       networkInfo: exports.NetworkInfo;
       invokeParams: exports.InvokeParams;
+      governanceProps: exports.GovernanceDashboardProps;
+      governanceProposal: exports.GovernanceProposal;
+      proposalStatus: exports.ProposalStatus;
+      voteChoice: exports.VoteChoice;
     };
     const actual: Expected = {} as Expected;
     expect(actual).toBeDefined();
