@@ -46,7 +46,7 @@ describe("Wallet flow integration", () => {
     await waitFor(() =>
       screen.getByRole("dialog", { name: /connect a wallet/i }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Freighter/i }));
     expect(mockConnect).toHaveBeenCalledTimes(1);
 
     (

@@ -100,7 +100,7 @@ describe("WalletConnectButton", () => {
         ).toBeInTheDocument(),
       );
 
-      fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
+      fireEvent.click(screen.getByRole("radio", { name: /Freighter/i }));
       expect(mockConnect).toHaveBeenCalledTimes(1);
     });
   });

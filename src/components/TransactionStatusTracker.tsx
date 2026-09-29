@@ -289,7 +289,7 @@ export function TransactionStatusTracker({
     };
 
     void pollTransactions();
-    txIntervalRef.current = window.setInterval(() => {
+    txIntervalRef.current = globalThis.setInterval(() => {
       void pollTransactions();
     }, pollIntervalMs);
 

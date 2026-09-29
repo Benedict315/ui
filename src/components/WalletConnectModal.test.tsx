@@ -49,10 +49,10 @@ describe("WalletConnectModal", () => {
     vi.mocked(useSorokit).mockReturnValue(mockUseSorokit());
     render(<WalletConnectModal open={true} onClose={mockOnClose} />);
     expect(screen.getByRole("dialog", { name: /connect a wallet/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Freighter" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "xBull" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Lobstr" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Albedo" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Freighter/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /xBull/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Lobstr/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Albedo/i })).toBeInTheDocument();
   });
 
   it("supports a custom wallet option list", () => {
@@ -64,8 +64,8 @@ describe("WalletConnectModal", () => {
         walletOptions={[{ id: "rabet", name: "Rabet", initial: "R", color: "#000" }]}
       />,
     );
-    expect(screen.getByRole("button", { name: "Rabet" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Freighter" })).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Rabet/i })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: /Freighter/i })).not.toBeInTheDocument();
   });
 
   it("calls connectWallet and shows a connecting state when a wallet is selected", () => {
@@ -74,7 +74,7 @@ describe("WalletConnectModal", () => {
     );
     render(<WalletConnectModal open={true} onClose={mockOnClose} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Freighter/i }));
 
     expect(mockConnect).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("status")).toHaveTextContent(/waiting for freighter approval/i);
@@ -87,7 +87,7 @@ describe("WalletConnectModal", () => {
     );
     render(<WalletConnectModal open={true} onClose={mockOnClose} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Freighter/i }));
 
     await waitFor(() =>
       expect(screen.getByRole("dialog", { name: /connected/i })).toBeInTheDocument(),
@@ -106,7 +106,7 @@ describe("WalletConnectModal", () => {
     );
     render(<WalletConnectModal open={true} onClose={mockOnClose} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Freighter/i }));
 
     await waitFor(() =>
       expect(screen.getByRole("dialog", { name: /connection failed/i })).toBeInTheDocument(),
@@ -128,7 +128,7 @@ describe("WalletConnectModal", () => {
     );
     render(<WalletConnectModal open={true} onClose={mockOnClose} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Freighter/i }));
 
     await waitFor(() =>
       expect(screen.getByText(/install the freighter browser extension/i)).toBeInTheDocument(),
@@ -149,7 +149,7 @@ describe("WalletConnectModal", () => {
     );
     render(<WalletConnectModal open={true} onClose={mockOnClose} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Freighter/i }));
     await waitFor(() => screen.getByRole("button", { name: "Done" }));
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -181,7 +181,7 @@ describe("WalletConnectModal", () => {
       );
       render(<WalletConnectModal open={true} onClose={mockOnClose} />);
 
-      fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
+      fireEvent.click(screen.getByRole("radio", { name: /Freighter/i }));
 
       await waitFor(() =>
         expect(screen.getByTestId("install-wallet-link")).toBeInTheDocument(),
