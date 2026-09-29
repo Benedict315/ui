@@ -45,9 +45,13 @@ describe("Wallet Connect Flow Integration", () => {
       </SorokitProvider>
     );
 
+    // The mock address also ends in "123456789", so every sequence assertion is
+    // anchored on the Sequence label instead of the bare number.
+    const sequenceRow = () => screen.getByText(/^Sequence$/i).parentElement;
+
     // Initial state: Wallet not connected, AccountCard should not show sequence
     expect(screen.getByRole("button", { name: /connect/i })).toBeInTheDocument();
-    expect(screen.queryByText(/Sequence:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Sequence$/i)).not.toBeInTheDocument();
 
     // Action 1: Connect Wallet — opens the adapter-selection modal
     await act(async () => {
@@ -66,7 +70,7 @@ describe("Wallet Connect Flow Integration", () => {
     // Disconnect button should appear inside WalletConnectButton or similar if it toggles
     // We wait for the account data to be fetched and rendered in AccountCard
     await waitFor(() => {
-      expect(screen.getByText(/123456789/i)).toBeInTheDocument(); // Sequence number
+      expect(sequenceRow()).toHaveTextContent("123456789"); // Sequence number
     });
 
     // Action 2: Disconnect Wallet (via context; connected button opens a modal instead)
@@ -78,6 +82,6 @@ describe("Wallet Connect Flow Integration", () => {
     // Verification 2: Wallet disconnected, AccountCard returns null (or clears data)
     expect(mockClient.wallet.disconnect).toHaveBeenCalled();
     expect(screen.getByRole("button", { name: /connect/i })).toBeInTheDocument();
-    expect(screen.queryByText(/123456789/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Sequence$/i)).not.toBeInTheDocument();
   });
 });
