@@ -169,7 +169,7 @@ export function TransactionStatusTracker({
     initialHashes.map(createTrackedTransaction),
   );
   const trackedRef = useRef(tracked);
-  const txIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const txIntervalRef = useRef<number | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
@@ -291,7 +291,7 @@ export function TransactionStatusTracker({
     void pollTransactions();
     txIntervalRef.current = window.setInterval(() => {
       void pollTransactions();
-    }, pollIntervalMs);
+    }, pollIntervalMs) as unknown as number;
 
     return () => {
       if (txIntervalRef.current !== null) {
@@ -328,7 +328,7 @@ export function TransactionStatusTracker({
     try {
       await navigator.clipboard.writeText(hash);
       setCopiedHash(hash);
-      window.setTimeout(() => setCopiedHash((current) => (current === hash ? null : current)), 1800);
+      window.setTimeout(() => setCopiedHash((current) => (current === hash ? null : current)), 1800) as unknown as number;
     } catch {
       // Ignore clipboard failures and keep the UI responsive.
     }
