@@ -57,7 +57,7 @@ describe("Wallet Connect Flow Integration", () => {
       screen.getByRole("dialog", { name: /connect a wallet/i }),
     );
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Freighter" }));
+      fireEvent.click(screen.getByRole("radio", { name: /Freighter/i }));
     });
 
     // Verification 1: Wallet connected, AccountCard renders account data

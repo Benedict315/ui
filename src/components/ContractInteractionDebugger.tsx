@@ -265,7 +265,10 @@ export function ContractInteractionDebugger({
     setCopiedKey(key);
     if (contractId && method) {
       const entry = createDebuggerEntry({ contractId, method, args, state, result, txHash, error, stateBefore, stateAfter });
-      onHistoryChange?.(addDebugHistory(entry, history));
+      // Persist first: an optional call would skip `addDebugHistory` entirely
+      // when no `onHistoryChange` handler is supplied, silently losing the entry.
+      const nextHistory = addDebugHistory(entry, history);
+      onHistoryChange?.(nextHistory);
     }
     window.setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 1600);
   };

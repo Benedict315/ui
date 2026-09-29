@@ -75,6 +75,9 @@ describe("SorokitProvider — switchNetwork concurrency (#537)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    // A persisted preference is what makes the provider issue its mount-time
+    // restore switch, which the "restore + A" call counts below depend on.
+    window.localStorage.setItem("sorokit_network", "testnet");
   });
 
   it("exposes isSwitchingNetwork true while a switch is in flight and false after", async () => {
