@@ -10,11 +10,15 @@ import { useSorokit } from "@/context/useSorokit";
 import { truncateAddress } from "@/lib/utils";
 
 function getStellarExpertUrl(address: string, networkName?: string) {
+  if (networkName === "futurenet" || networkName === "localnet") {
+    return null;
+  }
+  const segment = networkName === "testnet" ? "testnet" : "public";
   const base =
     networkName === "testnet"
       ? "https://testnet.stellar.expert"
       : "https://stellar.expert";
-  return `${base}/explorer/public/account/${address}`;
+  return `${base}/explorer/${segment}/account/${address}`;
 }
 
 /** Stellar base reserve: each subentry (trustline, offer, signer, data entry…) locks up 0.5 XLM. */
@@ -70,10 +74,20 @@ export function AccountCard() {
               onCopy={() => setToastVisible(true)}
             />
             <a
-              href={getStellarExpertUrl(address, network?.name)}
+              href={getStellarExpertUrl(address, network?.name) ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] text-brand hover:underline"
+              aria-disabled={getStellarExpertUrl(address, network?.name) === null}
+              title={
+                getStellarExpertUrl(address, network?.name) === null
+                  ? "Stellar Expert is not available for this network"
+                  : undefined
+              }
+              className={`text-[11px] hover:underline ${
+                getStellarExpertUrl(address, network?.name) === null
+                  ? "text-ink-4 cursor-not-allowed pointer-events-none"
+                  : "text-brand"
+              }`}
             >
               View on Stellar Expert →
             </a>
