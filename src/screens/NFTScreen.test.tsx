@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createMockClient, MOCK_ADDRESS } from "@/lib/mock-client";
 import { useSorokit } from "@/context/useSorokit";
-import { MOCK_ADDRESS, createMockClient } from "@/lib/mock-client";
 
 import { NFTScreen } from "./NFTScreen";
 
