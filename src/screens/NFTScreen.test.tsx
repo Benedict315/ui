@@ -1,24 +1,31 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SorokitProvider } from "@/context/SorokitProvider";
-import { createMockClient } from "@/lib/mock-client";
-
+import { useSorokit } from "@/context/useSorokit";
+import { MOCK_ADDRESS, createMockClient } from "@/lib/mock-client";
 import { NFTScreen } from "./NFTScreen";
+
+vi.mock("@/context/useSorokit", () => ({
+  useSorokit: vi.fn(),
+}));
 
 describe("NFTScreen", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders the screen title and gallery heading", () => {
-    const client = createMockClient();
-    render(
-      <SorokitProvider client={client}>
-        <NFTScreen />
-      </SorokitProvider>,
-    );
+  function mockSorokitState(client = createMockClient(), overrides = {}) {
+    vi.mocked(useSorokit).mockReturnValue({
+      address: MOCK_ADDRESS,
+      isConnected: true,
+      client,
+      ...overrides,
+    } as any);
+  }
 
+  it("renders the screen title and gallery heading", () => {
+    mockSorokitState();
+    render(<NFTScreen />);
     expect(screen.getAllByRole("heading", { name: "NFT Gallery" })).toHaveLength(2);
     expect(screen.getByText("Browse and manage your NFT collection")).toBeInTheDocument();
   });
@@ -26,12 +33,9 @@ describe("NFTScreen", () => {
   it("shows the gallery loading state while NFTs are fetched", async () => {
     const loadingClient = createMockClient();
     loadingClient.nft.getNfts = vi.fn().mockReturnValue(new Promise(() => {}));
+    mockSorokitState(loadingClient);
 
-    render(
-      <SorokitProvider client={loadingClient}>
-        <NFTScreen />
-      </SorokitProvider>,
-    );
+    render(<NFTScreen />);
 
     await waitFor(() => {
       expect(screen.getByTestId("nft-loading-skeleton")).toBeInTheDocument();
@@ -40,13 +44,13 @@ describe("NFTScreen", () => {
 
   it("shows the gallery error state when loading NFTs fails", async () => {
     const errorClient = createMockClient();
-    errorClient.nft.getNfts = vi.fn().mockResolvedValue({ data: null, error: "Network failure" });
+    errorClient.nft.getNfts = vi.fn().mockResolvedValue({
+      data: null,
+      error: "Network failure",
+    });
+    mockSorokitState(errorClient);
 
-    render(
-      <SorokitProvider client={errorClient}>
-        <NFTScreen />
-      </SorokitProvider>,
-    );
+    render(<NFTScreen />);
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Network failure");
@@ -56,12 +60,9 @@ describe("NFTScreen", () => {
   it("shows the gallery empty state when no NFTs are found", async () => {
     const emptyClient = createMockClient();
     emptyClient.nft.getNfts = vi.fn().mockResolvedValue({ data: [], error: null });
+    mockSorokitState(emptyClient);
 
-    render(
-      <SorokitProvider client={emptyClient}>
-        <NFTScreen />
-      </SorokitProvider>,
-    );
+    render(<NFTScreen />);
 
     await waitFor(() => {
       expect(screen.getByText(/no nfts found in this wallet/i)).toBeInTheDocument();
@@ -90,12 +91,9 @@ describe("NFTScreen", () => {
       ],
       error: null,
     });
+    mockSorokitState(successClient);
 
-    render(
-      <SorokitProvider client={successClient}>
-        <NFTScreen />
-      </SorokitProvider>,
-    );
+    render(<NFTScreen />);
 
     await waitFor(() => {
       expect(screen.getAllByTestId("nft-card")).toHaveLength(1);
