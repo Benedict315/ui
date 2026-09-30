@@ -1,36 +1,20 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useSorokit } from "@/context/useSorokit";
-import { getClient } from "@/lib/client";
+import { SorokitProvider } from "@/context/SorokitProvider";
+import { createMockClient } from "@/lib/mock-client";
 
 import { NFTScreen } from "./NFTScreen";
 
-vi.mock("@/context/useSorokit", () => ({
-  useSorokit: vi.fn(),
-}));
-
-vi.mock("@/lib/client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/client")>();
-  return {
-    ...actual,
-    getClient: vi.fn(),
-  };
-});
-
-const VALID_ADDRESS = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA";
-
 describe("NFTScreen", () => {
+  let mockClient: ReturnType<typeof createMockClient>;
+
   beforeEach(() => {
+    mockClient = createMockClient();
     vi.clearAllMocks();
   });
 
   it("renders the screen title and gallery heading", () => {
-    vi.mocked(useSorokit).mockReturnValue({
-      address: null,
-      isConnected: false,
-    } as unknown as ReturnType<typeof useSorokit>);
-
     render(<NFTScreen />);
 
     expect(screen.getAllByRole("heading", { name: "NFT Gallery" })).toHaveLength(2);
@@ -38,18 +22,14 @@ describe("NFTScreen", () => {
   });
 
   it("shows the gallery loading state while NFTs are fetched", async () => {
-    vi.mocked(useSorokit).mockReturnValue({
-      address: VALID_ADDRESS,
-      isConnected: true,
-      get client() {
-        return getClient();
-      },
-    } as unknown as ReturnType<typeof useSorokit>);
-    vi.mocked(getClient).mockReturnValue({
-      nft: { getNfts: vi.fn().mockReturnValue(new Promise(() => {})) },
-    } as unknown as ReturnType<typeof getClient>);
+    const loadingClient = createMockClient();
+    loadingClient.nft.getNfts = vi.fn().mockReturnValue(new Promise(() => {}));
 
-    render(<NFTScreen />);
+    render(
+      <SorokitProvider client={loadingClient}>
+        <NFTScreen />
+      </SorokitProvider>,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("nft-loading-skeleton")).toBeInTheDocument();
@@ -57,23 +37,66 @@ describe("NFTScreen", () => {
   });
 
   it("shows the gallery error state when loading NFTs fails", async () => {
-    vi.mocked(useSorokit).mockReturnValue({
-      address: VALID_ADDRESS,
-      isConnected: true,
-      get client() {
-        return getClient();
-      },
-    } as unknown as ReturnType<typeof useSorokit>);
-    vi.mocked(getClient).mockReturnValue({
-      nft: {
-        getNfts: vi.fn().mockResolvedValue({ data: null, error: "Network failure" }),
-      },
-    } as unknown as ReturnType<typeof getClient>);
+    const errorClient = createMockClient();
+    errorClient.nft.getNfts = vi.fn().mockResolvedValue({ data: null, error: "Network failure" });
 
-    render(<NFTScreen />);
+    render(
+      <SorokitProvider client={errorClient}>
+        <NFTScreen />
+      </SorokitProvider>,
+    );
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Network failure");
+    });
+  });
+
+  it("shows the gallery empty state when no NFTs are found", async () => {
+    const emptyClient = createMockClient();
+    emptyClient.nft.getNfts = vi.fn().mockResolvedValue({ data: [], error: null });
+
+    render(
+      <SorokitProvider client={emptyClient}>
+        <NFTScreen />
+      </SorokitProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/no nfts found in this wallet/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows the gallery success state when NFTs are loaded", async () => {
+    const successClient = createMockClient();
+    successClient.nft.getNfts = vi.fn().mockResolvedValue({
+      data: [
+        {
+          id: "nft-1",
+          tokenId: "1",
+          contractId: "CABC",
+          collectionId: "col-1",
+          collectionName: "Cool Cats",
+          owner: "GABC",
+          metadata: {
+            name: "Cool Cat #1",
+            description: "A cool cat",
+            image: "https://example.com/cat1.png",
+            attributes: [],
+          },
+          floorPrice: "100",
+        },
+      ],
+      error: null,
+    });
+
+    render(
+      <SorokitProvider client={successClient}>
+        <NFTScreen />
+      </SorokitProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("nft-card")).toHaveLength(1);
     });
   });
 });
