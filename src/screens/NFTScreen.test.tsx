@@ -12,7 +12,12 @@ describe("NFTScreen", () => {
   });
 
   it("renders the screen title and gallery heading", () => {
-    render(<NFTScreen />);
+    const client = createMockClient();
+    render(
+      <SorokitProvider client={client}>
+        <NFTScreen />
+      </SorokitProvider>,
+    );
 
     expect(screen.getAllByRole("heading", { name: "NFT Gallery" })).toHaveLength(2);
     expect(screen.getByText("Browse and manage your NFT collection")).toBeInTheDocument();
