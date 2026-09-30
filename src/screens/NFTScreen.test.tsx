@@ -7,10 +7,7 @@ import { createMockClient } from "@/lib/mock-client";
 import { NFTScreen } from "./NFTScreen";
 
 describe("NFTScreen", () => {
-  let mockClient: ReturnType<typeof createMockClient>;
-
   beforeEach(() => {
-    mockClient = createMockClient();
     vi.clearAllMocks();
   });
 
